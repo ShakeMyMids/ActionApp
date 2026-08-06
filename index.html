@@ -8,8 +8,10 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Action Cam Studio">
     <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="./icons/icon-192.png" sizes="192x192" type="image/png">
+    <link rel="apple-touch-icon" href="./icons/icon-192.png">
     <meta name="theme-color" content="#0f172a">
-    
+
     <title>Action Cam Studio v11 - Clean UI & Pro Layout</title>
     <style>
         /* COLORI TEMA SCURO (DEFAULT) */
@@ -318,7 +320,7 @@
                         <div class="section-subtitle">
                             <span>Seleziona Situazioni</span><span class="multi-hint">✨ Multi-Selezione</span>
                         </div>
-                        <div class="options-grid" style="margin-bottom:0;">
+                        <div id="scenario-chips-container" class="options-grid" style="margin-bottom:0;">
                             <button class="btn-chip selected" onclick="toggleScenario('reel', this)"><span>📱 Reel / IG 9:16</span></button>
                             <button class="btn-chip" onclick="toggleScenario('sport', this)"><span>🚴 Bici / Sport</span></button>
                             <button class="btn-chip" onclick="toggleScenario('travel', this)"><span>✈️ Viaggi / Family</span></button>
@@ -519,7 +521,7 @@
                         <div class="calc-output">
                             <div style="font-size: 0.78rem; color: var(--text-secondary); text-transform: uppercase;">Shutter Perfetto</div>
                             <div id="calc-result-shutter" class="calc-val">1/60 s</div>
-                            <div id="calc-result-nd" class="calc-sub">In sole diretto (EV15): Filtro ND32 o ND64</div>
+                            <div id="calc-result-nd" class="calc-sub">In sole diretto (EV15): ND64 / ND128</div>
                         </div>
                     </div>
 
@@ -727,25 +729,21 @@
     </div>
 
     <script>
-        // Theme Management
-        function toggleTheme(checkbox) {
-            if(checkbox.checked) { document.documentElement.setAttribute('data-theme', 'light'); localStorage.setItem('theme', 'light'); } 
-            else { document.documentElement.setAttribute('data-theme', 'dark'); localStorage.setItem('theme', 'dark'); }
-        }
+        'use strict';
 
-        window.addEventListener('load', () => {
-            const savedTheme = localStorage.getItem('theme');
-            if (savedTheme) { document.documentElement.setAttribute('data-theme', savedTheme); if (savedTheme === 'light') { document.getElementById('theme-toggle').checked = true; } }
-            if ('serviceWorker' in navigator) { navigator.serviceWorker.register('./sw.js'); }
-            updateResults(); // Inizializza i risultati all'avvio
-        });
+        /* ==================================================================
+           1. CONFIGURAZIONE
+           Tutto ciò che *descrive* camere, brand, scenari ed etichette sta
+           qui, separato dal motore di calcolo: aggiungere un modello o uno
+           scenario non richiede di toccare la logica di rendering.
+           ================================================================== */
 
-        let currentMode = 'video'; 
-        let currentBrand = 'dji'; let currentModelKey = 'action5pro';
-        let selectedScenarios = ['reel']; let selectedEditGoals = ['dlog_lut'];
-        let currentBitrateProfile = 'high'; let currentLuce = 'sole'; let currentRegion = 'pal'; let currentSub = 'fuori'; let currentTemp = 20;
-
-        let compromiseChoices = { fpsPriority: 'light', profilePriority: 'dlog', fovPriority: 'dewarp', stabPriority: 'rocksteady' };
+        const STORAGE_KEYS = {
+            theme: 'camstudio_theme',
+            legacyTheme: 'theme',
+            presets: 'camstudio_presets_v11',
+            legacyPresets: 'action4_custom_presets'
+        };
 
         const cameraModelsData = {
             dji: {
@@ -766,334 +764,771 @@
             }
         };
 
-        function updateUIState() {
-            document.querySelectorAll('#panel-wizard .btn-radio[onclick*="setMode"]').forEach(btn => { btn.classList.remove('active'); if (btn.getAttribute('onclick').includes(`'${currentMode}'`)) btn.classList.add('active'); });
-            document.querySelectorAll('#panel-wizard .btn-chip').forEach(btn => btn.classList.remove('selected'));
-            selectedScenarios.forEach(scen => { let btn = document.querySelector(`#panel-wizard .btn-chip[onclick*="'${scen}'"]`); if (btn) btn.classList.add('selected'); });
-            document.querySelectorAll('#panel-wizard .btn-radio[onclick*="setRegion"]').forEach(btn => { btn.classList.remove('active'); if (btn.getAttribute('onclick').includes(`'${currentRegion}'`)) btn.classList.add('active'); });
-            document.querySelectorAll('#panel-wizard .btn-radio[onclick*="setLuce"]').forEach(btn => { btn.classList.remove('active'); if (btn.getAttribute('onclick').includes(`'${currentLuce}'`)) btn.classList.add('active'); });
-            document.querySelectorAll('#panel-wizard .btn-radio[onclick*="setSub"]').forEach(btn => { btn.classList.remove('active'); if (btn.getAttribute('onclick').includes(`'${currentSub}'`)) btn.classList.add('active'); });
-            document.querySelectorAll('#panel-wizard .btn-radio[onclick*="setBitrateProf"]').forEach(btn => { btn.classList.remove('active'); if (btn.getAttribute('onclick').includes(`'${currentBitrateProfile}'`)) btn.classList.add('active'); });
+        // Ogni brand porta con sé il proprio tema, le etichette e il nome
+        // dell'app di editing: niente più catene di if sul brand corrente.
+        const BRAND_CONFIG = {
+            dji: { cardId: 'brand-card-dji', activeClass: 'active-dji', colorVar: 'var(--dji-teal)', badge: 'DJI Studio', indicator: 'DJI Selected', editApp: 'DJI Mimo / LightCut', wideFov: 'Wide', baseFov: 'Standard (Dewarp)' },
+            gopro: { cardId: 'brand-card-gopro', activeClass: 'active-gopro', colorVar: 'var(--gopro-blue)', badge: 'GoPro Studio', indicator: 'GoPro Selected', editApp: 'GoPro Quik / DaVinci', wideFov: 'Wide / SuperView', baseFov: 'Linear (o Horizon Lock)' },
+            insta360: { cardId: 'brand-card-insta', activeClass: 'active-insta', colorVar: 'var(--insta-yellow)', badge: 'Insta360 Studio', indicator: 'Insta360 Selected', editApp: 'Insta360 App / Studio', wideFov: 'UltraWide / ActionView', baseFov: 'Dewarp (o MegaView)' }
+        };
+
+        const SCENARIO_LABELS = { reel: '📱 Reel', sport: '🚴 Sport', travel: '✈️ Viaggi', indoor: '🏠 Indoor', car: '🚗 Auto', night: '🌙 Notturno', slowmo: '⚡ SlowMo', gyroflow: '💻 Gyroflow' };
+
+        const ND_NONE = '❌ NO ND (Sottoesposizione)';
+
+        // Filtri ND consigliati. Righe = luce ambientale, colonne = fascia di
+        // shutter derivata dagli fps (regola 180°): <=30fps → ~1/50-1/60s,
+        // <=60fps → ~1/100-1/120s, >60fps → 1/200s e oltre. Ogni raddoppio
+        // degli fps dimezza il tempo di posa, quindi serve ~1 stop di ND in meno.
+        // Riferimento: f/2.8 e ISO 100 a 1/50s in pieno sole (EV15) chiedono
+        // circa 6.4 stop di taglio → ND64/ND128.
+        const ND_TABLE = {
+            sole: ['ND64 / ND128', 'ND32 / ND64', 'ND16 / ND32'],
+            ombra: ['ND16 / ND32', 'ND8 / ND16', 'Nessuno o ND8'],
+            scarsa: [ND_NONE, ND_NONE, ND_NONE]
+        };
+
+        const BITRATE_PROFILES = {
+            high: { factor: 1, label: 'Max Qualità' },
+            std: { factor: 0.80, label: 'Std Qualità' },
+            eco: { factor: 0.50, label: 'Endurance' }
+        };
+
+        const BATTERY_ESTIMATES = {
+            '-10': { time: '~70 Minuti', color: '#ef4444', note: '⚠️ Freddo intenso: tensione batteria cala. Conservale al caldo.' },
+            '20': { time: '~115 Minuti', color: 'var(--green)', note: '✅ Condizioni ottimali di registrazione continua.' },
+            '35': { time: '~90 Minuti', color: 'var(--amber)', note: '☀️ Caldo estivo: in 4K/60fps la cam può surriscaldarsi.' }
+        };
+
+        /* ==================================================================
+           2. UTILITY
+           ================================================================== */
+
+        function $(id) { return document.getElementById(id); }
+        function setText(id, text) { const el = $(id); if (el) el.innerText = text; }
+        function setHtml(id, html) { const el = $(id); if (el) el.innerHTML = html; }
+
+        const HTML_ESCAPES = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+        function escapeHtml(value) {
+            return String(value).replace(/[&<>"']/g, ch => HTML_ESCAPES[ch]);
         }
 
-        function applyMultisportPreset() {
-            currentMode = 'video'; selectedScenarios = ['sport', 'travel']; currentBitrateProfile = 'std'; currentLuce = 'sole'; currentSub = 'fuori'; 
-            compromiseChoices.fpsPriority = 'action'; compromiseChoices.profilePriority = 'normal'; compromiseChoices.fovPriority = 'wide'; compromiseChoices.stabPriority = 'rocksteady';
-            updateUIState(); updateResults(); document.querySelector('.results-container').scrollIntoView({ behavior: 'smooth' });
+        // localStorage può lanciare (Safari privato, quota piena): l'app deve
+        // continuare a funzionare anche senza persistenza.
+        function storageGet(key) {
+            try { return localStorage.getItem(key); } catch (e) { return null; }
+        }
+        function storageSet(key, value) {
+            try { localStorage.setItem(key, value); return true; } catch (e) { return false; }
         }
 
-        function setMode(mode, btn) { currentMode = mode; updateUIState(); updateResults(); }
-        function setBitrateProf(val, btn) { currentBitrateProfile = val; updateUIState(); updateResults(); }
-        function setRegion(reg, btn) { currentRegion = reg; updateUIState(); updateResults(); }
-        function setLuce(luce, btn) { currentLuce = luce; updateUIState(); updateResults(); }
-        function setSub(sub, btn) { currentSub = sub; updateUIState(); updateResults(); }
-        
-        function selectBrand(brand) {
-            currentBrand = brand; currentModelKey = Object.keys(cameraModelsData[brand])[0];
-            document.getElementById('brand-card-dji').className = 'brand-card' + (brand === 'dji' ? ' active-dji' : '');
-            document.getElementById('brand-card-gopro').className = 'brand-card' + (brand === 'gopro' ? ' active-gopro' : '');
-            document.getElementById('brand-card-insta').className = 'brand-card' + (brand === 'insta360' ? ' active-insta' : '');
-            const badgeEl = document.getElementById('app-brand-badge'); const root = document.documentElement;
+        function shutterFor(fps) { return `1/${fps * 2} s`; }
 
-            if (brand === 'dji') { root.style.setProperty('--brand-color', 'var(--dji-teal)'); badgeEl.innerText = 'DJI Studio'; document.getElementById('brand-indicator').innerText = 'DJI Selected'; }
-            else if (brand === 'gopro') { root.style.setProperty('--brand-color', 'var(--gopro-blue)'); badgeEl.innerText = 'GoPro Studio'; document.getElementById('brand-indicator').innerText = 'GoPro Selected'; }
-            else if (brand === 'insta360') { root.style.setProperty('--brand-color', 'var(--insta-yellow)'); badgeEl.innerText = 'Insta360 Studio'; document.getElementById('brand-indicator').innerText = 'Insta360 Selected'; }
-            renderModelChips(); updateResults(); updateEditingGuide();
+        function ndFor(fps, light) {
+            const tier = fps <= 30 ? 0 : fps <= 60 ? 1 : 2;
+            return (ND_TABLE[light] || ND_TABLE.sole)[tier];
         }
 
-        function renderModelChips() {
-            const container = document.getElementById('model-chips-container'); const models = cameraModelsData[currentBrand]; const ind = document.getElementById('model-indicator');
-            if (models[currentModelKey] && ind) ind.innerText = models[currentModelKey].shortName;
-            if (container) { container.innerHTML = Object.keys(models).map(key => { const isSelected = (key === currentModelKey) ? 'selected' : ''; return `<button class="btn-chip ${isSelected}" onclick="selectModel('${key}', this)"><span>${models[key].shortName}</span></button>`; }).join(''); }
+        function activeModel() {
+            const brandModels = cameraModelsData[currentBrand];
+            return brandModels[currentModelKey] || Object.values(brandModels)[0];
         }
 
-        function selectModel(modelKey, btn) {
-            currentModelKey = modelKey;
-            if (btn) { btn.parentElement.querySelectorAll('.btn-chip').forEach(b => b.classList.remove('selected')); btn.classList.add('selected'); }
-            if (document.getElementById('model-indicator')) document.getElementById('model-indicator').innerText = cameraModelsData[currentBrand][currentModelKey].shortName;
-            updateResults(); updateEditingGuide();
+        function activeBrandConfig() { return BRAND_CONFIG[currentBrand] || BRAND_CONFIG.dji; }
+
+        // Marca come .active il solo bottone il cui onclick contiene il valore dato.
+        function syncRadioGroup(selector, value) {
+            document.querySelectorAll(selector).forEach(btn => {
+                btn.classList.toggle('active', (btn.getAttribute('onclick') || '').includes(`'${value}'`));
+            });
+        }
+
+        /* ==================================================================
+           3. STATO APPLICAZIONE
+           ================================================================== */
+
+        let currentMode = 'video';
+        let currentBrand = 'dji';
+        let currentModelKey = 'action5pro';
+        let selectedScenarios = ['reel'];
+        let selectedEditGoals = ['dlog_lut'];
+        let currentBitrateProfile = 'high';
+        let currentLuce = 'sole';
+        let currentRegion = 'pal';
+        let currentSub = 'fuori';
+        let currentTemp = 20;
+        let compromiseChoices = { fpsPriority: 'light', profilePriority: 'dlog', fovPriority: 'dewarp', stabPriority: 'rocksteady' };
+
+        // fps calcolati dall'ultimo giro del motore video, usati dal simulatore.
+        let lastComputedFps = 30;
+
+        /* ==================================================================
+           4. TEMA E NAVIGAZIONE
+           ================================================================== */
+
+        function applyTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            const toggle = $('theme-toggle');
+            if (toggle) toggle.checked = (theme === 'light');
+        }
+
+        function toggleTheme(checkbox) {
+            const theme = checkbox.checked ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', theme);
+            storageSet(STORAGE_KEYS.theme, theme);
         }
 
         function switchTab(tabId, btn) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-            btn.classList.add('active'); document.getElementById('panel-' + tabId).classList.add('active');
+            btn.classList.add('active');
+            const panel = $('panel-' + tabId);
+            if (panel) panel.classList.add('active');
         }
+
+        /* ==================================================================
+           5. SINCRONIZZAZIONE UI
+           ================================================================== */
+
+        function updateUIState() {
+            syncRadioGroup('#panel-wizard .btn-radio[onclick*="setMode"]', currentMode);
+            syncRadioGroup('#panel-wizard .btn-radio[onclick*="setRegion"]', currentRegion);
+            syncRadioGroup('#panel-wizard .btn-radio[onclick*="setLuce"]', currentLuce);
+            syncRadioGroup('#panel-wizard .btn-radio[onclick*="setSub"]', currentSub);
+            syncRadioGroup('#panel-wizard .btn-radio[onclick*="setBitrateProf"]', currentBitrateProfile);
+
+            // Solo i chip degli scenari: i chip dei modelli vivono in un altro
+            // container e vengono ridisegnati da renderModelChips().
+            document.querySelectorAll('#scenario-chips-container .btn-chip').forEach(btn => {
+                const onclick = btn.getAttribute('onclick') || '';
+                btn.classList.toggle('selected', selectedScenarios.some(scen => onclick.includes(`'${scen}'`)));
+            });
+
+            document.querySelectorAll('#panel-editing .btn-chip').forEach(btn => {
+                const onclick = btn.getAttribute('onclick') || '';
+                btn.classList.toggle('selected', selectedEditGoals.some(goal => onclick.includes(`'${goal}'`)));
+            });
+
+            renderBrandCards();
+            renderModelChips();
+        }
+
+        function renderBrandCards() {
+            Object.keys(BRAND_CONFIG).forEach(brand => {
+                const cfg = BRAND_CONFIG[brand];
+                const card = $(cfg.cardId);
+                if (card) card.className = 'brand-card' + (brand === currentBrand ? ' ' + cfg.activeClass : '');
+            });
+            const cfg = activeBrandConfig();
+            document.documentElement.style.setProperty('--brand-color', cfg.colorVar);
+            setText('app-brand-badge', cfg.badge);
+            setText('brand-indicator', cfg.indicator);
+        }
+
+        function renderModelChips() {
+            const container = $('model-chips-container');
+            const models = cameraModelsData[currentBrand];
+            if (models[currentModelKey]) setText('model-indicator', models[currentModelKey].shortName);
+            if (!container) return;
+            container.innerHTML = Object.keys(models).map(key =>
+                `<button class="btn-chip ${key === currentModelKey ? 'selected' : ''}" onclick="selectModel('${key}', this)"><span>${escapeHtml(models[key].shortName)}</span></button>`
+            ).join('');
+        }
+
+        function selectBrand(brand) {
+            if (!BRAND_CONFIG[brand]) return;
+            currentBrand = brand;
+            currentModelKey = Object.keys(cameraModelsData[brand])[0];
+            renderBrandCards();
+            renderModelChips();
+            updateResults();
+            updateEditingGuide();
+        }
+
+        function selectModel(modelKey, btn) {
+            if (!cameraModelsData[currentBrand][modelKey]) return;
+            currentModelKey = modelKey;
+            if (btn && btn.parentElement) {
+                btn.parentElement.querySelectorAll('.btn-chip').forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+            }
+            setText('model-indicator', cameraModelsData[currentBrand][currentModelKey].shortName);
+            updateResults();
+            updateEditingGuide();
+        }
+
+        function setMode(mode) { currentMode = mode; updateUIState(); updateResults(); }
+        function setBitrateProf(val) { currentBitrateProfile = val; updateUIState(); updateResults(); }
+        function setRegion(reg) { currentRegion = reg; updateUIState(); updateResults(); }
+        function setLuce(luce) { currentLuce = luce; updateUIState(); updateResults(); }
+        function setSub(sub) { currentSub = sub; updateUIState(); updateResults(); }
+        function setCompromise(key, val) { compromiseChoices[key] = val; updateResults(); }
 
         function toggleScenario(scen, btn) {
             const index = selectedScenarios.indexOf(scen);
-            if (index > -1) { if (selectedScenarios.length > 1) { selectedScenarios.splice(index, 1); btn.classList.remove('selected'); } } 
-            else { selectedScenarios.push(scen); btn.classList.add('selected'); }
+            if (index > -1) {
+                if (selectedScenarios.length > 1) { selectedScenarios.splice(index, 1); btn.classList.remove('selected'); }
+            } else {
+                selectedScenarios.push(scen);
+                btn.classList.add('selected');
+            }
             updateResults();
         }
 
-        function setCompromise(key, val) { compromiseChoices[key] = val; updateResults(); }
-
-        function calcShutter(fps, btn) {
-            btn.parentElement.querySelectorAll('.btn-radio').forEach(b => b.classList.remove('active')); btn.classList.add('active');
-            let shutter = `1/${fps * 2} s`; let nd = (fps <= 30) ? 'Sole (EV15): ND32/64' : (fps <= 60) ? 'Sole (EV15): ND16/32' : 'Sole abbondante: ND8/16';
-            document.getElementById('calc-result-shutter').innerText = shutter; document.getElementById('calc-result-nd').innerText = nd;
+        function applyMultisportPreset() {
+            currentMode = 'video';
+            selectedScenarios = ['sport', 'travel'];
+            currentBitrateProfile = 'std';
+            currentLuce = 'sole';
+            currentSub = 'fuori';
+            compromiseChoices = { fpsPriority: 'action', profilePriority: 'normal', fovPriority: 'wide', stabPriority: 'rocksteady' };
+            updateUIState();
+            updateResults();
+            const results = document.querySelector('.results-container');
+            if (results) results.scrollIntoView({ behavior: 'smooth' });
         }
 
-        function calcBattery(temp, btn) {
-            currentTemp = temp; btn.parentElement.querySelectorAll('.btn-radio').forEach(b => b.classList.remove('active')); btn.classList.add('active');
-            const timeEl = document.getElementById('battery-result-time'); const noteEl = document.getElementById('battery-result-note');
-            if (temp === -10) { timeEl.innerText = '~70 Minuti'; timeEl.style.color = '#ef4444'; noteEl.innerText = '⚠️ Freddo intenso: tensione batteria cala. Conservale al caldo.'; } 
-            else if (temp === 35) { timeEl.innerText = '~90 Minuti'; timeEl.style.color = 'var(--amber)'; noteEl.innerText = '☀️ Caldo estivo: in 4K/60fps la cam può surriscaldarsi.'; } 
-            else { timeEl.innerText = '~115 Minuti'; timeEl.style.color = 'var(--green)'; noteEl.innerText = '✅ Condizioni ottimali di registrazione continua.'; }
+        /* ==================================================================
+           6. PRESET UTENTE
+           ================================================================== */
+
+        function readPresets() {
+            let raw = storageGet(STORAGE_KEYS.presets);
+            if (raw === null) {
+                // Migrazione una tantum dalla vecchia chiave 'action4_custom_presets'.
+                const legacy = storageGet(STORAGE_KEYS.legacyPresets);
+                if (legacy !== null) { storageSet(STORAGE_KEYS.presets, legacy); raw = legacy; }
+            }
+            try {
+                const parsed = JSON.parse(raw || '[]');
+                return Array.isArray(parsed) ? parsed : [];
+            } catch (e) {
+                return [];
+            }
         }
 
-        function updateSimSlider(val) { document.getElementById('sim-graded-layer').style.width = val + '%'; document.getElementById('sim-handle').style.left = val + '%'; }
+        function writePresets(presets) { storageSet(STORAGE_KEYS.presets, JSON.stringify(presets)); }
 
         function saveCurrentPreset() {
-            const nameInput = document.getElementById('input-preset-name'); const name = nameInput.value.trim(); if (!name) return;
-            let presets = JSON.parse(localStorage.getItem('action4_custom_presets') || '[]');
-            presets.push({ brand: currentBrand, modelKey: currentModelKey, name: name, scenarios: [...selectedScenarios], luce: currentLuce, region: currentRegion, sub: currentSub, bitrateProf: currentBitrateProfile });
-            localStorage.setItem('action4_custom_presets', JSON.stringify(presets)); nameInput.value = ''; renderSavedPresets();
+            const nameInput = $('input-preset-name');
+            const name = nameInput.value.trim();
+            if (!name) return;
+            const presets = readPresets();
+            presets.push({
+                brand: currentBrand, modelKey: currentModelKey, name: name,
+                mode: currentMode, scenarios: [...selectedScenarios], luce: currentLuce,
+                region: currentRegion, sub: currentSub, bitrateProf: currentBitrateProfile
+            });
+            writePresets(presets);
+            nameInput.value = '';
+            renderSavedPresets();
         }
 
         function loadPreset(index) {
-            let presets = JSON.parse(localStorage.getItem('action4_custom_presets') || '[]'); if (!presets[index]) return;
-            let p = presets[index]; selectedScenarios = [...p.scenarios]; currentLuce = p.luce; currentRegion = p.region || 'pal'; currentSub = p.sub || 'fuori'; currentBitrateProfile = p.bitrateProf || 'high';
-            if (p.brand) { currentBrand = p.brand; currentModelKey = p.modelKey || Object.keys(cameraModelsData[p.brand])[0]; selectBrand(p.brand); }
-            updateUIState(); updateResults();
+            const presets = readPresets();
+            const preset = presets[index];
+            if (!preset) return;
+            selectedScenarios = [...preset.scenarios];
+            currentMode = preset.mode || 'video';
+            currentLuce = preset.luce;
+            currentRegion = preset.region || 'pal';
+            currentSub = preset.sub || 'fuori';
+            currentBitrateProfile = preset.bitrateProf || 'high';
+            if (preset.brand && cameraModelsData[preset.brand]) {
+                currentBrand = preset.brand;
+                currentModelKey = preset.modelKey || Object.keys(cameraModelsData[preset.brand])[0];
+            }
+            updateUIState();
+            updateResults();
+            updateEditingGuide();
         }
 
         function deletePreset(index, event) {
-            event.stopPropagation(); let presets = JSON.parse(localStorage.getItem('action4_custom_presets') || '[]');
-            presets.splice(index, 1); localStorage.setItem('action4_custom_presets', JSON.stringify(presets)); renderSavedPresets();
+            event.stopPropagation();
+            const presets = readPresets();
+            presets.splice(index, 1);
+            writePresets(presets);
+            renderSavedPresets();
         }
 
         function renderSavedPresets() {
-            const container = document.getElementById('container-saved-presets'); let presets = JSON.parse(localStorage.getItem('action4_custom_presets') || '[]');
-            if (presets.length === 0) { container.innerHTML = '<span style="font-size:0.72rem; color:var(--text-secondary);">Nessun preset salvato in locale.</span>'; return; }
-            container.innerHTML = presets.map((p, i) => `<button class="preset-tag-btn" onclick="loadPreset(${i})"><span>📌 [${(p.brand || 'dji').toUpperCase()}] ${p.name}</span><span class="preset-del" onclick="deletePreset(${i}, event)">×</span></button>`).join('');
+            const container = $('container-saved-presets');
+            if (!container) return;
+            const presets = readPresets();
+            if (presets.length === 0) {
+                container.innerHTML = '<span style="font-size:0.72rem; color:var(--text-secondary);">Nessun preset salvato in locale.</span>';
+                return;
+            }
+            // Il nome arriva da un input libero: va sempre escapizzato.
+            container.innerHTML = presets.map((p, i) =>
+                `<button class="preset-tag-btn" onclick="loadPreset(${i})"><span>📌 [${escapeHtml((p.brand || 'dji').toUpperCase())}] ${escapeHtml(p.name)}</span><span class="preset-del" onclick="deletePreset(${i}, event)">×</span></button>`
+            ).join('');
+        }
+
+        /* ==================================================================
+           7. TAB CALCOLATORI
+           ================================================================== */
+
+        function calcShutter(fps, btn) {
+            btn.parentElement.querySelectorAll('.btn-radio').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            setText('calc-result-shutter', shutterFor(fps));
+            setText('calc-result-nd', `In sole diretto (EV15): ${ndFor(fps, 'sole')}`);
+        }
+
+        function calcBattery(temp, btn) {
+            currentTemp = temp;
+            btn.parentElement.querySelectorAll('.btn-radio').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            const estimate = BATTERY_ESTIMATES[String(temp)] || BATTERY_ESTIMATES['20'];
+            const timeEl = $('battery-result-time');
+            if (timeEl) { timeEl.innerText = estimate.time; timeEl.style.color = estimate.color; }
+            setText('battery-result-note', estimate.note);
+        }
+
+        function updateSimSlider(val) {
+            const layer = $('sim-graded-layer');
+            const handle = $('sim-handle');
+            if (layer) layer.style.width = val + '%';
+            if (handle) handle.style.left = val + '%';
+        }
+
+        /* ==================================================================
+           8. TAB EDITING
+           ================================================================== */
+
+        function editGoalLabels(model) {
+            return {
+                'dlog_lut': `🎨 Grading ${model.logProfile.split(' ')[0]}`,
+                'reel_fast': '📱 Reel In-App 9:16',
+                'speed_ramp': '⚡ Speed Ramp Sport',
+                'audio_clean': '🎙️ Audio & Vento',
+                'underwater_color': '🏓 Colore Subacqueo'
+            };
         }
 
         function toggleEditGoal(goal, btn) {
             const index = selectedEditGoals.indexOf(goal);
-            if (index > -1) { if (selectedEditGoals.length > 1) { selectedEditGoals.splice(index, 1); btn.classList.remove('selected'); } } 
-            else { selectedEditGoals.push(goal); btn.classList.add('selected'); }
+            if (index > -1) {
+                if (selectedEditGoals.length > 1) { selectedEditGoals.splice(index, 1); btn.classList.remove('selected'); }
+            } else {
+                selectedEditGoals.push(goal);
+                btn.classList.add('selected');
+            }
             updateEditingGuide();
         }
 
         function updateEditingGuide() {
-            const currentModel = cameraModelsData[currentBrand][currentModelKey] || Object.values(cameraModelsData[currentBrand])[0];
-            let appName = currentBrand === 'gopro' ? 'GoPro Quik / DaVinci' : currentBrand === 'insta360' ? 'Insta360 App / Studio' : 'DJI Mimo / LightCut';
-            document.getElementById('editing-app-header').innerText = `Assistente Editing App (${appName})`;
+            const model = activeModel();
+            const appName = activeBrandConfig().editApp;
+            const labels = editGoalLabels(model);
+            setText('editing-app-header', `Assistente Editing App (${appName})`);
 
-            const editLabelsMap = { 'dlog_lut': `🎨 Grading ${currentModel.logProfile.split(' ')[0]}`, 'reel_fast': '📱 Reel In-App 9:16', 'speed_ramp': '⚡ Speed Ramp Sport', 'audio_clean': '🎙️ Audio & Vento', 'underwater_color': '🏓 Colore Subacqueo' };
-            document.getElementById('edit-pills').innerHTML = selectedEditGoals.map(g => `<span class="pill-tag" style="background:var(--brand-color); color:#ffffff; font-weight:800;">${editLabelsMap[g]}</span>`).join('');
-            document.getElementById('edit-goal-title').innerText = selectedEditGoals.length === 1 ? `${editLabelsMap[selectedEditGoals[0]]}` : `Workflow Integrato Misto`;
+            setHtml('edit-pills', selectedEditGoals.map(g =>
+                `<span class="pill-tag" style="background:var(--brand-color); color:#ffffff; font-weight:800;">${labels[g]}</span>`
+            ).join(''));
+            setText('edit-goal-title', selectedEditGoals.length === 1 ? labels[selectedEditGoals[0]] : 'Workflow Integrato Misto');
 
+            const has = goal => selectedEditGoals.includes(goal);
             let stepsHTML = '', tweaksHTML = '', exportHTML = '';
-            const isDlog = selectedEditGoals.includes('dlog_lut'), isReelFast = selectedEditGoals.includes('reel_fast'), isSpeedRamp = selectedEditGoals.includes('speed_ramp'), isAudio = selectedEditGoals.includes('audio_clean'), isUnderwaterColor = selectedEditGoals.includes('underwater_color');
-            
-            if (isDlog) stepsHTML += `<li><b>Color Grading:</b> Importa in <b>${appName}</b> e applica il LUT / Preset <b>${currentModel.logProfile}</b>.</li>`;
-            if (isReelFast) stepsHTML += `<li><b>Montaggio 9:16:</b> Collega ${currentModel.shortName} via Wi-Fi a <b>${appName}</b>, usa Smart Edit.</li>`;
-            if (isSpeedRamp) stepsHTML += `<li><b>Speed Ramping:</b> Seleziona i clip ad alti framerate, tocca <i>Velocità</i> e attiva la Curva.</li>`;
-            if (isAudio) stepsHTML += `<li><b>Trattamento Audio:</b> Usa i microfoni integrati. Attiva soppressione vento.</li>`;
-            if (isUnderwaterColor) stepsHTML += `<li><b>Colore Sub:</b> In <b>${appName}</b> attiva il ripristino colore acqua.</li>`;
-            
-            if (isDlog) tweaksHTML += `<li><b>Rifinitura:</b> Contrasto <b>+5</b>, Saturazione <b>+5</b> preservando l'incarnato.</li>`;
-            if (isReelFast) tweaksHTML += `<li><b>Inquadratura:</b> Volti nel terzo superiore, transizioni a <b>0.3s</b>.</li>`;
-            if (isSpeedRamp) tweaksHTML += `<li><b>Climax:</b> 1.5x avvicinamento, <b>0.25x (25% Slow-Mo)</b> nell'azione.</li>`;
-            if (isAudio) tweaksHTML += `<li><b>Mixaggio:</b> Musica al <b>15%</b>, parlato al <b>115%</b> (Ducking attivo).</li>`;
-            if (isUnderwaterColor) tweaksHTML += `<li><b>Bilanciamento:</b> Tinta Magenta (<b>+10</b>), Temp verso caldi (<b>6500K+</b>).</li>`;
-            
-            if (isReelFast) exportHTML += `<li><b>Social:</b> 1080 x 1920 (9:16) a <b>25 / 30 FPS</b>.</li>`;
-            else if (isSpeedRamp) exportHTML += `<li><b>Azione:</b> Esporta a <b>50 / 60 FPS</b> per preservare la nitidezza.</li>`;
-            else exportHTML += `<li><b>Master:</b> 1080p o 4K stesso framerate di ripresa.</li>`;
-            if (isAudio) exportHTML += `<li><b>Audio Output:</b> Stereo AAC 48kHz, normalizzazione a **-1 dB**.</li>`;
 
-            document.getElementById('edit-steps-list').innerHTML = stepsHTML; document.getElementById('edit-tweak-list').innerHTML = tweaksHTML; document.getElementById('edit-export-list').innerHTML = exportHTML;
+            if (has('dlog_lut')) stepsHTML += `<li><b>Color Grading:</b> Importa in <b>${appName}</b> e applica il LUT / Preset <b>${model.logProfile}</b>.</li>`;
+            if (has('reel_fast')) stepsHTML += `<li><b>Montaggio 9:16:</b> Collega ${model.shortName} via Wi-Fi a <b>${appName}</b>, usa Smart Edit.</li>`;
+            if (has('speed_ramp')) stepsHTML += `<li><b>Speed Ramping:</b> Seleziona i clip ad alti framerate, tocca <i>Velocità</i> e attiva la Curva.</li>`;
+            if (has('audio_clean')) stepsHTML += `<li><b>Trattamento Audio:</b> Usa i microfoni integrati. Attiva soppressione vento.</li>`;
+            if (has('underwater_color')) stepsHTML += `<li><b>Colore Sub:</b> In <b>${appName}</b> attiva il ripristino colore acqua.</li>`;
+
+            if (has('dlog_lut')) tweaksHTML += `<li><b>Rifinitura:</b> Contrasto <b>+5</b>, Saturazione <b>+5</b> preservando l'incarnato.</li>`;
+            if (has('reel_fast')) tweaksHTML += `<li><b>Inquadratura:</b> Volti nel terzo superiore, transizioni a <b>0.3s</b>.</li>`;
+            if (has('speed_ramp')) tweaksHTML += `<li><b>Climax:</b> 1.5x avvicinamento, <b>0.25x (25% Slow-Mo)</b> nell'azione.</li>`;
+            if (has('audio_clean')) tweaksHTML += `<li><b>Mixaggio:</b> Musica al <b>15%</b>, parlato al <b>115%</b> (Ducking attivo).</li>`;
+            if (has('underwater_color')) tweaksHTML += `<li><b>Bilanciamento:</b> Tinta Magenta (<b>+10</b>), Temp verso caldi (<b>6500K+</b>).</li>`;
+
+            if (has('reel_fast')) exportHTML += `<li><b>Social:</b> 1080 x 1920 (9:16) a <b>25 / 30 FPS</b>.</li>`;
+            else if (has('speed_ramp')) exportHTML += `<li><b>Azione:</b> Esporta a <b>50 / 60 FPS</b> per preservare la nitidezza.</li>`;
+            else exportHTML += `<li><b>Master:</b> 1080p o 4K stesso framerate di ripresa.</li>`;
+            if (has('audio_clean')) exportHTML += `<li><b>Audio Output:</b> Stereo AAC 48kHz, normalizzazione a <b>-1 dB</b>.</li>`;
+
+            setHtml('edit-steps-list', stepsHTML);
+            setHtml('edit-tweak-list', tweaksHTML);
+            setHtml('edit-export-list', exportHTML);
         }
 
-        function updateResults() {
-            let currentFpsObj = 30;
-            const isReel = selectedScenarios.includes('reel'), isSport = selectedScenarios.includes('sport'), isTravel = selectedScenarios.includes('travel'), isIndoor = selectedScenarios.includes('indoor'), isCar = selectedScenarios.includes('car'), isNight = selectedScenarios.includes('night'), isSlowmo = selectedScenarios.includes('slowmo'), isGyro = selectedScenarios.includes('gyroflow');
-            const isPal = (currentRegion === 'pal'), isSub = (currentSub === 'sub');
-            const currentModel = cameraModelsData[currentBrand][currentModelKey] || Object.values(cameraModelsData[currentBrand])[0];
-            const labelsMap = { 'reel': '📱 Reel', 'sport': '🚴 Sport', 'travel': '✈️ Viaggi', 'indoor': '🏠 Indoor', 'car': '🚗 Auto', 'night': '🌙 Notturno', 'slowmo': '⚡ SlowMo', 'gyroflow': '💻 Gyroflow' };
+        /* ==================================================================
+           9. MOTORE RISULTATI
+           updateResults() orchestra: calcola il contesto una volta sola e lo
+           passa ai renderer specifici per modalità.
+           ================================================================== */
 
-            let scenarioPills = selectedScenarios.map(s => `<span class="pill-tag">${labelsMap[s]}</span>`).join('');
-            if (isSub) scenarioPills += `<span class="pill-tag" style="background:var(--accent); color:white;">🏓 Sott'Acqua</span>`;
-            document.getElementById('res-pills').innerHTML = scenarioPills;
-            
-            // Set dynamic title text based on mode
-            let titleText = `Matrice ${currentModel.shortName}`;
-            if (currentMode === 'foto') titleText = `📸 Setup Foto ${currentModel.shortName}`;
-            else if (currentMode === 'timelapse') titleText = `⏱️ Setup Timelapse ${currentModel.shortName}`;
-            document.getElementById('res-title').innerText = titleText;
+        function buildContext() {
+            const has = scen => selectedScenarios.includes(scen);
+            return {
+                model: activeModel(),
+                brandCfg: activeBrandConfig(),
+                isReel: has('reel'), isSport: has('sport'), isTravel: has('travel'), isIndoor: has('indoor'),
+                isCar: has('car'), isNight: has('night'), isSlowmo: has('slowmo'), isGyro: has('gyroflow'),
+                isPal: currentRegion === 'pal',
+                isSub: currentSub === 'sub',
+                isEco: currentBitrateProfile === 'eco'
+            };
+        }
 
+        function renderHeader(ctx) {
+            let pills = selectedScenarios.map(s => `<span class="pill-tag">${SCENARIO_LABELS[s]}</span>`).join('');
+            if (ctx.isSub) pills += `<span class="pill-tag" style="background:var(--accent); color:white;">🏓 Sott'Acqua</span>`;
+            setHtml('res-pills', pills);
+
+            let title = `Matrice ${ctx.model.shortName}`;
+            if (currentMode === 'foto') title = `📸 Setup Foto ${ctx.model.shortName}`;
+            else if (currentMode === 'timelapse') title = `⏱️ Setup Timelapse ${ctx.model.shortName}`;
+            setText('res-title', title);
+        }
+
+        // Esposizione, GPS e audio non dipendono dalla modalità.
+        function renderCommonSettings(ctx) {
             let evComp = '0.0 (Matrix Metering)';
-            if (isCar || isIndoor) evComp = '-0.3 (Protegge le alte luci)';
-            if (isNight) evComp = '-0.5 (Evita rumore)';
-            if (currentLuce === 'scarsa' && !isNight) evComp = '+0.3 (Schiarisci ombre)';
-            if (isSub) evComp = '+0.5 (Compensa l\'assorbimento)';
-            document.getElementById('val-ev').innerText = evComp;
+            if (ctx.isCar || ctx.isIndoor) evComp = '-0.3 (Protegge le alte luci)';
+            if (ctx.isNight) evComp = '-0.5 (Evita rumore)';
+            if (currentLuce === 'scarsa' && !ctx.isNight) evComp = '+0.3 (Schiarisci ombre)';
+            if (ctx.isSub) evComp = '+0.5 (Compensa l\'assorbimento)';
+            setText('val-ev', evComp);
 
-            let gpsStatus = 'OFF (Risparmio Batteria)';
-            if (currentBitrateProfile === 'eco' || currentMode === 'timelapse') gpsStatus = 'OFF FORZATO (Risparmio energetico)';
-            else if (isSport || isCar) gpsStatus = 'ON (Raccogli dati Vel/Tracciato)';
-            document.getElementById('val-gps').innerText = gpsStatus;
+            let gps = 'OFF (Risparmio Batteria)';
+            if (ctx.isEco || currentMode === 'timelapse') gps = 'OFF FORZATO (Risparmio energetico)';
+            else if (ctx.isSport || ctx.isCar) gps = 'ON (Raccogli dati Vel/Tracciato)';
+            setText('val-gps', gps);
 
-            let audioProf = 'Stereo (Massima fedeltà)';
-            if (currentMode === 'foto' || currentMode === 'timelapse') audioProf = '🔇 Mute (Disattivato)';
-            else if (isSport || isCar || isSub) audioProf = 'Riduzione Vento / Low-Cut';
-            else if (isReel || isIndoor) audioProf = 'Focus Vocale / Direzionale';
-            document.getElementById('val-audio-prof').innerText = audioProf;
+            let audio = 'Stereo (Massima fedeltà)';
+            if (currentMode === 'foto' || currentMode === 'timelapse') audio = '🔇 Mute (Disattivato)';
+            else if (ctx.isSport || ctx.isCar || ctx.isSub) audio = 'Riduzione Vento / Low-Cut';
+            else if (ctx.isReel || ctx.isIndoor) audio = 'Focus Vocale / Direzionale';
+            setText('val-audio-prof', audio);
+        }
 
-            if (currentMode === 'video') {
-                let resStr = '4K Verticale (9:16)';
-                if (isReel) resStr = (currentBrand === 'gopro' && currentModelKey.includes('hero11')) ? '5.3K / 4K Verticale (8:7)' : '4K Verticale (9:16)';
-                else if (isGyro) resStr = '4K Nativo (4:3 o 8:7)';
-                else resStr = currentModel.maxRes;
-                if (currentBitrateProfile === 'eco') resStr = resStr.replace('4K', '2.7K (Eco)').replace('5.3K', '2.7K (Eco)').replace('8K', '4K (Eco)');
-                document.getElementById('val-res').innerText = resStr;
+        function computeResolution(ctx) {
+            let res;
+            if (ctx.isReel) res = (currentBrand === 'gopro' && currentModelKey.includes('hero11')) ? '5.3K / 4K Verticale (8:7)' : '4K Verticale (9:16)';
+            else if (ctx.isGyro) res = '4K Nativo (4:3 o 8:7)';
+            else res = ctx.model.maxRes;
+            if (ctx.isEco) res = res.replace('4K', '2.7K (Eco)').replace('5.3K', '2.7K (Eco)').replace('8K', '4K (Eco)');
+            return res;
+        }
 
-                let hasFpsConflict = (isNight || isIndoor || currentLuce === 'scarsa' || isSub) && (isSport || isSlowmo);
-                let fps = isPal ? 25 : 30;
-                if (hasFpsConflict) fps = (compromiseChoices.fpsPriority === 'action') ? (isSlowmo ? (isPal ? 100 : 120) : (isPal ? 50 : 60)) : (isPal ? 25 : 30);
-                else if (isSlowmo) fps = isPal ? 100 : 120;
-                else if (isSport) fps = isPal ? 50 : 60;
-                else fps = isPal ? 25 : 30;
-                if (currentBitrateProfile === 'eco' && fps > 60) fps = isPal ? 50 : 60;
-                else if (currentBitrateProfile === 'eco' && fps > 30 && !isSlowmo) fps = isPal ? 25 : 30; 
-                currentFpsObj = fps;
-                document.getElementById('val-fps').innerText = `${fps} fps (${isPal ? 'PAL' : 'NTSC'})`;
+        function computeFps(ctx, hasFpsConflict) {
+            let fps;
+            if (hasFpsConflict) {
+                fps = (compromiseChoices.fpsPriority === 'action')
+                    ? (ctx.isSlowmo ? (ctx.isPal ? 100 : 120) : (ctx.isPal ? 50 : 60))
+                    : (ctx.isPal ? 25 : 30);
+            } else if (ctx.isSlowmo) fps = ctx.isPal ? 100 : 120;
+            else if (ctx.isSport) fps = ctx.isPal ? 50 : 60;
+            else fps = ctx.isPal ? 25 : 30;
 
-                let shutter = `1/${fps * 2} s`; let nd = 'ND32 / ND64';
-                if (currentLuce === 'sole') nd = (fps <= 30) ? 'ND64 / ND128' : 'ND32 / ND64';
-                else if (currentLuce === 'ombra') nd = (fps <= 30) ? 'ND16 / ND32' : 'ND8 / ND16';
-                if (isSub) { nd = '❌ RIMUOVERE ND'; shutter = 'AUTO (o 1/' + (fps*2) + 's in sup.)'; } 
-                else if (isSlowmo && currentLuce !== 'sole') { nd = '❌ RIMUOVERE ND'; shutter = `1/${fps * 2} s`; }
-                else if (isNight || isIndoor || currentLuce === 'scarsa') { nd = '❌ NO ND (Sottoesposizione)'; shutter = (compromiseChoices.fpsPriority === 'action' && hasFpsConflict) ? `1/${fps * 2}s (Scuro!)` : `AUTO (Max ${isPal ? '1/50s' : '1/60s'})`; } 
-                else if ((isTravel || isCar) && !isReel && !isSport) { shutter = 'AUTO (EV Regolato)'; nd = (currentLuce === 'sole') ? 'ND16 / Nessuno' : 'Nessuno'; }
-                document.getElementById('val-shutter').innerText = shutter; document.getElementById('val-nd').innerText = nd;
+            // Il profilo Endurance abbassa gli fps di una fascia per volta.
+            if (ctx.isEco && fps > 60) fps = ctx.isPal ? 50 : 60;
+            else if (ctx.isEco && fps > 30 && !ctx.isSlowmo) fps = ctx.isPal ? 25 : 30;
+            return fps;
+        }
 
-                let hasProfileConflict = (isNight || isIndoor) && isReel; let profile = currentModel.logProfile;
-                if (hasProfileConflict) profile = (compromiseChoices.profilePriority === 'normal') ? 'Normal / Natural' : currentModel.logProfile;
-                else if (isNight || isIndoor || (isTravel && !isReel) || currentBitrateProfile === 'eco') profile = 'Normal / Natural (Non Log)';
-                if (currentBitrateProfile === 'high') profile = `Max Qualità: ${profile}`; else if (currentBitrateProfile === 'std') profile = `Std Qualità: ${profile}`; else if (currentBitrateProfile === 'eco') profile = `Endurance: ${profile} (Rec.709)`;
-                document.getElementById('val-color').innerText = profile;
+        function computeExposure(ctx, fps, hasFpsConflict) {
+            let shutter = shutterFor(fps);
+            let nd = ndFor(fps, currentLuce);
 
-                let fov = 'Standard (Dewarp)'; let wideFovName = 'Wide';
-                if (currentBrand === 'gopro') { fov = 'Linear (o Horizon Lock)'; wideFovName = 'Wide / SuperView'; } 
-                else if (currentBrand === 'insta360') { fov = 'Dewarp (o MegaView)'; wideFovName = (currentModelKey === 'x4') ? '360° Dual Lens' : 'UltraWide / ActionView'; }
-                if (isGyro) fov = 'Wide (Grezzo senza Dewarp)';
-                else if (isReel && (isSport || isGyro)) fov = (compromiseChoices.fovPriority === 'wide') ? wideFovName + ' (Ampio)' : fov + ' (Linee dritte)';
-                else if (isSport) fov = wideFovName;
-                document.getElementById('val-fov').innerText = fov;
+            if (ctx.isSub) {
+                nd = '❌ RIMUOVERE ND';
+                shutter = `AUTO (o 1/${fps * 2}s in sup.)`;
+            } else if (ctx.isSlowmo && currentLuce !== 'sole') {
+                nd = '❌ RIMUOVERE ND';
+            } else if (ctx.isNight || ctx.isIndoor || currentLuce === 'scarsa') {
+                nd = ND_NONE;
+                shutter = (compromiseChoices.fpsPriority === 'action' && hasFpsConflict)
+                    ? `1/${fps * 2}s (Scuro!)`
+                    : `AUTO (Max ${ctx.isPal ? '1/50s' : '1/60s'})`;
+            } else if ((ctx.isTravel || ctx.isCar) && !ctx.isReel && !ctx.isSport) {
+                shutter = 'AUTO (EV Regolato)';
+                nd = (currentLuce === 'sole') ? 'ND16 / Nessuno' : 'Nessuno';
+            }
+            return { shutter, nd };
+        }
 
-                let stab = 'RockSteady';
-                if (currentBrand === 'dji') stab = isGyro ? 'OFF (Disattivata per Gyroflow)' : isSport ? (compromiseChoices.stabPriority === 'horizon' ? 'HorizonBalancing (±45°)' : 'RockSteady+') : 'RockSteady';
-                else if (currentBrand === 'gopro') stab = isGyro ? 'OFF (Per Gyroflow)' : isSport ? 'HyperSmooth AutoBoost / Boost' : 'HyperSmooth On';
-                else if (currentBrand === 'insta360') stab = isGyro ? 'OFF' : 'FlowState / Horizon Lock 360°';
-                document.getElementById('val-stab').innerText = stab;
+        function computeColorProfile(ctx, hasProfileConflict) {
+            let profile = ctx.model.logProfile;
+            if (hasProfileConflict) {
+                profile = (compromiseChoices.profilePriority === 'normal') ? 'Normal / Natural' : ctx.model.logProfile;
+            } else if (ctx.isNight || ctx.isIndoor || (ctx.isTravel && !ctx.isReel) || ctx.isEco) {
+                profile = 'Normal / Natural (Non Log)';
+            }
+            if (currentBitrateProfile === 'high') return `Max Qualità: ${profile}`;
+            if (currentBitrateProfile === 'std') return `Std Qualità: ${profile}`;
+            return `Endurance: ${profile} (Rec.709)`;
+        }
 
-                document.getElementById('val-sharp').innerText = (currentBrand === 'gopro' && isGyro) ? 'Sharpness: Low' : ((currentBrand === 'gopro' || currentBrand === 'insta360') && (isNight || isIndoor)) ? 'Sharpness: Medium' : (currentBrand === 'insta360') ? 'Sharpness: Low' : 'Sharpness: -1 | Noise: -1';
-                document.getElementById('val-iso').innerText = (isNight || isIndoor || isSub) ? 'Min ISO 100 / Max 1600' : 'Min ISO 100 / Max 800';
-                document.getElementById('val-wb').innerText = (isSub) ? 'Manuale 6500K - 7500K' : (isIndoor) ? 'Manuale 3800K - 4200K' : (isNight) ? 'Auto WB' : 'Manuale 5500K';
+        function computeFov(ctx) {
+            const wideFov = (currentBrand === 'insta360' && currentModelKey === 'x4') ? '360° Dual Lens' : ctx.brandCfg.wideFov;
+            const baseFov = ctx.brandCfg.baseFov;
+            if (ctx.isGyro) return 'Wide (Grezzo senza Dewarp)';
+            if (ctx.isReel && ctx.isSport) return (compromiseChoices.fovPriority === 'wide') ? wideFov + ' (Ampio)' : baseFov + ' (Linee dritte)';
+            if (ctx.isSport) return wideFov;
+            return baseFov;
+        }
 
-                if (isSub) document.getElementById('rigging-text').innerHTML = `<b>🏓 Ripresa Subacquea:</b> Impermeabile fino a <b>${currentModel.waterproof} metri</b> senza custodia. Attiva il blocco touchscreen.`;
-                else if (isSport) document.getElementById('rigging-text').innerHTML = `<b>🚴 Corsa / Bici:</b> Supporto a pettorina o out-front mount. Fissa saldamente.`;
-                else if (isCar) document.getElementById('rigging-text').innerHTML = `<b>🚗 POV Auto:</b> Ventosa con braccio snodato sul parabrezza.`;
-                else if (isReel) document.getElementById('rigging-text').innerHTML = `<b>📱 Reel / Vlog:</b> Montaggio verticale (9:16) su treppiede o asta.`;
-                else document.getElementById('rigging-text').innerHTML = `<b>✈️ Viaggi:</b> Impugnatura estensibile o treppiede compatto.`;
+        function computeStabilization(ctx) {
+            if (currentBrand === 'gopro') {
+                if (ctx.isGyro) return 'OFF (Per Gyroflow)';
+                return ctx.isSport ? 'HyperSmooth AutoBoost / Boost' : 'HyperSmooth On';
+            }
+            if (currentBrand === 'insta360') {
+                return ctx.isGyro ? 'OFF' : 'FlowState / Horizon Lock 360°';
+            }
+            if (ctx.isGyro) return 'OFF (Disattivata per Gyroflow)';
+            if (ctx.isSport) return compromiseChoices.stabPriority === 'horizon' ? 'HorizonBalancing (±45°)' : 'RockSteady+';
+            return 'RockSteady';
+        }
 
-                let Mbps = currentModel.bitrate;
-                if (fps >= 100) Mbps += 20;
-                if (currentBitrateProfile === 'std') Mbps = Math.floor(Mbps * 0.80);
-                else if (currentBitrateProfile === 'eco') Mbps = Math.floor(Mbps * 0.50);
-                document.getElementById('metric-bitrate').innerText = `~${Mbps} Mbps (H.265)`;
-                document.getElementById('metric-size').innerText = `~${(((Mbps * 1000000 / 8) * 600) / (1024 * 1024 * 1024)).toFixed(1)} GB / 10 min`;
+        function computeSharpness(ctx) {
+            if (currentBrand === 'gopro' && ctx.isGyro) return 'Sharpness: Low';
+            if ((currentBrand === 'gopro' || currentBrand === 'insta360') && (ctx.isNight || ctx.isIndoor)) return 'Sharpness: Medium';
+            if (currentBrand === 'insta360') return 'Sharpness: Low';
+            return 'Sharpness: -1 | Noise: -1';
+        }
 
-                if (Mbps > 105 || fps >= 100) { document.getElementById('sd-alert').style.display = 'block'; document.getElementById('sd-alert').innerHTML = `⚠️ <b>Allarme MicroSD:</b> Flusso dati molto elevato (~${Mbps} Mbps). Utilizza scheda certificata <b>V30 (U3)</b>.`; } 
-                else { document.getElementById('sd-alert').style.display = 'none'; }
+        function computeVideoRigging(ctx) {
+            if (ctx.isSub) return `<b>🏓 Ripresa Subacquea:</b> Impermeabile fino a <b>${ctx.model.waterproof} metri</b> senza custodia. Attiva il blocco touchscreen.`;
+            if (ctx.isSport) return `<b>🚴 Corsa / Bici:</b> Supporto a pettorina o out-front mount. Fissa saldamente.`;
+            if (ctx.isCar) return `<b>🚗 POV Auto:</b> Ventosa con braccio snodato sul parabrezza.`;
+            if (ctx.isReel) return `<b>📱 Reel / Vlog:</b> Montaggio verticale (9:16) su treppiede o asta.`;
+            return `<b>✈️ Viaggi:</b> Impugnatura estensibile o treppiede compatto.`;
+        }
 
-                let conflictsHTML = '';
-                if (hasFpsConflict) conflictsHTML += `<div class="conflict-block"><div class="conflict-label">⚡ Framerate: Scarsa Luce vs Sport</div><div class="compromise-selector"><button class="btn-compromise ${compromiseChoices.fpsPriority === 'light' ? 'active' : ''}" onclick="setCompromise('fpsPriority', 'light')">💡 Luce (${isPal ? '25' : '30'} fps)</button><button class="btn-compromise ${compromiseChoices.fpsPriority === 'action' ? 'active' : ''}" onclick="setCompromise('fpsPriority', 'action')">🚴 Azione (${isSlowmo ? (isPal ? '100' : '120') : (isPal ? '50' : '60')} fps)</button></div></div>`;
-                if (hasProfileConflict) conflictsHTML += `<div class="conflict-block"><div class="conflict-label">🎨 Profilo Colore: Reel vs Notturno</div><div class="compromise-selector"><button class="btn-compromise ${compromiseChoices.profilePriority === 'dlog' ? 'active' : ''}" onclick="setCompromise('profilePriority', 'dlog')">🎬 ${currentModel.logProfile.split(' ')[0]}</button><button class="btn-compromise ${compromiseChoices.profilePriority === 'normal' ? 'active' : ''}" onclick="setCompromise('profilePriority', 'normal')">🌙 Standard</button></div></div>`;
-                if (isReel && (isSport || isGyro)) conflictsHTML += `<div class="conflict-block"><div class="conflict-label">📐 FOV: Linee Diritte vs Ampio</div><div class="compromise-selector"><button class="btn-compromise ${compromiseChoices.fovPriority === 'dewarp' ? 'active' : ''}" onclick="setCompromise('fovPriority', 'dewarp')">📱 Linear</button><button class="btn-compromise ${compromiseChoices.fovPriority === 'wide' ? 'active' : ''}" onclick="setCompromise('fovPriority', 'wide')">🚴 Wide</button></div></div>`;
-                if (isSport && !isGyro) conflictsHTML += `<div class="conflict-block"><div class="conflict-label">🔲 Stabilizzazione Sportiva</div><div class="compromise-selector"><button class="btn-compromise ${compromiseChoices.stabPriority === 'rocksteady' ? 'active' : ''}" onclick="setCompromise('stabPriority', 'rocksteady')">🏃 Max / Boost</button><button class="btn-compromise ${compromiseChoices.stabPriority === 'horizon' ? 'active' : ''}" onclick="setCompromise('stabPriority', 'horizon')">⚖️ Horizon</button></div></div>`;
-                if (!conflictsHTML) conflictsHTML = `<div style="font-size: 0.78rem; color: var(--text-secondary);">✅ <b>Nessun conflitto rilevato!</b> Setup perfetto.</div>`;
-                document.getElementById('container-conflicts').innerHTML = conflictsHTML;
-                
-            } else if (currentMode === 'foto') {
-                document.getElementById('val-res').innerText = currentModel.photoRes || 'Massima Risoluzione (RAW+JPEG)';
-                if (isSport) document.getElementById('val-fps').innerText = 'Scatto Intervalli (1s/2s) o Burst'; else if (isNight) document.getElementById('val-fps').innerText = 'Lunga Esposizione / Night Mode'; else document.getElementById('val-fps').innerText = 'Scatto Singolo / Timer 3s';
-                if (isSport) { document.getElementById('val-shutter').innerText = '1/1000s o 1/2000s (Congela azione)'; document.getElementById('val-nd').innerText = '❌ Nessuno (Max luce)'; } 
-                else if (isNight) { document.getElementById('val-shutter').innerText = 'Esposizione Lunga (2s-10s su treppiede)'; document.getElementById('val-nd').innerText = '❌ Nessuno'; } 
-                else { document.getElementById('val-shutter').innerText = 'AUTO'; document.getElementById('val-nd').innerText = (currentLuce === 'sole') ? 'Nessuno o ND8' : 'Nessuno'; }
-                document.getElementById('val-color').innerText = 'Formato RAW (.DNG)';
-                document.getElementById('val-fov').innerText = 'Wide / Linear';
-                document.getElementById('val-stab').innerText = 'OIS / IBIS Attivo';
-                document.getElementById('val-sharp').innerText = 'Nitidezza: Bassa';
-                document.getElementById('val-iso').innerText = (isNight) ? 'ISO 100 fisso (Su treppiede)' : 'ISO Auto (Max 400)';
-                
-                // Specific Rigging for Photo based on user's known bike setup implicitly
-                if (isSport) document.getElementById('rigging-text').innerHTML = `<b>📸 Scatto Sport:</b> Sfrutta l'attacco frontale stock pre-installato sul tuo cockpit in carbonio per garantire la massima rigidità sul manubrio. Annulla le vibrazioni ed evita il micro-mosso.`;
-                else if (isSub) document.getElementById('rigging-text').innerHTML = `<b>📸 Subacqueo:</b> Usa il timer a 3s per evitare micro-movimenti al tocco.`;
-                else document.getElementById('rigging-text').innerHTML = `<b>📸 Setup Fotografico:</b> Mini-treppiede o mano libera. Attiva comando vocale.`;
-                
-                document.getElementById('metric-bitrate').innerText = '~30 MB a scatto'; document.getElementById('metric-size').innerText = '~1500 foto su 64GB';
-                document.getElementById('sd-alert').style.display = 'none'; document.getElementById('container-conflicts').innerHTML = `<div style="font-size: 0.78rem; color: var(--text-secondary);">✅ <b>Modalità Fotografia.</b> Concentrati su composizione ed esposizione.</div>`;
-            } else if (currentMode === 'timelapse') {
-                document.getElementById('val-res').innerText = currentModel.maxRes.replace(/@.*/, '') + ' (Max Res)';
-                let isHyperlapse = isSport || isTravel || isCar;
-                
-                if (isHyperlapse) {
-                    document.getElementById('val-fps').innerText = 'Hyperlapse / TimeWarp (Int. Auto/0.5s)'; document.getElementById('val-shutter').innerText = 'AUTO (O 1/100s per ridurre blur)';
-                    document.getElementById('val-nd').innerText = 'Nessuno (o ND8 in pieno sole)'; document.getElementById('val-stab').innerText = 'Max / Boost (Fondamentale in moto)';
-                    document.getElementById('rigging-text').innerHTML = `<b>🚶 Hyperlapse:</b> Cam salda al petto o su grip. Punta dritto. Ottimo per transizioni.`;
-                } else if (isNight) {
-                    document.getElementById('val-fps').innerText = 'Night Lapse (Int. 5s-10s)'; document.getElementById('val-shutter').innerText = 'Esposizione fissa (2s-5s)';
-                    document.getElementById('val-nd').innerText = '❌ Nessuno'; document.getElementById('val-stab').innerText = 'OFF (Treppiede Obbligatorio)';
-                    document.getElementById('rigging-text').innerHTML = `<b>🌃 Night Lapse:</b> Treppiede solido. Spegni la stabilizzazione per evitare scatti sgradevoli al buio.`;
-                } else {
-                    document.getElementById('val-fps').innerText = 'Timelapse Statico (Int. 1s-2s)'; document.getElementById('val-shutter').innerText = '1/2s o 1s (Con ND per Blur)';
-                    document.getElementById('val-nd').innerText = 'ND64 / ND128 (Per scie fluide)'; document.getElementById('val-stab').innerText = 'OFF (Treppiede Obbligatorio)';
-                    document.getElementById('rigging-text').innerHTML = `<b>⏱️ Timelapse:</b> Treppiede. L'ND con shutter lento "spalma" le nuvole creando un effetto cinematico.`;
-                }
+        function renderStorageMetrics(ctx, fps) {
+            let mbps = ctx.model.bitrate;
+            if (fps >= 100) mbps += 20;
+            mbps = Math.floor(mbps * (BITRATE_PROFILES[currentBitrateProfile] || BITRATE_PROFILES.high).factor);
 
-                document.getElementById('val-color').innerText = 'Video MP4 (o Foto RAW)'; document.getElementById('val-fov').innerText = 'Wide / Standard'; document.getElementById('val-sharp').innerText = 'Sharpness: Low | Colore: Standard';
-                document.getElementById('val-iso').innerText = isNight ? 'ISO Min 100 / Max 800' : 'ISO 100 fisso';
-                document.getElementById('metric-bitrate').innerText = 'Variabile (Basso consumo)'; document.getElementById('metric-size').innerText = '~1 GB / Ora di ripresa reale';
-                document.getElementById('sd-alert').style.display = 'none'; document.getElementById('container-conflicts').innerHTML = `<div style="font-size: 0.78rem; color: var(--text-secondary);">✅ <b>Modalità Timelapse.</b> Attenzione alla batteria: disattiva lo schermo (Screen OFF).</div>`;
+            setText('metric-bitrate', `~${mbps} Mbps (H.265)`);
+            const gbPer10Min = ((mbps * 1000000 / 8) * 600) / (1024 * 1024 * 1024);
+            setText('metric-size', `~${gbPer10Min.toFixed(1)} GB / 10 min`);
+
+            const alert = $('sd-alert');
+            if (!alert) return;
+            if (mbps > 105 || fps >= 100) {
+                alert.style.display = 'block';
+                alert.innerHTML = `⚠️ <b>Allarme MicroSD:</b> Flusso dati molto elevato (~${mbps} Mbps). Utilizza scheda certificata <b>V30 (U3)</b>.`;
+            } else {
+                alert.style.display = 'none';
+            }
+        }
+
+        function conflictBlock(label, key, options) {
+            const buttons = options.map(opt =>
+                `<button class="btn-compromise ${compromiseChoices[key] === opt.value ? 'active' : ''}" onclick="setCompromise('${key}', '${opt.value}')">${opt.label}</button>`
+            ).join('');
+            return `<div class="conflict-block"><div class="conflict-label">${label}</div><div class="compromise-selector">${buttons}</div></div>`;
+        }
+
+        function renderConflicts(ctx, hasFpsConflict, hasProfileConflict) {
+            let html = '';
+            if (hasFpsConflict) {
+                const actionFps = ctx.isSlowmo ? (ctx.isPal ? '100' : '120') : (ctx.isPal ? '50' : '60');
+                html += conflictBlock('⚡ Framerate: Scarsa Luce vs Sport', 'fpsPriority', [
+                    { value: 'light', label: `💡 Luce (${ctx.isPal ? '25' : '30'} fps)` },
+                    { value: 'action', label: `🚴 Azione (${actionFps} fps)` }
+                ]);
+            }
+            if (hasProfileConflict) {
+                html += conflictBlock('🎨 Profilo Colore: Reel vs Notturno', 'profilePriority', [
+                    { value: 'dlog', label: `🎬 ${ctx.model.logProfile.split(' ')[0]}` },
+                    { value: 'normal', label: '🌙 Standard' }
+                ]);
+            }
+            if (ctx.isReel && ctx.isSport) {
+                html += conflictBlock('📐 FOV: Linee Diritte vs Ampio', 'fovPriority', [
+                    { value: 'dewarp', label: '📱 Linear' },
+                    { value: 'wide', label: '🚴 Wide' }
+                ]);
+            }
+            if (ctx.isSport && !ctx.isGyro) {
+                html += conflictBlock('🔲 Stabilizzazione Sportiva', 'stabPriority', [
+                    { value: 'rocksteady', label: '🏃 Max / Boost' },
+                    { value: 'horizon', label: '⚖️ Horizon' }
+                ]);
+            }
+            if (!html) html = `<div style="font-size: 0.78rem; color: var(--text-secondary);">✅ <b>Nessun conflitto rilevato!</b> Setup perfetto.</div>`;
+            setHtml('container-conflicts', html);
+        }
+
+        function renderVideoMode(ctx) {
+            const hasFpsConflict = (ctx.isNight || ctx.isIndoor || currentLuce === 'scarsa' || ctx.isSub) && (ctx.isSport || ctx.isSlowmo);
+            const hasProfileConflict = (ctx.isNight || ctx.isIndoor) && ctx.isReel;
+            const fps = computeFps(ctx, hasFpsConflict);
+            const exposure = computeExposure(ctx, fps, hasFpsConflict);
+
+            setText('val-res', computeResolution(ctx));
+            setText('val-fps', `${fps} fps (${ctx.isPal ? 'PAL' : 'NTSC'})`);
+            setText('val-shutter', exposure.shutter);
+            setText('val-nd', exposure.nd);
+            setText('val-color', computeColorProfile(ctx, hasProfileConflict));
+            setText('val-fov', computeFov(ctx));
+            setText('val-stab', computeStabilization(ctx));
+            setText('val-sharp', computeSharpness(ctx));
+            setText('val-iso', (ctx.isNight || ctx.isIndoor || ctx.isSub) ? 'Min ISO 100 / Max 1600' : 'Min ISO 100 / Max 800');
+            setText('val-wb', ctx.isSub ? 'Manuale 6500K - 7500K' : ctx.isIndoor ? 'Manuale 3800K - 4200K' : ctx.isNight ? 'Auto WB' : 'Manuale 5500K');
+            setHtml('rigging-text', computeVideoRigging(ctx));
+
+            renderStorageMetrics(ctx, fps);
+            renderConflicts(ctx, hasFpsConflict, hasProfileConflict);
+            return fps;
+        }
+
+        function renderPhotoMode(ctx) {
+            setText('val-res', ctx.model.photoRes || 'Massima Risoluzione (RAW+JPEG)');
+            setText('val-fps', ctx.isSport ? 'Scatto Intervalli (1s/2s) o Burst' : ctx.isNight ? 'Lunga Esposizione / Night Mode' : 'Scatto Singolo / Timer 3s');
+
+            if (ctx.isSport) {
+                setText('val-shutter', '1/1000s o 1/2000s (Congela azione)');
+                setText('val-nd', '❌ Nessuno (Max luce)');
+            } else if (ctx.isNight) {
+                setText('val-shutter', 'Esposizione Lunga (2s-10s su treppiede)');
+                setText('val-nd', '❌ Nessuno');
+            } else {
+                setText('val-shutter', 'AUTO');
+                setText('val-nd', (currentLuce === 'sole') ? 'Nessuno o ND8' : 'Nessuno');
             }
 
-            // --- MOTORE FOTOGRAFICO PRO ---
-            const flatLayer = document.querySelector('.sim-layer-flat'); const gradLayer = document.querySelector('.sim-inner-graded');
-            const subjectFlat = document.getElementById('subject-flat'); const subjectGrad = document.getElementById('subject-grad');
-            const noiseOverlay = document.getElementById('sim-iso-noise');
-            let isoNoiseLevel = 0; let motionBlurPx = 0;
+            setText('val-color', 'Formato RAW (.DNG)');
+            setText('val-fov', 'Wide / Linear');
+            setText('val-stab', 'OIS / IBIS Attivo');
+            setText('val-sharp', 'Nitidezza: Bassa');
+            setText('val-iso', ctx.isNight ? 'ISO 100 fisso (Su treppiede)' : 'ISO Auto (Max 400)');
 
-            if (isNight) isoNoiseLevel = 0.85; else if (isIndoor || currentLuce === 'scarsa') isoNoiseLevel = 0.45; else if (isSub) isoNoiseLevel = 0.25;
-            if (currentMode === 'foto' && isNight) isoNoiseLevel = 0.1; 
+            if (ctx.isSport) setHtml('rigging-text', `<b>📸 Scatto Sport:</b> Attacco frontale rigido su manubrio o pettorina. Più il supporto è rigido, meno vibrazioni e micro-mosso.`);
+            else if (ctx.isSub) setHtml('rigging-text', `<b>📸 Subacqueo:</b> Usa il timer a 3s per evitare micro-movimenti al tocco.`);
+            else setHtml('rigging-text', `<b>📸 Setup Fotografico:</b> Mini-treppiede o mano libera. Attiva comando vocale.`);
 
-            if (isSport || isCar || currentMode === 'timelapse') {
-                if (currentMode === 'foto') motionBlurPx = 0; 
-                else if (currentMode === 'timelapse' && !isNight) motionBlurPx = 3.5; 
-                else motionBlurPx = (currentFpsObj <= 30) ? 2.5 : 1.0; 
+            setText('metric-bitrate', '~30 MB a scatto');
+            setText('metric-size', '~1500 foto su 64GB');
+            const alert = $('sd-alert');
+            if (alert) alert.style.display = 'none';
+            setHtml('container-conflicts', `<div style="font-size: 0.78rem; color: var(--text-secondary);">✅ <b>Modalità Fotografia.</b> Concentrati su composizione ed esposizione.</div>`);
+        }
+
+        function renderTimelapseMode(ctx) {
+            setText('val-res', ctx.model.maxRes.replace(/@.*/, '') + ' (Max Res)');
+            const isHyperlapse = ctx.isSport || ctx.isTravel || ctx.isCar;
+
+            if (isHyperlapse) {
+                setText('val-fps', 'Hyperlapse / TimeWarp (Int. Auto/0.5s)');
+                setText('val-shutter', 'AUTO (O 1/100s per ridurre blur)');
+                setText('val-nd', 'Nessuno (o ND8 in pieno sole)');
+                setText('val-stab', 'Max / Boost (Fondamentale in moto)');
+                setHtml('rigging-text', `<b>🚶 Hyperlapse:</b> Cam salda al petto o su grip. Punta dritto. Ottimo per transizioni.`);
+            } else if (ctx.isNight) {
+                setText('val-fps', 'Night Lapse (Int. 5s-10s)');
+                setText('val-shutter', 'Esposizione fissa (2s-5s)');
+                setText('val-nd', '❌ Nessuno');
+                setText('val-stab', 'OFF (Treppiede Obbligatorio)');
+                setHtml('rigging-text', `<b>🌃 Night Lapse:</b> Treppiede solido. Spegni la stabilizzazione per evitare scatti sgradevoli al buio.`);
+            } else {
+                setText('val-fps', 'Timelapse Statico (Int. 1s-2s)');
+                setText('val-shutter', '1/2s o 1s (Con ND per Blur)');
+                setText('val-nd', 'ND64 / ND128 (Per scie fluide)');
+                setText('val-stab', 'OFF (Treppiede Obbligatorio)');
+                setHtml('rigging-text', `<b>⏱️ Timelapse:</b> Treppiede. L'ND con shutter lento "spalma" le nuvole creando un effetto cinematico.`);
             }
 
-            let fContrast = 0.6, fSat = 0.3, fBri = 1.1, fHue = 0; let gContrast = 1.25, gSat = 1.45, gBri = 0.96, gHue = 0;
+            setText('val-color', 'Video MP4 (o Foto RAW)');
+            setText('val-fov', 'Wide / Standard');
+            setText('val-sharp', 'Sharpness: Low | Colore: Standard');
+            setText('val-iso', ctx.isNight ? 'ISO Min 100 / Max 800' : 'ISO 100 fisso');
+            setText('metric-bitrate', 'Variabile (Basso consumo)');
+            setText('metric-size', '~1 GB / Ora di ripresa reale');
+            const alert = $('sd-alert');
+            if (alert) alert.style.display = 'none';
+            setHtml('container-conflicts', `<div style="font-size: 0.78rem; color: var(--text-secondary);">✅ <b>Modalità Timelapse.</b> Attenzione alla batteria: disattiva lo schermo (Screen OFF).</div>`);
+        }
+
+        // Simulatore: traduce le impostazioni calcolate in filtri CSS applicati
+        // alla scena SVG (rumore ISO, motion blur, curva LOG vs gradata).
+        function renderSimulator(ctx, fps) {
+            const flatLayer = document.querySelector('.sim-layer-flat');
+            const gradLayer = document.querySelector('.sim-inner-graded');
+            const subjectFlat = $('subject-flat');
+            const subjectGrad = $('subject-grad');
+            const noiseOverlay = $('sim-iso-noise');
+
+            let isoNoiseLevel = 0;
+            if (ctx.isNight) isoNoiseLevel = 0.85;
+            else if (ctx.isIndoor || currentLuce === 'scarsa') isoNoiseLevel = 0.45;
+            else if (ctx.isSub) isoNoiseLevel = 0.25;
+            if (currentMode === 'foto' && ctx.isNight) isoNoiseLevel = 0.1;
+
+            let motionBlurPx = 0;
+            if (ctx.isSport || ctx.isCar || currentMode === 'timelapse') {
+                if (currentMode === 'foto') motionBlurPx = 0;
+                else if (currentMode === 'timelapse' && !ctx.isNight) motionBlurPx = 3.5;
+                else motionBlurPx = (fps <= 30) ? 2.5 : 1.0;
+            }
+
+            let fContrast = 0.6, fSat = 0.3, fBri = 1.1, fHue = 0;
+            let gContrast = 1.25, gSat = 1.45, gBri = 0.96, gHue = 0;
             let tagFlat = '10-BIT LOG', tagGrad = 'REC.709 LUT';
 
-            if (isNight) { fBri -= 0.45; gBri -= 0.35; fHue -= 15; gHue -= 15; fContrast += 0.2; gContrast += 0.35; tagFlat = 'RAW SENSOR'; tagGrad = 'NIGHT PROCESS'; }
-            if (isSub) { fHue += 140; gHue += 140; fBri -= 0.15; tagFlat = 'DIVE PROFILE'; tagGrad = 'AQUA RESTORE'; }
-            if (currentBitrateProfile === 'eco' || currentMode === 'foto' || currentMode === 'timelapse') { fContrast = 0.95; fSat = 0.9; fBri = gBri; if(!isNight && !isSub) { tagFlat = 'STANDARD PROFILE'; tagGrad = 'IN-APP ENHANCE'; } }
+            if (ctx.isNight) {
+                fBri -= 0.45; gBri -= 0.35; fHue -= 15; gHue -= 15; fContrast += 0.2; gContrast += 0.35;
+                tagFlat = 'RAW SENSOR'; tagGrad = 'NIGHT PROCESS';
+            }
+            if (ctx.isSub) {
+                fHue += 140; gHue += 140; fBri -= 0.15;
+                tagFlat = 'DIVE PROFILE'; tagGrad = 'AQUA RESTORE';
+            }
+            if (ctx.isEco || currentMode === 'foto' || currentMode === 'timelapse') {
+                fContrast = 0.95; fSat = 0.9; fBri = gBri;
+                if (!ctx.isNight && !ctx.isSub) { tagFlat = 'STANDARD PROFILE'; tagGrad = 'IN-APP ENHANCE'; }
+            }
 
             if (noiseOverlay) noiseOverlay.style.opacity = isoNoiseLevel;
             if (subjectFlat) subjectFlat.style.filter = `blur(${motionBlurPx}px)`;
             if (subjectGrad) subjectGrad.style.filter = `blur(${motionBlurPx}px)`;
             if (flatLayer) flatLayer.style.filter = `contrast(${fContrast}) saturate(${fSat}) brightness(${fBri}) hue-rotate(${fHue}deg)`;
             if (gradLayer) gradLayer.style.filter = `contrast(${gContrast}) saturate(${gSat}) brightness(${gBri}) hue-rotate(${gHue}deg)`;
-            
-            const flatTagEl = document.getElementById('sim-tag-flat-text'); const gradTagEl = document.getElementById('sim-tag-graded-text');
-            if (flatTagEl) flatTagEl.innerText = tagFlat; if (gradTagEl) gradTagEl.innerText = tagGrad;
+
+            setText('sim-tag-flat-text', tagFlat);
+            setText('sim-tag-graded-text', tagGrad);
         }
+
+        function updateResults() {
+            const ctx = buildContext();
+            renderHeader(ctx);
+            renderCommonSettings(ctx);
+
+            if (currentMode === 'video') lastComputedFps = renderVideoMode(ctx);
+            else if (currentMode === 'foto') renderPhotoMode(ctx);
+            else if (currentMode === 'timelapse') renderTimelapseMode(ctx);
+
+            renderSimulator(ctx, lastComputedFps);
+        }
+
+        /* ==================================================================
+           10. AVVIO
+           ================================================================== */
+
+        function init() {
+            const savedTheme = storageGet(STORAGE_KEYS.theme) || storageGet(STORAGE_KEYS.legacyTheme);
+            if (savedTheme) applyTheme(savedTheme);
+
+            // Ogni sezione dinamica va disegnata almeno una volta all'avvio,
+            // altrimenti i container restano vuoti finché l'utente non li tocca.
+            updateUIState();
+            renderSavedPresets();
+            updateResults();
+            updateEditingGuide();
+
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('./sw.js').catch(() => {});
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', init);
     </script>
 </body>
 </html> 
