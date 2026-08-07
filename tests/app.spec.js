@@ -659,9 +659,9 @@ test.describe('Shortcut del manifest', () => {
 test.describe('Piè di pagina', () => {
   test('il profilo Instagram e raggiungibile e si apre in sicurezza', async ({ page }) => {
     const link = page.locator('.app-footer a');
-    await expect(link).toHaveAttribute('href', 'https://instagram.com/ShakeMyMids');
+    await expect(link).toHaveAttribute('href', 'https://www.instagram.com/shakemymids__');
     await expect(link).toHaveAttribute('rel', 'noopener noreferrer');
-    await expect(link).toContainText('@ShakeMyMids');
+    await expect(link).toContainText('@shakemymids__');
   });
 });
 
@@ -678,9 +678,9 @@ test.describe('Lingua inglese', () => {
   });
 
   test('l handle Instagram non si traduce, l etichetta si', async ({ page }) => {
-    // @ShakeMyMids e' un nome proprio, come RockSteady o D-Log M.
+    // @shakemymids__ e' un nome proprio, come RockSteady o D-Log M.
     await expect(page.locator('.app-footer')).toContainText('Made by');
-    await expect(page.locator('.app-footer a')).toContainText('@ShakeMyMids');
+    await expect(page.locator('.app-footer a')).toContainText('@shakemymids__');
   });
 
   test('il confronto camere e il limite di ripresa parlano inglese', async ({ page }) => {
