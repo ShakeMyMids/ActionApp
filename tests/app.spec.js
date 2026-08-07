@@ -539,3 +539,65 @@ test.describe('Simulatore e obiettivi di editing', () => {
     await expect(page.locator('#sim-sub-left')).toContainText('camera');
   });
 });
+
+test.describe('Coerenza visiva', () => {
+  test('radio e chip selezionati usano lo stesso colore', async ({ page }) => {
+    // Prima i radio erano cyan e i chip teal: due colori per lo stesso
+    // significato, affiancati nella stessa scheda.
+    const chip = await page.locator('.btn-chip.selected').first()
+      .evaluate(el => getComputedStyle(el).backgroundColor);
+    await expect(page.locator('.btn-radio.active').first()).toHaveCSS('background-color', chip);
+  });
+
+  test('il testo sopra il colore del brand resta leggibile', async ({ page }) => {
+    // Il giallo Insta360 col bianco dava 1.92:1; ora l'inchiostro segue il brand.
+    const read = () => document.documentElement.style.getPropertyValue('--brand-ink').trim();
+
+    await page.click('#brand-card-insta');
+    expect(await page.evaluate(read)).toBe('#0f172a');
+
+    await page.click('#brand-card-gopro');
+    expect(await page.evaluate(read)).toBe('#ffffff');
+
+    await page.click('#brand-card-dji');
+    expect(await page.evaluate(read)).toBe('#0f172a');
+  });
+
+  test('il colore del brand raggiunge tutti i controlli selezionati', async ({ page }) => {
+    await page.click('#brand-card-gopro');
+    // toHaveCSS riprova finché la transizione di 0.3s non è conclusa.
+    await expect(page.locator('.btn-radio.active').first())
+      .toHaveCSS('background-color', 'rgb(37, 99, 235)');
+  });
+
+  test('su desktop la navigazione sta sopra il contenuto', async ({ page }) => {
+    // Era sticky ma ultima nel DOM, quindi finiva in fondo alla pagina.
+    await page.setViewportSize({ width: 1280, height: 900 });
+    const nav = await page.locator('.tab-nav').boundingBox();
+    const container = await page.locator('.container').boundingBox();
+    expect(nav.y).toBeLessThan(container.y);
+  });
+
+  test('su mobile la navigazione resta ancorata in basso', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    const pos = await page.evaluate(() => {
+      const nav = document.querySelector('.tab-nav');
+      return { position: getComputedStyle(nav).position, bottom: nav.getBoundingClientRect().bottom };
+    });
+    expect(pos.position).toBe('fixed');
+    expect(pos.bottom).toBeCloseTo(844, -1);
+  });
+
+  test('non restano riferimenti a variabili inesistenti', async () => {
+    // Un var(--x) senza dichiarazione non fallisce rumorosamente: l'elemento
+    // eredita un colore qualsiasi. È il caso che aveva colpito --teal.
+    const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    // Con un valore di ripiego, var(--x, y) è legittimo anche senza dichiarazione.
+    const used = [...html.matchAll(/var\(--([a-z0-9-]+)\s*(,?)/g)]
+      .filter(m => m[2] !== ',').map(m => m[1]);
+    // Le dichiarazioni possono stare a inizio riga o in blocchi su una riga sola.
+    const declared = new Set([...html.matchAll(/--([a-z0-9-]+)\s*:/g)].map(m => m[1]));
+    const missing = [...new Set(used)].filter(v => !declared.has(v));
+    expect(missing).toEqual([]);
+  });
+});
