@@ -250,6 +250,26 @@
         .sim-handle { position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; background: #ffffff; z-index: 3; pointer-events: none; transform: translateX(-50%); }
         .sim-handle-knob { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 28px; height: 28px; background: #0f172a; border: 2px solid #ffffff; color: #38bdf8; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; box-shadow: 0 2px 8px rgba(0,0,0,0.5); transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
         .sim-tag { position: absolute; top: 8px; font-size: 0.65rem; font-weight: 800; padding: 3px 7px; border-radius: 4px; letter-spacing: 0.5px; z-index: 4; }
+
+        /* Sovrapposizioni del simulatore: rendono visibili gli obiettivi di
+           editing scelti (ritaglio verticale, slow motion, audio). Vivono
+           dentro i due livelli, così la tendina le rivela insieme all'immagine. */
+        /* Il livello gradato occupa la metà sinistra, quello piatto si rivela a
+           destra: le sovrapposizioni seguono i rispettivi lati, altrimenti si
+           coprirebbero a vicenda restando sempre invisibili. */
+        .sim-fx { position: absolute; bottom: 8px; display: flex; flex-direction: column; gap: 5px; pointer-events: none; z-index: 4; }
+        #sim-fx-graded { left: 10px; align-items: flex-start; }
+        #sim-fx-flat { right: 10px; align-items: flex-end; }
+        .sim-badge { background: rgba(15, 23, 42, 0.8); color: #f8fafc; border: 1px solid rgba(148, 163, 184, 0.55); border-radius: 999px; padding: 3px 8px; font-size: 0.58rem; font-weight: 800; letter-spacing: 0.4px; white-space: nowrap; }
+        .sim-meter { display: flex; align-items: flex-end; gap: 2px; height: 16px; background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(148, 163, 184, 0.55); border-radius: 4px; padding: 2px 4px; }
+        .sim-meter i { display: block; width: 3px; min-height: 2px; background: currentColor; border-radius: 1px; }
+        .sim-meter-dirty { color: #f87171; }
+        .sim-meter-clean { color: #4ade80; }
+
+        /* Finestra 9:16 sovrapposta alla scena: mostra quanto resta davvero
+           dell'inquadratura quando si monta in verticale. */
+        .sim-crop-guide { position: absolute; top: 0; bottom: 0; left: 50%; transform: translateX(-50%); aspect-ratio: 9 / 16; box-shadow: 0 0 0 9999px rgba(2, 6, 23, 0.76); border-left: 2px dashed rgba(248, 250, 252, 0.9); border-right: 2px dashed rgba(248, 250, 252, 0.9); pointer-events: none; z-index: 5; display: none; }
+        .sim-crop-guide.visible { display: block; }
         .sim-tag-left { right: 8px; background: rgba(15, 23, 42, 0.75); color: #cbd5e1; border: 1px solid rgba(255,255,255,0.2); }
         .sim-tag-right { left: 8px; background: rgba(13, 148, 136, 0.85); color: #ffffff; border: 1px solid rgba(255,255,255,0.3); }
 
@@ -683,6 +703,7 @@
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 300" preserveAspectRatio="xMidYMid slice" style="width:100%; height:100%; display:block;" aria-hidden="true" focusable="false">
                                     <use href="#sim-scene"/>
                                 </svg>
+                                <div id="sim-fx-flat" class="sim-fx" aria-hidden="true"></div>
                                 <span id="sim-tag-flat-text" class="sim-tag sim-tag-left">10-BIT LOG</span>
                             </div>
 
@@ -691,9 +712,11 @@
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 300" preserveAspectRatio="xMidYMid slice" style="width:100%; height:100%; display:block;" aria-hidden="true" focusable="false">
                                         <use href="#sim-scene"/>
                                     </svg>
+                                    <div id="sim-fx-graded" class="sim-fx" aria-hidden="true"></div>
                                     <span id="sim-tag-graded-text" class="sim-tag sim-tag-right">REC.709 (GRADED)</span>
                                 </div>
                             </div>
+                            <div id="sim-crop-guide" class="sim-crop-guide" aria-hidden="true"></div>
                             <div id="sim-handle" class="sim-handle"><div class="sim-handle-knob">↔</div></div>
                         </div>
                         
@@ -1278,6 +1301,20 @@
             '<li><b>Audio Output:</b> Stereo AAC 48kHz, normalizzazione a <b>-1 dB</b>.</li>':
                 '<li><b>Audio output:</b> Stereo AAC 48kHz, normalised to <b>-1 dB</b>.</li>',
 
+            // --- Simulatore: sovrapposizioni degli obiettivi di editing ---
+            "16:9 pieno": "Full 16:9",
+            "9:16 · taglio social": "9:16 · social crop",
+            "1x · ripresa": "1x · as filmed",
+            "0.25x · slow motion": "0.25x · slow motion",
+            "Vento sul microfono": "Wind on the mic",
+            "Low-cut + ducking": "Low-cut + ducking",
+            "◀ Come esce dalla camera": "◀ Straight out of the camera",
+            "Dopo l'editing ▶": "After editing ▶",
+            "Dopo il grading ▶": "After grading ▶",
+            "Colore ripristinato ▶": "Colour restored ▶",
+            "Dopo lo speed ramp ▶": "After the speed ramp ▶",
+            "Montaggio verticale ▶": "Vertical edit ▶",
+
             // --- Simulatore ---
             '10-BIT LOG': '10-BIT LOG',
             'REC.709 LUT': 'REC.709 LUT',
@@ -1855,6 +1892,8 @@
             }
             updateUIState();
             updateEditingGuide();
+            // Gli obiettivi di editing cambiano anche il simulatore.
+            renderSimulator(buildContext(), lastComputedFps);
         }
 
         function updateEditingGuide() {
@@ -2193,11 +2232,32 @@
 
         // Simulatore: traduce le impostazioni calcolate in filtri CSS applicati
         // alla scena SVG (rumore ISO, motion blur, curva LOG vs gradata).
+        // Barre di livello audio: irregolari e alte a sinistra (vento non
+        // trattato), regolari e contenute a destra (dopo low-cut e ducking).
+        function meterHtml(clean) {
+            const levels = clean
+                ? [5, 7, 6, 8, 7, 6, 8, 7, 5, 6]
+                : [14, 4, 16, 7, 15, 3, 13, 6, 16, 5];
+            const bars = levels.map(v => `<i style="height:${v}px"></i>`).join('');
+            return `<span class="sim-meter ${clean ? 'sim-meter-clean' : 'sim-meter-dirty'}">${bars}</span>`;
+        }
+
         function renderSimulator(ctx, fps) {
-            const box = document.querySelector('.sim-image-box');
             const flatLayer = document.querySelector('.sim-layer-flat');
             const gradLayer = document.querySelector('.sim-inner-graded');
             const noiseOverlay = $('sim-iso-noise');
+            const cropGuide = $('sim-crop-guide');
+
+            // Il simulatore vive nella scheda Editing: oltre alle condizioni di
+            // ripresa deve riflettere gli obiettivi di post-produzione scelti,
+            // altrimenti quei chip non avrebbero alcun effetto visibile.
+            const goal = {
+                grading: selectedEditGoals.includes('dlog_lut'),
+                reel: selectedEditGoals.includes('reel_fast'),
+                speed: selectedEditGoals.includes('speed_ramp'),
+                audio: selectedEditGoals.includes('audio_clean'),
+                aqua: selectedEditGoals.includes('underwater_color')
+            };
 
             let isoNoiseLevel = 0;
             if (ctx.isNight) isoNoiseLevel = 0.85;
@@ -2212,32 +2272,81 @@
                 else motionBlurPx = (fps <= 30) ? 2.5 : 1.0;
             }
 
+            // Lo speed ramp confronta il movimento a velocità piena con quello
+            // rallentato: a destra il soggetto si ferma, a sinistra resta mosso.
+            // Senza movimento in scena il confronto sarebbe invisibile, quindi
+            // il lato sinistro riceve comunque un minimo di scia.
+            const flatBlur = goal.speed ? Math.max(motionBlurPx, 2.2) : motionBlurPx;
+            const gradBlur = goal.speed ? 0 : motionBlurPx;
+
             let fContrast = 0.6, fSat = 0.3, fBri = 1.1, fHue = 0;
             let gContrast = 1.25, gSat = 1.45, gBri = 0.96, gHue = 0;
             let tagFlat = t('10-BIT LOG'), tagGrad = t('REC.709 LUT');
+
+            // Senza grading selezionato il lato destro non è un LUT pieno, ma
+            // il ritocco leggero che fanno le app dei costruttori.
+            if (!goal.grading) {
+                gContrast = 1.08; gSat = 1.14; gBri = 0.99;
+                tagFlat = t('STANDARD PROFILE'); tagGrad = t('IN-APP ENHANCE');
+            }
 
             if (ctx.isNight) {
                 fBri -= 0.45; gBri -= 0.35; fHue -= 15; gHue -= 15; fContrast += 0.2; gContrast += 0.35;
                 tagFlat = t('RAW SENSOR'); tagGrad = t('NIGHT PROCESS');
             }
-            if (ctx.isSub) {
+            // La dominante acqua arriva dalla ripresa in immersione oppure
+            // dall'obiettivo di editing "colore subacqueo".
+            if (ctx.isSub || goal.aqua) {
                 fHue += 140; gHue += 140; fBri -= 0.15;
+                if (goal.aqua) { gHue -= 18; gSat += 0.2; }
                 tagFlat = t('DIVE PROFILE'); tagGrad = t('AQUA RESTORE');
             }
             if (ctx.isEco || currentMode === 'foto' || currentMode === 'timelapse') {
                 fContrast = 0.95; fSat = 0.9; fBri = gBri;
-                if (!ctx.isNight && !ctx.isSub) { tagFlat = t('STANDARD PROFILE'); tagGrad = t('IN-APP ENHANCE'); }
+                if (!ctx.isNight && !ctx.isSub && !goal.aqua) { tagFlat = t('STANDARD PROFILE'); tagGrad = t('IN-APP ENHANCE'); }
             }
 
             if (noiseOverlay) noiseOverlay.style.opacity = isoNoiseLevel;
             // La scena è condivisa dai due livelli via <use>: il blur viaggia
-            // come variabile CSS, che si eredita anche nel contenuto clonato.
-            if (box) box.style.setProperty('--subject-blur', `${motionBlurPx}px`);
-            if (flatLayer) flatLayer.style.filter = `contrast(${fContrast}) saturate(${fSat}) brightness(${fBri}) hue-rotate(${fHue}deg)`;
-            if (gradLayer) gradLayer.style.filter = `contrast(${gContrast}) saturate(${gSat}) brightness(${gBri}) hue-rotate(${gHue}deg)`;
+            // come variabile CSS, impostata su ciascun livello separatamente.
+            if (flatLayer) {
+                flatLayer.style.setProperty('--subject-blur', `${flatBlur}px`);
+                flatLayer.style.filter = `contrast(${fContrast}) saturate(${fSat}) brightness(${fBri}) hue-rotate(${fHue}deg)`;
+            }
+            if (gradLayer) {
+                gradLayer.style.setProperty('--subject-blur', `${gradBlur}px`);
+                gradLayer.style.filter = `contrast(${gContrast}) saturate(${gSat}) brightness(${gBri}) hue-rotate(${gHue}deg)`;
+            }
+
+            if (cropGuide) cropGuide.classList.toggle('visible', goal.reel);
+
+            const flatFx = [], gradFx = [];
+            if (goal.reel) {
+                flatFx.push(`<span class="sim-badge">${t('16:9 pieno')}</span>`);
+                gradFx.push(`<span class="sim-badge">${t('9:16 · taglio social')}</span>`);
+            }
+            if (goal.speed) {
+                flatFx.push(`<span class="sim-badge">${t('1x · ripresa')}</span>`);
+                gradFx.push(`<span class="sim-badge">${t('0.25x · slow motion')}</span>`);
+            }
+            if (goal.audio) {
+                flatFx.push(meterHtml(false) + `<span class="sim-badge">${t('Vento sul microfono')}</span>`);
+                gradFx.push(meterHtml(true) + `<span class="sim-badge">${t('Low-cut + ducking')}</span>`);
+            }
+            setHtml('sim-fx-flat', flatFx.join(''));
+            setHtml('sim-fx-graded', gradFx.join(''));
 
             setText('sim-tag-flat-text', tagFlat);
             setText('sim-tag-graded-text', tagGrad);
+
+            // Le didascalie dicono cosa si sta confrontando davvero.
+            let rightLabel = t("Dopo l'editing ▶");
+            if (goal.aqua) rightLabel = t('Colore ripristinato ▶');
+            else if (goal.grading) rightLabel = t('Dopo il grading ▶');
+            else if (goal.speed) rightLabel = t('Dopo lo speed ramp ▶');
+            else if (goal.reel) rightLabel = t('Montaggio verticale ▶');
+            setText('sim-sub-left', t('◀ Come esce dalla camera'));
+            setText('sim-sub-right', rightLabel);
         }
 
         function updateResults() {

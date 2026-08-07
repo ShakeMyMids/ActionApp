@@ -18,9 +18,13 @@ girare di notte chiede framerate bassi per raccogliere luce, girare sport ne
 chiede di alti per congelare l'azione. L'app non sceglie di nascosto — mostra il
 conflitto e ti fa decidere la priorità, poi ricalcola tutto di conseguenza.
 
-**Simulatore visivo.** Un confronto a tendina fra immagine LOG e immagine gradata,
-che riflette le impostazioni correnti: il rumore cresce alzando gli ISO, il motion
-blur compare quando otturatore e movimento lo giustificano.
+**Simulatore visivo.** Un confronto a tendina fra ciò che esce dalla camera e il
+risultato dopo l’editing. Riflette sia le condizioni di ripresa — il rumore cresce
+alzando gli ISO, il motion blur compare quando otturatore e movimento lo
+giustificano — sia gli obiettivi di post-produzione scelti: il montaggio verticale
+mostra quanto resta davvero dell’inquadratura in 9:16, lo speed ramp congela il
+soggetto sul lato elaborato, il colore subacqueo applica e poi corregge la
+dominante, il trattamento audio confronta i livelli con e senza vento.
 
 **Preset locali.** Salvi una configurazione ricorrente e la richiami con un tocco.
 Restano nel browser, non lasciano il dispositivo — e puoi esportarli in JSON per
@@ -65,12 +69,13 @@ npx playwright install chromium    # solo la prima volta
 npm test
 ```
 
-43 test end-to-end, eseguiti su due profili — desktop e mobile (Pixel 7) — per un
-totale di 86 esecuzioni. Coprono inizializzazione, motore di calcolo, escaping e
+49 test end-to-end, eseguiti su due profili — desktop e mobile (Pixel 7) — per un
+totale di 98 esecuzioni. Coprono inizializzazione, motore di calcolo, escaping e
 persistenza dei preset, export/import, condivisione via link, accessibilità
 (semantica tab, `aria-pressed`, tastiera), safe area del notch, autonomia della
-batteria, traduzioni e scelta della lingua dal browser, comportamento PWA e
-service worker (aggiornamento dopo un deploy e fallback offline).
+batteria, reattività del simulatore agli obiettivi di editing, traduzioni e scelta
+della lingua dal browser, comportamento PWA e service worker (aggiornamento dopo
+un deploy e fallback offline).
 
 Per eseguire un solo profilo:
 
