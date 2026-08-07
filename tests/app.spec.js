@@ -464,3 +464,78 @@ test.describe('Lingua nel link condiviso', () => {
     await expect(page.locator('#model-indicator')).toHaveText('HERO 13 Black');
   });
 });
+
+test.describe('Simulatore e obiettivi di editing', () => {
+  // Prima il simulatore ignorava del tutto i chip di editing: era decorativo.
+  // Porta la selezione esattamente sugli obiettivi indicati. Va prima
+  // aggiunto e poi rimosso: l'app impone che almeno uno resti attivo.
+  async function onlyGoal(page, wanted) {
+    await page.locator('#tab-editing').click();
+    const active = await page.evaluate(() =>
+      [...document.querySelectorAll('[data-action="toggleEditGoal"][aria-pressed="true"]')].map(e => e.dataset.value));
+    for (const g of wanted) {
+      const btn = page.locator(`[data-action="toggleEditGoal"][data-value="${g}"]`);
+      if ((await btn.getAttribute('aria-pressed')) !== 'true') await btn.click();
+    }
+    for (const g of active) {
+      if (wanted.includes(g)) continue;
+      const btn = page.locator(`[data-action="toggleEditGoal"][data-value="${g}"]`);
+      if ((await btn.getAttribute('aria-pressed')) === 'true') await btn.click();
+    }
+  }
+
+  test('cambiare obiettivo cambia davvero il simulatore', async ({ page }) => {
+    await page.locator('#tab-editing').click();
+    const before = await page.locator('.sim-inner-graded').evaluate(el => el.style.filter);
+
+    await onlyGoal(page, ['underwater_color']);
+    const after = await page.locator('.sim-inner-graded').evaluate(el => el.style.filter);
+    expect(after).not.toBe(before);
+  });
+
+  test('il montaggio verticale mostra il ritaglio 9:16', async ({ page }) => {
+    await onlyGoal(page, ['reel_fast']);
+    await expect(page.locator('#sim-crop-guide')).toHaveClass(/visible/);
+    await expect(page.locator('#sim-fx-graded')).toContainText('9:16');
+    await expect(page.locator('#sim-fx-flat')).toContainText('16:9');
+
+    await onlyGoal(page, ['dlog_lut']);
+    await expect(page.locator('#sim-crop-guide')).not.toHaveClass(/visible/);
+  });
+
+  test('lo speed ramp congela il soggetto solo sul lato elaborato', async ({ page }) => {
+    await onlyGoal(page, ['speed_ramp']);
+    const blur = await page.evaluate(() => ({
+      flat: document.querySelector('.sim-layer-flat').style.getPropertyValue('--subject-blur'),
+      grad: document.querySelector('.sim-inner-graded').style.getPropertyValue('--subject-blur')
+    }));
+    expect(parseFloat(blur.flat)).toBeGreaterThan(0);
+    expect(parseFloat(blur.grad)).toBe(0);
+    await expect(page.locator('#sim-fx-graded')).toContainText('0.25x');
+  });
+
+  test('audio e vento mostrano i due livelli a confronto', async ({ page }) => {
+    await onlyGoal(page, ['audio_clean']);
+    await expect(page.locator('#sim-fx-graded .sim-meter-clean')).toHaveCount(1);
+    await expect(page.locator('#sim-fx-flat .sim-meter-dirty')).toHaveCount(1);
+    await expect(page.locator('#sim-fx-graded')).toContainText('Low-cut');
+  });
+
+  test('il colore subacqueo agisce anche senza scenario in immersione', async ({ page }) => {
+    // La dominante non dipende dal selettore "Sott'Acqua" della scheda 1.
+    await onlyGoal(page, ['underwater_color']);
+    const filter = await page.locator('.sim-layer-flat').evaluate(el => el.style.filter);
+    expect(filter).toContain('hue-rotate(140deg)');
+    await expect(page.locator('#sim-tag-graded-text')).toHaveText('AQUA RESTORE');
+  });
+
+  test('la didascalia dice cosa si sta confrontando', async ({ page }) => {
+    await onlyGoal(page, ['dlog_lut']);
+    await expect(page.locator('#sim-sub-right')).toContainText('grading');
+
+    await onlyGoal(page, ['speed_ramp']);
+    await expect(page.locator('#sim-sub-right')).toContainText('speed ramp');
+
+    await expect(page.locator('#sim-sub-left')).toContainText('camera');
+  });
+});
