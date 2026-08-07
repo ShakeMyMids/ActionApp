@@ -944,29 +944,29 @@
         // picco assoluto raggiungibile con firmware modificati.
         const cameraModelsData = {
             dji: {
-                'action5pro': { name: 'DJI Osmo Action 5 Pro', shortName: 'Action 5 Pro', maxRes: '4K @ 120fps (Sensore 1/1.3" 4:3)', logProfile: '10-bit D-Log M', waterproof: 20, mount: 'Sgancio Mag. v2', audio: 'Dual BT Direct DJI Mic 2.', bitrate: 110, photoRes: '40 MP RAW', batteryMin: 150 },
-                'action4': { name: 'DJI Osmo Action 4', shortName: 'Action 4', maxRes: '4K @ 120fps (Sensore 1/1.3" 4:3)', logProfile: '10-bit D-Log M', waterproof: 18, mount: 'Sgancio Mag. Rapido', audio: 'BT Direct DJI Mic 2.', bitrate: 110, photoRes: '10 MP RAW', batteryMin: 120 },
-                'action3': { name: 'DJI Osmo Action 3', shortName: 'Action 3', maxRes: '4K @ 120fps (Sensore 1/1.7" 4:3)', logProfile: '10-bit D-Cinelike', waterproof: 16, mount: 'Sgancio Mag. Rapido', audio: 'RX USB-C per DJI Mic.', bitrate: 100, photoRes: '12 MP RAW', batteryMin: 115 },
-                'action6': { name: 'DJI Osmo Action 6', shortName: 'Action 6', maxRes: '4K @ 120fps (Sensore 1/1.1" 4:3)', logProfile: '10-bit D-Log M', waterproof: 20, mount: 'Sgancio Mag. v2', audio: 'Dual BT Direct DJI Mic 2/3.', bitrate: 120, photoRes: '38 MP RAW', batteryMin: 150 },
+                'action5pro': { released: '2024-09', name: 'DJI Osmo Action 5 Pro', shortName: 'Action 5 Pro', maxRes: '4K @ 120fps (Sensore 1/1.3" 4:3)', logProfile: '10-bit D-Log M', waterproof: 20, mount: 'Sgancio Mag. v2', audio: 'Dual BT Direct DJI Mic 2.', bitrate: 110, photoRes: '40 MP RAW', batteryMin: 150 },
+                'action4': { released: '2023-08', name: 'DJI Osmo Action 4', shortName: 'Action 4', maxRes: '4K @ 120fps (Sensore 1/1.3" 4:3)', logProfile: '10-bit D-Log M', waterproof: 18, mount: 'Sgancio Mag. Rapido', audio: 'BT Direct DJI Mic 2.', bitrate: 110, photoRes: '10 MP RAW', batteryMin: 120 },
+                'action3': { released: '2022-09', name: 'DJI Osmo Action 3', shortName: 'Action 3', maxRes: '4K @ 120fps (Sensore 1/1.7" 4:3)', logProfile: '10-bit D-Cinelike', waterproof: 16, mount: 'Sgancio Mag. Rapido', audio: 'RX USB-C per DJI Mic.', bitrate: 100, photoRes: '12 MP RAW', batteryMin: 115 },
+                'action6': { released: '2025-11', name: 'DJI Osmo Action 6', shortName: 'Action 6', maxRes: '4K @ 120fps (Sensore 1/1.1" 4:3)', logProfile: '10-bit D-Log M', waterproof: 20, mount: 'Sgancio Mag. v2', audio: 'Dual BT Direct DJI Mic 2/3.', bitrate: 120, photoRes: '38 MP RAW', batteryMin: 150 },
                 // L'autonomia presuppone il Vision Dock, incluso in ogni combo:
                 // la sola camera monta 530 mAh e dura molto meno.
-                'osmonano': { name: 'DJI Osmo Nano', shortName: 'Osmo Nano', maxRes: '4K @ 60fps (1/1.3", 120fps in slow-mo)', logProfile: '10-bit D-Log M', waterproof: 10, mount: 'Magnetico bilaterale', audio: 'Mic stereo + BT DJI Mic.', bitrate: 100, photoRes: '35 MP RAW', batteryMin: 120 }
+                'osmonano': { released: '2025-09', name: 'DJI Osmo Nano', shortName: 'Osmo Nano', maxRes: '4K @ 60fps (1/1.3", 120fps in slow-mo)', logProfile: '10-bit D-Log M', waterproof: 10, mount: 'Magnetico bilaterale', audio: 'Mic stereo + BT DJI Mic.', bitrate: 100, photoRes: '35 MP RAW', batteryMin: 120 }
             },
             gopro: {
-                'hero13': { name: 'GoPro HERO 13 Black', shortName: 'HERO 13 Black', maxRes: '5.3K @ 60fps (8:7)', logProfile: '10-bit GP-Log / HLG', waterproof: 10, mount: 'Linguette + Latch Mag.', audio: 'BT AirPods/Mic / Media Mod.', bitrate: 120, photoRes: '27 MP RAW', batteryMin: 100 },
-                'hero12': { name: 'GoPro HERO 12 Black', shortName: 'HERO 12 Black', maxRes: '5.3K @ 60fps (8:7)', logProfile: '10-bit GP-Log / HDR', waterproof: 10, mount: 'Linguette Pieghevoli', audio: 'Dual BT Audio / Media Mod.', bitrate: 120, photoRes: '27 MP RAW', batteryMin: 95 },
-                'hero11': { name: 'GoPro HERO 11 Black', shortName: 'HERO 11 Black', maxRes: '5.3K @ 60fps (8:7)', logProfile: '10-bit Flat', waterproof: 10, mount: 'Linguette Pieghevoli', audio: 'Media Mod o Mic 3.5mm.', bitrate: 120, photoRes: '27 MP RAW', batteryMin: 90 },
-                'hero10_9': { name: 'GoPro HERO 10 / 9 Black', shortName: 'HERO 10 / 9', maxRes: '5.3K @ 60fps', logProfile: '8-bit Flat', waterproof: 10, mount: 'Linguette Pieghevoli', audio: 'Media Mod o Mic 3.5mm.', bitrate: 100, photoRes: '23 MP RAW', batteryMin: 75 },
-                'mission1pro': { name: 'GoPro MISSION 1 PRO', shortName: 'MISSION 1 Pro', maxRes: '8K @ 60fps (Sensore 1")', logProfile: '10-bit GP-Log2 / HLG', waterproof: 20, mount: 'Linguette + Filetto 1/4"', audio: '4 mic 32-bit float / USB-C.', bitrate: 240, photoRes: '50 MP RAW', batteryMin: 185 },
-                'max2': { name: 'GoPro MAX2 (360°)', shortName: 'MAX2 360°', maxRes: '8K @ 30fps 360°', logProfile: '10-bit GP-Log', waterproof: 5, mount: 'Linguette Pieghevoli', audio: '6 mic 360° + riduzione vento.', bitrate: 120, photoRes: '29 MP', batteryMin: 85 }
+                'hero13': { released: '2024-09', name: 'GoPro HERO 13 Black', shortName: 'HERO 13 Black', maxRes: '5.3K @ 60fps (8:7)', logProfile: '10-bit GP-Log / HLG', waterproof: 10, mount: 'Linguette + Latch Mag.', audio: 'BT AirPods/Mic / Media Mod.', bitrate: 120, photoRes: '27 MP RAW', batteryMin: 100 },
+                'hero12': { released: '2023-09', name: 'GoPro HERO 12 Black', shortName: 'HERO 12 Black', maxRes: '5.3K @ 60fps (8:7)', logProfile: '10-bit GP-Log / HDR', waterproof: 10, mount: 'Linguette Pieghevoli', audio: 'Dual BT Audio / Media Mod.', bitrate: 120, photoRes: '27 MP RAW', batteryMin: 95 },
+                'hero11': { released: '2022-09', name: 'GoPro HERO 11 Black', shortName: 'HERO 11 Black', maxRes: '5.3K @ 60fps (8:7)', logProfile: '10-bit Flat', waterproof: 10, mount: 'Linguette Pieghevoli', audio: 'Media Mod o Mic 3.5mm.', bitrate: 120, photoRes: '27 MP RAW', batteryMin: 90 },
+                'hero10_9': { released: '2021-09', name: 'GoPro HERO 10 / 9 Black', shortName: 'HERO 10 / 9', maxRes: '5.3K @ 60fps', logProfile: '8-bit Flat', waterproof: 10, mount: 'Linguette Pieghevoli', audio: 'Media Mod o Mic 3.5mm.', bitrate: 100, photoRes: '23 MP RAW', batteryMin: 75 },
+                'mission1pro': { released: '2026-04', name: 'GoPro MISSION 1 PRO', shortName: 'MISSION 1 Pro', maxRes: '8K @ 60fps (Sensore 1")', logProfile: '10-bit GP-Log2 / HLG', waterproof: 20, mount: 'Linguette + Filetto 1/4"', audio: '4 mic 32-bit float / USB-C.', bitrate: 240, photoRes: '50 MP RAW', batteryMin: 185 },
+                'max2': { released: '2025-09', name: 'GoPro MAX2 (360°)', shortName: 'MAX2 360°', maxRes: '8K @ 30fps 360°', logProfile: '10-bit GP-Log', waterproof: 5, mount: 'Linguette Pieghevoli', audio: '6 mic 360° + riduzione vento.', bitrate: 120, photoRes: '29 MP', batteryMin: 85 }
             },
             insta360: {
-                'acepro2': { name: 'Insta360 Ace Pro 2', shortName: 'Ace Pro 2', maxRes: '8K @ 30fps (Leica 1/1.3")', logProfile: '10-bit I-Log', waterproof: 12, mount: 'Sgancio Mag. Dual-Latch', audio: 'BT Mic / Cardo / Sena.', bitrate: 120, photoRes: '48 MP RAW', batteryMin: 120 },
-                'x4': { name: 'Insta360 X4 (360°)', shortName: 'X4 360°', maxRes: '8K @ 30fps 360°', logProfile: '10-bit I-Log / Flat 360°', waterproof: 10, mount: 'Filetto Standard 1/4"', audio: 'Vento 360° + Adattatore Mic.', bitrate: 130, photoRes: '72 MP RAW', batteryMin: 100 },
-                'goultra': { name: 'Insta360 GO Ultra', shortName: 'GO Ultra', maxRes: '4K @ 60fps', logProfile: '10-bit Flat', waterproof: 10, mount: 'Action Mount Mag.', audio: 'Mic stereo anti-vento.', bitrate: 100, photoRes: '12 MP RAW', batteryMin: 70 },
+                'acepro2': { released: '2024-11', name: 'Insta360 Ace Pro 2', shortName: 'Ace Pro 2', maxRes: '8K @ 30fps (Leica 1/1.3")', logProfile: '10-bit I-Log', waterproof: 12, mount: 'Sgancio Mag. Dual-Latch', audio: 'BT Mic / Cardo / Sena.', bitrate: 120, photoRes: '48 MP RAW', batteryMin: 120 },
+                'x4': { released: '2024-04', name: 'Insta360 X4 (360°)', shortName: 'X4 360°', maxRes: '8K @ 30fps 360°', logProfile: '10-bit I-Log / Flat 360°', waterproof: 10, mount: 'Filetto Standard 1/4"', audio: 'Vento 360° + Adattatore Mic.', bitrate: 130, photoRes: '72 MP RAW', batteryMin: 100 },
+                'goultra': { released: '2025-08', name: 'Insta360 GO Ultra', shortName: 'GO Ultra', maxRes: '4K @ 60fps', logProfile: '10-bit Flat', waterproof: 10, mount: 'Action Mount Mag.', audio: 'Mic stereo anti-vento.', bitrate: 100, photoRes: '12 MP RAW', batteryMin: 70 },
                 // I-Log qui è 8-bit e solo in 5.7K: dirlo evita di consigliare
                 // un flusso di lavoro log che la camera non regge davvero.
-                'x5': { name: 'Insta360 X5 (360°)', shortName: 'X5 360°', maxRes: '8K @ 30fps 360°', logProfile: 'I-Log 8-bit (solo 5.7K)', waterproof: 15, mount: 'Filetto Standard 1/4"', audio: 'Wind Guard + Adattatore Mic.', bitrate: 180, photoRes: '72 MP', batteryMin: 130 }
+                'x5': { released: '2025-04', name: 'Insta360 X5 (360°)', shortName: 'X5 360°', maxRes: '8K @ 30fps 360°', logProfile: 'I-Log 8-bit (solo 5.7K)', waterproof: 15, mount: 'Filetto Standard 1/4"', audio: 'Wind Guard + Adattatore Mic.', bitrate: 180, photoRes: '72 MP', batteryMin: 130 }
             }
         };
 
@@ -1113,6 +1113,21 @@
         function ndFor(fps, light) {
             const tier = fps <= 30 ? 0 : fps <= 60 ? 1 : 2;
             return (ND_TABLE[light] || ND_TABLE.sole)[tier];
+        }
+
+        // I modelli di un brand, dal più recente al più vecchio. L'ordine sta
+        // nel campo released e non nell'ordine con cui sono scritti nel
+        // sorgente: così aggiungerne uno non richiede di infilarlo al posto
+        // giusto, ed è la ragione per cui l'elenco non torna mai disordinato.
+        function modelKeysFor(brand) {
+            const models = cameraModelsData[brand] || {};
+            return Object.keys(models).sort((a, b) =>
+                String(models[b].released).localeCompare(String(models[a].released)));
+        }
+
+        // Il predefinito di un brand è il suo modello più recente.
+        function defaultModelFor(brand) {
+            return modelKeysFor(brand)[0];
         }
 
         function activeModel() {
@@ -1648,7 +1663,11 @@
 
         let currentMode = 'video';
         let currentBrand = 'dji';
-        let currentModelKey = 'action5pro';
+        // Non un modello fisso: il predefinito è il più recente del brand, la
+        // stessa regola che vale cambiando marchio. Scriverlo a mano qui
+        // significherebbe che l'avvio smette di seguire l'elenco appena esce
+        // una camera nuova.
+        let currentModelKey = defaultModelFor(currentBrand);
         let selectedScenarios = ['reel'];
         let selectedEditGoals = ['dlog_lut'];
         let currentBitrateProfile = 'high';
@@ -1766,7 +1785,7 @@
             const models = cameraModelsData[currentBrand];
             if (models[currentModelKey]) setText('model-indicator', models[currentModelKey].shortName);
             if (!container) return;
-            container.innerHTML = Object.keys(models).map(key => {
+            container.innerHTML = modelKeysFor(currentBrand).map(key => {
                 const on = key === currentModelKey;
                 return `<button type="button" class="btn-chip ${on ? 'selected' : ''}" data-action="selectModel" data-value="${escapeHtml(key)}" aria-pressed="${on}"><span>${escapeHtml(models[key].shortName)}</span></button>`;
             }).join('');
@@ -1775,7 +1794,7 @@
         function selectBrand(brand) {
             if (!BRAND_CONFIG[brand]) return;
             currentBrand = brand;
-            currentModelKey = Object.keys(cameraModelsData[brand])[0];
+            currentModelKey = defaultModelFor(brand);
             renderBrandCards();
             renderModelChips();
             updateResults();
@@ -1864,7 +1883,7 @@
                 clean.brand = preset.brand;
                 clean.modelKey = cameraModelsData[preset.brand][preset.modelKey]
                     ? preset.modelKey
-                    : Object.keys(cameraModelsData[preset.brand])[0];
+                    : defaultModelFor(preset.brand);
             }
             return clean;
         }
@@ -1904,7 +1923,7 @@
                 currentBrand = preset.brand;
                 currentModelKey = cameraModelsData[preset.brand][preset.modelKey]
                     ? preset.modelKey
-                    : Object.keys(cameraModelsData[preset.brand])[0];
+                    : defaultModelFor(preset.brand);
             }
             updateUIState();
             updateResults();
@@ -2010,7 +2029,7 @@
             if (brand && cameraModelsData[brand]) {
                 currentBrand = brand;
                 const model = params.get('m');
-                currentModelKey = (model && cameraModelsData[brand][model]) ? model : Object.keys(cameraModelsData[brand])[0];
+                currentModelKey = (model && cameraModelsData[brand][model]) ? model : defaultModelFor(brand);
             }
             selectedScenarios = pickScenarios((params.get('s') || '').split(','), selectedScenarios);
             currentMode = pickAllowed(params.get('mode'), MODE_VALUES, currentMode);
@@ -2202,7 +2221,7 @@
         // Tutti i modelli, di ogni brand, in un elenco piatto.
         function allModels() {
             return Object.keys(cameraModelsData).flatMap(brand =>
-                Object.keys(cameraModelsData[brand]).map(key => ({ brand, key, model: cameraModelsData[brand][key] })));
+                modelKeysFor(brand).map(key => ({ brand, key, model: cameraModelsData[brand][key] })));
         }
 
         // L'app dà per scontato che tu abbia già scelto la camera. Chi ne ha

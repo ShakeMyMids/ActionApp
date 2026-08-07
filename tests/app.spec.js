@@ -100,7 +100,8 @@ test.describe('Motore di calcolo', () => {
 
     await page.locator('#panel-wizard .btn-radio', { hasText: 'Endurance' }).click();
     await expect(page.locator('#val-fps')).toHaveText('25 fps (PAL)');
-    await expect(page.locator('#metric-bitrate')).toContainText('~55 Mbps');
+    // Action 6: 120 Mbps dimezzati dal profilo Endurance.
+    await expect(page.locator('#metric-bitrate')).toContainText('~60 Mbps');
   });
 
   test('NTSC produce i framerate della famiglia 30', async ({ page }) => {
@@ -358,7 +359,7 @@ test.describe('Condivisione e copia', () => {
   test('copia impostazioni produce un riepilogo leggibile', async ({ page }) => {
     await page.locator('[data-action="copySettings"]').click();
     const text = await page.evaluate(() => navigator.clipboard.readText());
-    expect(text).toContain('DJI Osmo Action 5 Pro');
+    expect(text).toContain('DJI Osmo Action 6');
     expect(text).toContain('Framerate: 25 fps (PAL)');
     expect(text).toContain('Filtro ND: ND64 / ND128');
   });
@@ -505,7 +506,7 @@ test.describe('Autonomia batteria', () => {
     await page.locator('#tab-calc').click();
     const mite = await page.locator('#battery-result-time').textContent();
     expect(mite).toBe('~150 Minuti');
-    await expect(page.locator('#battery-result-note')).toContainText('Action 5 Pro');
+    await expect(page.locator('#battery-result-note')).toContainText('Action 6');
 
     await page.locator('#panel-calc .btn-radio', { hasText: 'Freddo' }).click();
     expect(await page.locator('#battery-result-time').textContent()).toBe('~90 Minuti');
@@ -513,8 +514,8 @@ test.describe('Autonomia batteria', () => {
     await page.locator('#tab-wizard').click();
     await page.click('#brand-card-gopro');
     await page.locator('#tab-calc').click();
-    // GoPro HERO 13: base piu' bassa, stesso fattore di freddo.
-    expect(await page.locator('#battery-result-time').textContent()).toBe('~60 Minuti');
+    // GoPro MISSION 1 Pro: base piu' alta, stesso fattore di freddo.
+    expect(await page.locator('#battery-result-time').textContent()).toBe('~115 Minuti');
   });
 });
 
@@ -523,7 +524,9 @@ test.describe('Limite di ripresa (scheda contro batteria)', () => {
   // il piu' basso dei due, ed e' quello che va detto.
   test('con una scheda capiente il vincolo e la batteria', async ({ page }) => {
     await page.locator('#tab-calc').click();
-    // Action 5 Pro a 110 Mbps: 128 GB durano 155 min, la batteria 150.
+    // Action 6 a 120 Mbps: 128 GB durano 142 min, meno della batteria, quindi
+    // per far vincere la batteria serve salire di taglio. 256 GB danno 284 min.
+    await page.click('[data-action="setCardSize"][data-value="256"]');
     await expect(page.locator('#limit-verdict')).toHaveText('La batteria');
     await expect(page.locator('#limit-detail')).toContainText('~150 minuti');
     await expect(page.locator('#limit-detail')).toContainText('batteria: 150 min');
@@ -533,7 +536,7 @@ test.describe('Limite di ripresa (scheda contro batteria)', () => {
     await page.locator('#tab-calc').click();
     await page.click('[data-action="setCardSize"][data-value="64"]');
     await expect(page.locator('#limit-verdict')).toHaveText('La scheda');
-    await expect(page.locator('#limit-detail')).toContainText('~80 minuti');
+    await expect(page.locator('#limit-detail')).toContainText('~70 minuti');
   });
 
   test('il profilo Endurance allunga i minuti sulla scheda', async ({ page }) => {
@@ -546,10 +549,9 @@ test.describe('Limite di ripresa (scheda contro batteria)', () => {
     await page.locator('#tab-calc').click();
     const eco = await page.locator('#limit-detail').textContent();
 
-    // Meta' bitrate, il doppio dei minuti. I valori esatti sono 77,6 e
-    // 155,2: si arrotondano a 78 e 155, non a 78 e 156.
-    expect(alto).toContain('scheda 64 GB: 78 min');
-    expect(eco).toContain('scheda 64 GB: 155 min');
+    // Meta' bitrate, il doppio dei minuti: 120 Mbps -> 60 Mbps.
+    expect(alto).toContain('scheda 64 GB: 71 min');
+    expect(eco).toContain('scheda 64 GB: 142 min');
   });
 
   test('la capacita scelta sopravvive al ricaricamento', async ({ page }) => {
@@ -586,7 +588,9 @@ test.describe('Confronto fra camere', () => {
     await page.locator('#tab-calc').click();
     await expect(page.locator('#compare-reason')).toContainText('profondità');
     const prima = page.locator('.compare-row').first();
-    await expect(prima).toContainText('Action 5 Pro');
+    // A parita' di profondita' (20 m) l'ordine di partenza e' quello di
+    // uscita, quindi in testa sta la piu' recente delle DJI.
+    await expect(prima).toContainText('Action 6');
     await expect(prima).toContainText('20 m');
   });
 
@@ -600,7 +604,7 @@ test.describe('Confronto fra camere', () => {
   test('la camera attiva e evidenziata, e una sola', async ({ page }) => {
     await page.locator('#tab-calc').click();
     await expect(page.locator('.compare-row[aria-pressed="true"]')).toHaveCount(1);
-    await expect(page.locator('.compare-row[aria-pressed="true"]')).toContainText('Action 5 Pro');
+    await expect(page.locator('.compare-row[aria-pressed="true"]')).toContainText('Action 6');
   });
 
   test('dal confronto si passa direttamente a un altro brand', async ({ page }) => {
@@ -614,6 +618,45 @@ test.describe('Confronto fra camere', () => {
   });
 });
 
+test.describe('Ordine dei modelli', () => {
+  test('ogni modello dichiara una data di uscita', async ({ page }) => {
+    // Senza released il modello finirebbe in un punto qualsiasi dell'elenco:
+    // e' la dimenticanza che riporterebbe il disordine.
+    const senzaData = await page.evaluate(() =>
+      Object.entries(cameraModelsData).flatMap(([brand, models]) =>
+        Object.entries(models)
+          .filter(([, m]) => !/^\d{4}-\d{2}$/.test(String(m.released)))
+          .map(([key]) => brand + '/' + key)));
+    expect(senzaData).toEqual([]);
+  });
+
+  test('i chip vanno dal modello piu recente al piu vecchio', async ({ page }) => {
+    for (const [carta, brand] of [['#brand-card-dji', 'dji'], ['#brand-card-gopro', 'gopro'], ['#brand-card-insta', 'insta360']]) {
+      await page.click(carta);
+      const date = await page.evaluate(b => [...document.querySelectorAll('#model-chips-container .btn-chip')]
+        .map(c => cameraModelsData[b][c.dataset.value].released), brand);
+      expect(date.length).toBeGreaterThan(1);
+      expect([...date].sort().reverse()).toEqual(date);
+    }
+  });
+
+  test('il modello predefinito di un brand e il suo piu recente', async ({ page }) => {
+    for (const [carta, brand] of [['#brand-card-gopro', 'gopro'], ['#brand-card-insta', 'insta360'], ['#brand-card-dji', 'dji']]) {
+      await page.click(carta);
+      const atteso = await page.evaluate(b => {
+        const models = cameraModelsData[b];
+        return Object.keys(models).sort((x, y) => models[y].released.localeCompare(models[x].released))[0];
+      }, brand);
+      expect(await page.evaluate(() => currentModelKey)).toBe(atteso);
+    }
+  });
+
+  test('all avvio e selezionata la camera piu recente, non una fissa', async ({ page }) => {
+    await expect(page.locator('#model-indicator')).toHaveText('Action 6');
+    await expect(page.locator('#model-chips-container .btn-chip').first()).toContainText('Action 6');
+  });
+});
+
 test.describe('Attacco, condivisione nativa e installazione', () => {
   test('l attacco segue il modello e vale anche in foto', async ({ page }) => {
     await page.locator('#tab-calc').click();
@@ -623,7 +666,7 @@ test.describe('Attacco, condivisione nativa e installazione', () => {
     await page.click('#brand-card-gopro');
     await page.click('[data-action="setMode"][data-value="foto"]');
     await page.locator('#tab-calc').click();
-    await expect(page.locator('#rigging-mount')).toContainText('Linguette + Latch Mag.');
+    await expect(page.locator('#rigging-mount')).toContainText('Linguette + Filetto 1/4"');
   });
 
   test('i bottoni progressivi compaiono solo se l API esiste', async ({ page }) => {
@@ -695,7 +738,7 @@ test.describe('Lingua inglese', () => {
   test('il confronto camere e il limite di ripresa parlano inglese', async ({ page }) => {
     await page.locator('#tab-calc').click();
     await expect(page.locator('#compare-reason')).toContainText('Ranked by bitrate');
-    await expect(page.locator('#limit-verdict')).toHaveText('Battery');
+    await expect(page.locator('#limit-verdict')).toHaveText('Card space');
     await expect(page.locator('#rigging-mount')).toContainText('Camera mount');
   });
 

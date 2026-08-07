@@ -82,6 +82,13 @@ camere ordina proprio su quei campi: mescolare un dato di marketing con una stim
 prudente produrrebbe una classifica falsata. Aggiungendo un modello, segui la
 convenzione documentata sopra `cameraModelsData`.
 
+L'elenco dei modelli è ordinato **dal più recente al più vecchio**, e il primo di
+ogni marchio è quello proposto all'avvio. L'ordine non dipende però da come i
+modelli sono scritti nel sorgente: viene dal campo `released` (`AAAA-MM`), che
+ogni voce deve avere. Così aggiungerne uno non richiede di infilarlo nel punto
+giusto — basta la data, e l'elenco si risistema da solo. C'è un test che fallisce
+se una voce resta senza.
+
 ## Avvio in locale
 
 ```bash
@@ -102,8 +109,8 @@ npx playwright install chromium    # solo la prima volta
 npm test
 ```
 
-82 test end-to-end, eseguiti su due profili — desktop e mobile (Pixel 7) — per un
-totale di 164 esecuzioni. Coprono inizializzazione, motore di calcolo, escaping e
+86 test end-to-end, eseguiti su due profili — desktop e mobile (Pixel 7) — per un
+totale di 172 esecuzioni. Coprono inizializzazione, motore di calcolo, escaping e
 persistenza dei preset, export/import (compresi i file con valori fuori dominio),
 limite di ripresa, confronto fra camere, condivisione via link, accessibilità
 (semantica tab, `aria-pressed`, tastiera), safe area del notch, autonomia della
