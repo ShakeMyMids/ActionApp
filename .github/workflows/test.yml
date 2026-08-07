@@ -6,9 +6,21 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Su push rapidi consecutivi conta solo l'ultimo: le esecuzioni superate
+# vengono annullate invece di occupare i runner fino in fondo.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   playwright:
     name: Playwright (${{ matrix.project }})
+    # Una pull request dallo stesso repository ha gia' la sua esecuzione da
+    # push sul branch: qui si tiene solo quella, mentre le pull request dai
+    # fork — che non fanno scattare il push — restano coperte.
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:
@@ -21,10 +33,13 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
+          cache: npm
 
+      # npm ci invece di npm install: installa esattamente le versioni del
+      # lockfile, cosi' una nuova release di Playwright non entra in CI da sola.
       - name: Installa le dipendenze
-        run: npm install
+        run: npm ci
 
       # Solo Chromium: la suite non usa Firefox né WebKit.
       - name: Installa il browser
