@@ -181,6 +181,15 @@ test.describe('PWA', () => {
     expect(sw).toContain(`-v${major}-cache`);
   });
 
+  test('la versione del formato dei preset segue quella del pacchetto', async () => {
+    // Il file esportato porta la versione del formato: se resta indietro,
+    // un domani non si distingue piu' un file vecchio da uno nuovo.
+    const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+    const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    const major = Number(pkg.version.split('.')[0]);
+    expect(html).toContain(`const PRESET_SCHEMA_VERSION = ${major};`);
+  });
+
   test('il nome dell app e coerente ovunque', async ({ page }) => {
     const manifest = await page.evaluate(async () => (await fetch('./manifest.json')).json());
     expect(manifest.name).toBe('ReadyClickShot');
@@ -393,6 +402,96 @@ test.describe('Export e import dei preset', () => {
     });
     await expect(page.locator('#toast')).toContainText('non valido');
     await expect(page.locator('#container-saved-presets')).toContainText('Nessun preset salvato');
+  });
+});
+
+test.describe('Preset con valori fuori dominio', () => {
+  // Il file importato e' l'unico ingresso non fidato che finisce in
+  // localStorage, e la forma puo' essere giusta mentre i valori non lo sono:
+  // il link condiviso li scartava gia', il preset li accettava.
+  const FUORI_DOMINIO = JSON.stringify({
+    presets: [{
+      name: 'Rotto',
+      scenarios: ['non-esiste', 'sport'],
+      mode: 'modo-inventato',
+      luce: 'buio-pesto',
+      region: 'secam',
+      sub: 'spazio',
+      bitrateProf: 'ultra-mega',
+      brand: 'dji'
+    }]
+  });
+
+  async function importa(page) {
+    await page.setInputFiles('#input-import-presets', {
+      name: 'presets.json', mimeType: 'application/json', buffer: Buffer.from(FUORI_DOMINIO)
+    });
+    await expect(page.locator('#container-saved-presets')).toContainText('Rotto');
+  }
+
+  async function importaEApplica(page) {
+    await importa(page);
+    await page.locator('.preset-tag-btn', { hasText: 'Rotto' }).click();
+  }
+
+  test('i valori fuori dominio ripiegano sui default', async ({ page }) => {
+    await importaEApplica(page);
+    const stato = await page.evaluate(() => ({
+      mode: currentMode, luce: currentLuce, region: currentRegion,
+      sub: currentSub, bp: currentBitrateProfile, scenarios: [...selectedScenarios]
+    }));
+    expect(stato).toEqual({
+      mode: 'video', luce: 'sole', region: 'pal',
+      sub: 'fuori', bp: 'high', scenarios: ['sport']
+    });
+  });
+
+  test('nessun gruppo di controlli resta senza selezione', async ({ page }) => {
+    await importaEApplica(page);
+    // Un valore fuori dominio non ha un bottone corrispondente: il gruppo
+    // resterebbe tutto spento mentre i risultati sono gia' calcolati.
+    for (const action of ['setMode', 'setLuce', 'setRegion', 'setSub', 'setBitrateProf']) {
+      await expect(page.locator(`[data-action="${action}"][aria-pressed="true"]`)).toHaveCount(1);
+    }
+  });
+
+  test('lo scenario sconosciuto non arriva a schermo', async ({ page }) => {
+    await importaEApplica(page);
+    await expect(page.locator('body')).not.toContainText('undefined');
+  });
+
+  test('il link condiviso resta coerente con cio che si vede', async ({ page }) => {
+    await importaEApplica(page);
+    // Altrimenti chi riceve il link vede un setup diverso dal mittente:
+    // applyStateFromHash scarta i valori invalidi, e il risultato cambia.
+    const hash = await page.evaluate(() => new URL(buildShareUrl()).hash.replace(/^#/, ''));
+    const params = new URLSearchParams(hash);
+    expect(params.get('mode')).toBe('video');
+    expect(params.get('l')).toBe('sole');
+    expect(params.get('r')).toBe('pal');
+    expect(params.get('sub')).toBe('fuori');
+    expect(params.get('bp')).toBe('high');
+    expect(params.get('s')).toBe('sport');
+  });
+
+  test('in localStorage non resta nulla fuori dominio', async ({ page }) => {
+    await importa(page);
+    const salvato = await page.evaluate(() => readPresets()[0]);
+    expect(salvato).toMatchObject({
+      name: 'Rotto', mode: 'video', luce: 'sole', region: 'pal',
+      sub: 'fuori', bitrateProf: 'high', scenarios: ['sport'], brand: 'dji'
+    });
+  });
+
+  test('un preset senza camera continua a valere per quella corrente', async ({ page }) => {
+    await page.locator('[data-action="selectBrand"][data-value="gopro"]').click();
+    await page.setInputFiles('#input-import-presets', {
+      name: 'presets.json',
+      mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify({ presets: [{ name: 'Senza camera', scenarios: ['night'] }] }))
+    });
+    await page.locator('.preset-tag-btn', { hasText: 'Senza camera' }).click();
+    expect(await page.evaluate(() => currentBrand)).toBe('gopro');
   });
 });
 
