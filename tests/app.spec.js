@@ -172,11 +172,22 @@ test.describe('PWA', () => {
     }
   });
 
-  test('il numero di versione e allineato fra manifest e service worker', async ({ page }) => {
-    const manifest = await page.evaluate(async () => (await fetch('./manifest.json')).json());
+  test('la versione del pacchetto e quella della cache restano allineate', async () => {
+    // Se cambia il contenuto ma non il nome della cache, i browser restano
+    // sulle vecchie copie degli asset statici.
+    const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
     const sw = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
-    const version = manifest.name.match(/v(\d+)/)[1];
-    expect(sw).toContain(`camstudio-v${version}-cache`);
+    const major = pkg.version.split('.')[0];
+    expect(sw).toContain(`-v${major}-cache`);
+  });
+
+  test('il nome dell app e coerente ovunque', async ({ page }) => {
+    const manifest = await page.evaluate(async () => (await fetch('./manifest.json')).json());
+    expect(manifest.name).toBe('ReadyClickShot');
+    await expect(page).toHaveTitle(/ReadyClickShot/);
+    await expect(page.locator('.app-title')).toContainText('ReadyClickShot');
+    expect(await page.getAttribute('meta[name="apple-mobile-web-app-title"]', 'content'))
+      .toBe('ReadyClickShot');
   });
 });
 
@@ -184,11 +195,13 @@ test.describe('Service worker', () => {
   test('serve subito la nuova versione dopo un deploy', async ({ page, request }) => {
     await page.evaluate(() => navigator.serviceWorker.ready);
 
-    // Simula un deploy: da qui in poi il server risponde con un titolo diverso.
+    // Simula un deploy: da qui in poi il server aggiunge un meta riconoscibile.
+    // Il marcatore non sta nel <title> perché l'app lo riscrive secondo la lingua.
     await request.get('/__test/marker?value=DEPLOY-MARKER');
     try {
       await page.reload({ waitUntil: 'domcontentloaded' });
-      expect(await page.title()).toContain('DEPLOY-MARKER');
+      expect(await page.getAttribute('meta[name="x-deploy-marker"]', 'content'))
+        .toBe('DEPLOY-MARKER');
     } finally {
       await request.get('/__test/marker?value=');
     }
@@ -601,3 +614,4 @@ test.describe('Coerenza visiva', () => {
     expect(missing).toEqual([]);
   });
 });
+
