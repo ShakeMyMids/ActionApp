@@ -14,7 +14,11 @@ test.beforeEach(async ({ page }) => {
 
 test.describe('Inizializzazione', () => {
   test('disegna i chip dei modelli al primo caricamento', async ({ page }) => {
-    await expect(page.locator('#model-chips-container .btn-chip')).toHaveCount(3);
+    // Il conteggio si ricava dal dato: cosi' aggiungere una camera al catalogo
+    // non fa fallire un test che sul catalogo non ha niente da dire.
+    const modelliDji = await page.evaluate(() => Object.keys(cameraModelsData.dji).length);
+    expect(modelliDji).toBeGreaterThan(1);
+    await expect(page.locator('#model-chips-container .btn-chip')).toHaveCount(modelliDji);
     await expect(page.locator('#model-chips-container .btn-chip.selected')).toHaveCount(1);
   });
 
@@ -223,7 +227,8 @@ test.describe('Service worker', () => {
     await context.setOffline(true);
     try {
       await page.reload({ waitUntil: 'domcontentloaded' });
-      await expect(page.locator('#model-chips-container .btn-chip')).toHaveCount(3);
+      const modelliDji = await page.evaluate(() => Object.keys(cameraModelsData.dji).length);
+      await expect(page.locator('#model-chips-container .btn-chip')).toHaveCount(modelliDji);
     } finally {
       await context.setOffline(false);
     }
@@ -569,8 +574,11 @@ test.describe('Confronto fra camere', () => {
   test('senza scenari particolari ordina per bitrate', async ({ page }) => {
     await page.locator('#tab-calc').click();
     await expect(page.locator('#compare-reason')).toContainText('In ordine di bitrate');
-    await expect(page.locator('.compare-row')).toHaveCount(10);
-    await expect(page.locator('.compare-row').first()).toContainText('X4 360°');
+    const totale = await page.evaluate(() =>
+      Object.values(cameraModelsData).reduce((n, b) => n + Object.keys(b).length, 0));
+    await expect(page.locator('.compare-row')).toHaveCount(totale);
+    // 240 Mbps: il bitrate piu' alto del catalogo.
+    await expect(page.locator('.compare-row').first()).toContainText('MISSION 1 Pro');
   });
 
   test('la subacquea riordina per profondita', async ({ page }) => {
@@ -586,7 +594,7 @@ test.describe('Confronto fra camere', () => {
     await page.click('[data-action="toggleScenario"][data-value="travel"]');
     await page.locator('#tab-calc').click();
     await expect(page.locator('#compare-reason')).toContainText('autonomia');
-    await expect(page.locator('.compare-row').first()).toContainText('150 min');
+    await expect(page.locator('.compare-row').first()).toContainText('185 min');
   });
 
   test('la camera attiva e evidenziata, e una sola', async ({ page }) => {
@@ -597,11 +605,12 @@ test.describe('Confronto fra camere', () => {
 
   test('dal confronto si passa direttamente a un altro brand', async ({ page }) => {
     await page.locator('#tab-calc').click();
-    // La prima riga per bitrate e' la X4, che e' Insta360: cambia anche brand.
+    // La prima riga per bitrate e' la MISSION 1 Pro, che e' GoPro: il click
+    // deve cambiare anche il brand, non solo il modello.
     await page.locator('.compare-row').first().click();
-    expect(await page.evaluate(() => currentBrand)).toBe('insta360');
+    expect(await page.evaluate(() => currentBrand)).toBe('gopro');
     await page.locator('#tab-wizard').click();
-    await expect(page.locator('#model-indicator')).toHaveText('X4 360°');
+    await expect(page.locator('#model-indicator')).toHaveText('MISSION 1 Pro');
   });
 });
 
