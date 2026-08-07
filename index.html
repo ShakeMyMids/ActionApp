@@ -2,9 +2,13 @@
 <html lang="it">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <!-- Niente maximum-scale/user-scalable: bloccare lo zoom penalizza chi ha
+         bisogno di ingrandire. viewport-fit=cover estende il contenuto sotto il
+         notch, e il CSS lo compensa con env(safe-area-inset-*). -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <!-- PWA Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Action Cam Studio">
     <link rel="manifest" href="manifest.json">
@@ -13,6 +17,18 @@
     <meta name="theme-color" content="#0f172a">
 
     <title>Action Cam Studio v11 - Clean UI & Pro Layout</title>
+    <!-- Metadati in inglese: sono ciò che finisce nei risultati di ricerca e
+         nelle anteprime social, dove il pubblico è internazionale. L'interfaccia
+         sceglie la lingua da navigator.language. -->
+    <meta name="description" content="Work out the best action cam settings for DJI Osmo, GoPro HERO and Insta360: resolution, framerate, shutter, ND filter, colour profile and rigging, based on your actual shooting scenario.">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Action Cam Studio">
+    <meta property="og:description" content="Shooting settings tailored to DJI Osmo, GoPro HERO and Insta360, calculated from the scenario you are actually filming.">
+    <meta property="og:image" content="https://shakemymids.github.io/ActionApp/icons/icon-512.png">
+    <meta property="og:url" content="https://shakemymids.github.io/ActionApp/">
+    <meta property="og:locale" content="en_GB">
+    <meta property="og:locale:alternate" content="it_IT">
+    <meta name="twitter:card" content="summary">
     <style>
         /* COLORI TEMA SCURO (DEFAULT) */
         :root {
@@ -65,7 +81,12 @@
             transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
         }
 
-        body { background-color: var(--bg-primary); color: var(--text-primary); padding-bottom: 90px; min-height: 100vh; display: flex; flex-direction: column; }
+        /* Safe area: in standalone sul telefono il contenuto passa sotto il
+           notch e sotto la home indicator. Le variabili raccolgono gli inset
+           una volta sola, con fallback a 0 sui browser che non li espongono. */
+        :root { --safe-top: env(safe-area-inset-top, 0px); --safe-bottom: env(safe-area-inset-bottom, 0px); --safe-left: env(safe-area-inset-left, 0px); --safe-right: env(safe-area-inset-right, 0px); }
+
+        body { background-color: var(--bg-primary); color: var(--text-primary); padding-bottom: calc(90px + var(--safe-bottom)); min-height: 100vh; display: flex; flex-direction: column; }
 
         /* ANIMAZIONI DI INTERAZIONE */
         .brand-card, .btn-chip, .btn-radio, .ref-card, .calc-card, .editing-card, .results-container, .preset-tag-btn, .control-card {
@@ -101,21 +122,24 @@
         /* Tooltip Styles */
         .tooltip { position: relative; display: inline-flex; align-items: center; gap: 4px; cursor: help; border-bottom: 1px dotted var(--brand-color); }
         .tooltip .tooltip-text { visibility: hidden; width: 220px; background-color: var(--bg-card); color: var(--text-primary); text-align: left; border-radius: 8px; padding: 10px; border: 1px solid var(--border); position: absolute; z-index: 1000; bottom: 125%; left: 50%; margin-left: -110px; opacity: 0; transition: opacity 0.3s, transform 0.3s; transform: translateY(10px); font-size: 0.72rem; font-weight: 500; line-height: 1.4; box-shadow: 0 6px 15px var(--shadow-strong); pointer-events: none; }
-        .tooltip:hover .tooltip-text, .tooltip:active .tooltip-text { visibility: visible; opacity: 1; transform: translateY(0); }
+        /* Il tooltip si apre col mouse, col tap (classe .open) e con il focus
+           da tastiera: su telefono il solo :hover non e' raggiungibile. */
+        .tooltip:hover .tooltip-text, .tooltip:focus-visible .tooltip-text, .tooltip.open .tooltip-text { visibility: visible; opacity: 1; transform: translateY(0); }
+        .tooltip:focus-visible { outline: 2px solid var(--brand-color); outline-offset: 2px; border-radius: 4px; }
         .tooltip-icon { font-size: 0.7rem; color: var(--brand-color); }
 
         .alert-sd { background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: #ef4444; padding: 10px 12px; border-radius: 8px; font-size: 0.78rem; margin-top: 12px; display: none; line-height: 1.4; animation: slideUpFade 0.4s ease-out; font-weight: 600; }
         [data-theme="dark"] .alert-sd { color: #fca5a5; }
 
         /* Header */
-        .app-header { background: var(--bg-blur); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); position: sticky; top: 0; z-index: 50; padding: 14px 18px 10px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .app-header { background: var(--bg-blur); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); position: sticky; top: 0; z-index: 50; padding: calc(14px + var(--safe-top)) calc(18px + var(--safe-right)) 10px calc(18px + var(--safe-left)); border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
         .app-title { font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
         .app-title span.badge { background: var(--brand-color); color: #ffffff; font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; font-weight: 800; transition: background 0.3s; }
         [data-theme="light"] .app-title span.badge { color: #0f172a; }
-        .container { padding: 16px; max-width: 600px; margin: 0 auto; width: 100%; }
+        .container { padding: 16px calc(16px + var(--safe-right)) 16px calc(16px + var(--safe-left)); max-width: 600px; margin: 0 auto; width: 100%; }
 
         /* Nav Tabs */
-        .tab-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-nav); backdrop-filter: blur(16px); border-top: 1px solid var(--border); display: flex; justify-content: space-around; padding: 8px 4px 24px; z-index: 100; }
+        .tab-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-nav); backdrop-filter: blur(16px); border-top: 1px solid var(--border); display: flex; justify-content: space-around; padding: 8px calc(4px + var(--safe-right)) calc(24px + var(--safe-bottom)) calc(4px + var(--safe-left)); z-index: 100; }
         .tab-btn { background: none; border: none; color: var(--text-secondary); display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 0.65rem; font-weight: 600; cursor: pointer; width: 25%; transition: color 0.2s, transform 0.2s; }
         .tab-btn.active { color: var(--brand-color); transform: scale(1.05); }
         .tab-btn svg { width: 20px; height: 20px; fill: currentColor; }
@@ -186,6 +210,27 @@
         .preset-input:focus { outline: none; border-color: var(--indigo); }
         .btn-save-preset { background: var(--indigo); color: white; border: none; padding: 8px 12px; border-radius: 6px; font-size: 0.78rem; font-weight: 700; cursor: pointer; transition: transform 0.2s; }
         .btn-save-preset:active { transform: scale(0.95); }
+
+        /* Azioni secondarie: condivisione, copia, export/import dei preset. */
+        .action-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+        .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); padding: 7px 10px; border-radius: 6px; font-size: 0.72rem; font-weight: 600; cursor: pointer; transition: border-color 0.2s, color 0.2s, transform 0.2s; }
+        .btn-ghost:hover { border-color: var(--brand-color); color: var(--brand-color); }
+        .btn-ghost:active { transform: scale(0.96); }
+        .btn-ghost:focus-visible, .btn-radio:focus-visible, .btn-chip:focus-visible, .brand-card:focus-visible, .tab-btn:focus-visible, .btn-save-preset:focus-visible, .btn-compromise:focus-visible, .preset-tag-btn:focus-visible { outline: 2px solid var(--brand-color); outline-offset: 2px; }
+
+        /* Conferma effimera delle azioni di copia/export. */
+        .lang-switch { background: transparent; border: 1px solid var(--border); color: var(--text-secondary); padding: 5px 9px; border-radius: 6px; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.5px; cursor: pointer; transition: border-color 0.2s, color 0.2s; }
+        .lang-switch:hover { border-color: var(--brand-color); color: var(--brand-color); }
+        .lang-switch:focus-visible { outline: 2px solid var(--brand-color); outline-offset: 2px; }
+
+        .toast { position: fixed; left: 50%; transform: translateX(-50%) translateY(20px); bottom: calc(100px + var(--safe-bottom)); background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--brand-color); padding: 10px 16px; border-radius: 8px; font-size: 0.78rem; font-weight: 600; box-shadow: 0 8px 24px var(--shadow-strong); opacity: 0; pointer-events: none; transition: opacity 0.25s, transform 0.25s; z-index: 200; max-width: 90vw; text-align: center; }
+        .toast.visible { opacity: 1; transform: translateX(-50%) translateY(0); }
+        /* Etichetta riservata ai soli lettori di schermo. */
+        .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+        }
         .saved-presets-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
         .preset-tag-btn { background: var(--bg-card); color: var(--cyan); border: 1px solid var(--border); padding: 6px 10px; border-radius: 14px; font-size: 0.72rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 4px var(--shadow-subtle); }
         .preset-del { color: #ef4444; font-weight: bold; margin-left: 2px; padding: 0 4px; }
@@ -233,12 +278,16 @@
         .ref-badge { font-size: 0.68rem; padding: 2px 5px; border-radius: 4px; background: var(--bg-primary); border: 1px solid var(--border); color: var(--text-primary); }
     
         @media (min-width: 768px) {
-            body { padding-bottom: 30px; }
-            .app-header { padding: 18px 32px 14px; }
+            /* Il breakpoint desktop scatta anche sui telefoni in orizzontale,
+               dove il notch sta su un lato: gli inset restano necessari. */
+            body { padding-bottom: calc(30px + var(--safe-bottom)); }
+            .app-header { padding: calc(18px + var(--safe-top)) calc(32px + var(--safe-right)) 14px calc(32px + var(--safe-left)); }
             .app-title { font-size: 1.25rem; }
-            .container { max-width: 1200px; padding: 24px 32px; }
+            .container { max-width: 1200px; padding: 24px calc(32px + var(--safe-right)) 24px calc(32px + var(--safe-left)); }
             .tab-nav {
-                position: sticky; top: 62px; bottom: auto; background: var(--bg-blur);
+                /* Si incolla sotto l'header, che in standalone e' piu' alto
+                   dell'inset superiore. */
+                position: sticky; top: calc(62px + var(--safe-top)); bottom: auto; background: var(--bg-blur);
                 border-top: none; border-bottom: 1px solid var(--border); justify-content: flex-start;
                 gap: 12px; padding: 10px 32px; max-width: 1200px; margin: 0 auto 16px; border-radius: 0 0 12px 12px;
             }
@@ -263,8 +312,9 @@
             🎥 Action Cam <span id="app-brand-badge" class="badge">DJI Studio</span>
         </div>
         <div style="display:flex; align-items:center; gap: 12px;">
+            <button type="button" id="lang-switch" class="lang-switch" data-action="toggleLanguage"><span id="lang-label">EN</span></button>
             <label class="theme-switch" title="Cambia Tema">
-                <input type="checkbox" id="theme-toggle" onchange="toggleTheme(this)">
+                <input type="checkbox" id="theme-toggle" data-action="toggleTheme">
                 <span class="theme-slider">
                     <span class="theme-icon-sun">☀️</span>
                     <span class="theme-icon-moon">🌙</span>
@@ -276,7 +326,7 @@
     <div class="container">
 
         <!-- TAB 1: PRECISION WIZARD & PRESETS -->
-        <div id="panel-wizard" class="panel active">
+        <div id="panel-wizard" class="panel active" role="tabpanel" aria-labelledby="tab-wizard">
             <div class="desktop-split-layout">
                 
                 <!-- COLONNA SINISTRA: INPUT E CONTROLLI (CARD BASED) -->
@@ -285,22 +335,22 @@
                     <!-- CARD 1: HARDWARE -->
                     <div class="control-card">
                         <div class="section-header">
-                            <span class="section-title">📸 Setup Camera</span>
+                            <span class="section-title" data-i18n>📸 Setup Camera</span>
                             <span id="brand-indicator" class="multi-hint">DJI Selected</span>
                         </div>
                         <div class="brand-grid">
-                            <div id="brand-card-dji" class="brand-card active-dji" onclick="selectBrand('dji')">
+                            <button type="button" id="brand-card-dji" class="brand-card active-dji" data-action="selectBrand" data-value="dji">
                                 <span class="brand-name">DJI</span><span class="brand-model">Action 3/4/5</span>
-                            </div>
-                            <div id="brand-card-gopro" class="brand-card" onclick="selectBrand('gopro')">
+                            </button>
+                            <button type="button" id="brand-card-gopro" class="brand-card" data-action="selectBrand" data-value="gopro">
                                 <span class="brand-name">GoPro</span><span class="brand-model">HERO 10-13</span>
-                            </div>
-                            <div id="brand-card-insta" class="brand-card" onclick="selectBrand('insta360')">
+                            </button>
+                            <button type="button" id="brand-card-insta" class="brand-card" data-action="selectBrand" data-value="insta360">
                                 <span class="brand-name">Insta360</span><span class="brand-model">Ace/X4/GO</span>
-                            </div>
+                            </button>
                         </div>
                         <div class="section-subtitle">
-                            <span>Modello Specifico</span>
+                            <span data-i18n>Modello Specifico</span>
                             <span id="model-indicator" style="color:var(--brand-color);">Action 5 Pro</span>
                         </div>
                         <div id="model-chips-container" class="options-grid cols-2" style="margin-bottom:0;"></div>
@@ -309,62 +359,62 @@
                     <!-- CARD 2: AZIONE E SCENARI -->
                     <div class="control-card">
                         <div class="section-header">
-                            <span class="section-title">🎬 Azione & Scenari</span>
+                            <span class="section-title" data-i18n>🎬 Azione & Scenari</span>
                         </div>
                         <div class="options-grid cols-3" style="margin-bottom:12px;">
-                            <button class="btn-radio active" onclick="setMode('video', this)"><span>🎥 Video</span></button>
-                            <button class="btn-radio" onclick="setMode('foto', this)"><span>📸 Foto</span></button>
-                            <button class="btn-radio" onclick="setMode('timelapse', this)"><span>⏱️ T-Lapse</span></button>
+                            <button class="btn-radio active" data-action="setMode" data-value="video"><span data-i18n>🎥 Video</span></button>
+                            <button class="btn-radio" data-action="setMode" data-value="foto"><span data-i18n>📸 Foto</span></button>
+                            <button class="btn-radio" data-action="setMode" data-value="timelapse"><span data-i18n>⏱️ T-Lapse</span></button>
                         </div>
                         
                         <div class="section-subtitle">
-                            <span>Seleziona Situazioni</span><span class="multi-hint">✨ Multi-Selezione</span>
+                            <span data-i18n>Seleziona Situazioni</span><span class="multi-hint" data-i18n>✨ Multi-Selezione</span>
                         </div>
                         <div id="scenario-chips-container" class="options-grid" style="margin-bottom:0;">
-                            <button class="btn-chip selected" onclick="toggleScenario('reel', this)"><span>📱 Reel / IG 9:16</span></button>
-                            <button class="btn-chip" onclick="toggleScenario('sport', this)"><span>🚴 Bici / Sport</span></button>
-                            <button class="btn-chip" onclick="toggleScenario('travel', this)"><span>✈️ Viaggi / Family</span></button>
-                            <button class="btn-chip" onclick="toggleScenario('indoor', this)"><span>🏠 Indoor / Casa</span></button>
-                            <button class="btn-chip" onclick="toggleScenario('car', this)"><span>🚗 POV Auto</span></button>
-                            <button class="btn-chip" onclick="toggleScenario('night', this)"><span>🌙 Notturno</span></button>
-                            <button class="btn-chip" onclick="toggleScenario('slowmo', this)"><span>⚡ Slow-Motion</span></button>
-                            <button class="btn-chip" onclick="toggleScenario('gyroflow', this)"><span>💻 Gyroflow PC</span></button>
+                            <button class="btn-chip selected" data-action="toggleScenario" data-value="reel"><span data-i18n>📱 Reel / IG 9:16</span></button>
+                            <button class="btn-chip" data-action="toggleScenario" data-value="sport"><span data-i18n>🚴 Bici / Sport</span></button>
+                            <button class="btn-chip" data-action="toggleScenario" data-value="travel"><span data-i18n>✈️ Viaggi / Family</span></button>
+                            <button class="btn-chip" data-action="toggleScenario" data-value="indoor"><span data-i18n>🏠 Indoor / Casa</span></button>
+                            <button class="btn-chip" data-action="toggleScenario" data-value="car"><span data-i18n>🚗 POV Auto</span></button>
+                            <button class="btn-chip" data-action="toggleScenario" data-value="night"><span data-i18n>🌙 Notturno</span></button>
+                            <button class="btn-chip" data-action="toggleScenario" data-value="slowmo"><span data-i18n>⚡ Slow-Motion</span></button>
+                            <button class="btn-chip" data-action="toggleScenario" data-value="gyroflow"><span data-i18n>💻 Gyroflow PC</span></button>
                         </div>
                     </div>
 
                     <!-- CARD 3: AMBIENTE -->
                     <div class="control-card">
                         <div class="section-header">
-                            <span class="section-title">🌍 Ambiente</span>
+                            <span class="section-title" data-i18n>🌍 Ambiente</span>
                         </div>
-                        <div class="section-subtitle" style="margin-top:0;">Luce Ambientale</div>
+                        <div class="section-subtitle" style="margin-top:0;" data-i18n>Luce Ambientale</div>
                         <div class="options-grid cols-3" style="margin-bottom:12px;">
-                            <button class="btn-radio active" onclick="setLuce('sole', this)"><span>☀️ Sole</span></button>
-                            <button class="btn-radio" onclick="setLuce('ombra', this)"><span>☁️ Ombra</span></button>
-                            <button class="btn-radio" onclick="setLuce('scarsa', this)"><span>🌆 Scarsa</span></button>
+                            <button class="btn-radio active" data-action="setLuce" data-value="sole"><span data-i18n>☀️ Sole</span></button>
+                            <button class="btn-radio" data-action="setLuce" data-value="ombra"><span data-i18n>☁️ Ombra</span></button>
+                            <button class="btn-radio" data-action="setLuce" data-value="scarsa"><span data-i18n>🌆 Scarsa</span></button>
                         </div>
-                        <div class="section-subtitle">Location (Emerso/Sub)</div>
+                        <div class="section-subtitle" data-i18n>Location (Emerso/Sub)</div>
                         <div class="options-grid cols-2" style="margin-bottom:0;">
-                            <button class="btn-radio active" onclick="setSub('fuori', this)"><span>🏞️ Sopra la superficie</span></button>
-                            <button class="btn-radio" onclick="setSub('sub', this)"><span>🏓 Sott'Acqua</span></button>
+                            <button class="btn-radio active" data-action="setSub" data-value="fuori"><span data-i18n>🏞️ Sopra la superficie</span></button>
+                            <button class="btn-radio" data-action="setSub" data-value="sub"><span data-i18n>🏓 Sott'Acqua</span></button>
                         </div>
                     </div>
 
                     <!-- CARD 4: SPECIFICHE TECNICHE -->
                     <div class="control-card">
                         <div class="section-header">
-                            <span class="section-title">⚙️ Specifiche Tecniche</span>
+                            <span class="section-title" data-i18n>⚙️ Specifiche Tecniche</span>
                         </div>
-                        <div class="section-subtitle" style="margin-top:0;">Profilo Energetico / Bitrate</div>
+                        <div class="section-subtitle" style="margin-top:0;" data-i18n>Profilo Energetico / Bitrate</div>
                         <div class="options-grid cols-3" style="margin-bottom:12px;">
-                            <button class="btn-radio active" onclick="setBitrateProf('high', this)"><span>🔥 Max Qual</span></button>
-                            <button class="btn-radio" onclick="setBitrateProf('std', this)"><span>⚖️ Standard</span></button>
-                            <button class="btn-radio" onclick="setBitrateProf('eco', this)"><span>🔋 Endurance</span></button>
+                            <button class="btn-radio active" data-action="setBitrateProf" data-value="high"><span data-i18n>🔥 Max Qual</span></button>
+                            <button class="btn-radio" data-action="setBitrateProf" data-value="std"><span data-i18n>⚖️ Standard</span></button>
+                            <button class="btn-radio" data-action="setBitrateProf" data-value="eco"><span data-i18n>🔋 Endurance</span></button>
                         </div>
-                        <div class="section-subtitle">Frequenza di Rete (Antiflicker)</div>
+                        <div class="section-subtitle" data-i18n>Frequenza di Rete (Antiflicker)</div>
                         <div class="options-grid cols-2" style="margin-bottom:0;">
-                            <button class="btn-radio active" onclick="setRegion('pal', this)"><span>🇮🇹 PAL (50Hz)</span></button>
-                            <button class="btn-radio" onclick="setRegion('ntsc', this)"><span>🇺🇸 NTSC (60Hz)</span></button>
+                            <button class="btn-radio active" data-action="setRegion" data-value="pal"><span data-i18n>🇮🇹 PAL (50Hz)</span></button>
+                            <button class="btn-radio" data-action="setRegion" data-value="ntsc"><span data-i18n>🇺🇸 NTSC (60Hz)</span></button>
                         </div>
                     </div>
                 </div>
@@ -375,14 +425,20 @@
                     <!-- PRESETS SPOSTATI IN ALTO PER ACCESSO RAPIDO -->
                     <div class="control-card" style="border-color: var(--indigo);">
                         <div class="section-header" style="margin-bottom: 6px;">
-                            <span class="section-title" style="color:var(--indigo);">💾 Preset Veloci</span>
+                            <span class="section-title" style="color:var(--indigo);" data-i18n>💾 Preset Veloci</span>
                         </div>
                         <div class="preset-save-bar">
-                            <input type="text" id="input-preset-name" class="preset-input" placeholder="Salva setup (es. Corsa Luce)...">
-                            <button class="btn-save-preset" onclick="saveCurrentPreset()">Salva</button>
+                            <label class="sr-only" for="input-preset-name" data-i18n>Nome del preset da salvare</label>
+                            <input type="text" id="input-preset-name" class="preset-input" placeholder="Salva setup (es. Corsa Luce)..." data-i18n-placeholder="Salva setup (es. Corsa Luce)...">
+                            <button type="button" class="btn-save-preset" data-action="saveCurrentPreset" data-i18n>Salva</button>
+                        </div>
+                        <div class="action-row">
+                            <button type="button" class="btn-ghost" data-action="exportPresets" data-i18n>⬇️ Esporta preset</button>
+                            <button type="button" class="btn-ghost" data-action="importPresets" data-i18n>⬆️ Importa preset</button>
+                            <input type="file" id="input-import-presets" accept="application/json,.json" class="sr-only" aria-hidden="true" tabindex="-1">
                         </div>
                         <div class="saved-presets-list" style="margin-top: 10px;">
-                            <button class="preset-tag-btn" style="border: 1px solid var(--amber); background: rgba(245, 158, 11, 0.15); color: var(--amber);" onclick="applyMultisportPreset()">
+                            <button class="preset-tag-btn" style="border: 1px solid var(--amber); background: rgba(245, 158, 11, 0.15); color: var(--amber);" data-action="applyMultisportPreset" data-i18n>
                                 🔄 Setup Universale: Triathlon / Transizioni
                             </button>
                         </div>
@@ -397,83 +453,87 @@
                                 <span id="res-badge-matrix" class="pill-tag" style="background: var(--brand-color); color: #ffffff; font-weight:800;">UNIVERSAL MATRIX</span>
                             </div>
                             <div id="res-pills" class="selected-tags-pills"></div>
+                            <div class="action-row">
+                                <button type="button" class="btn-ghost" data-action="copySettings" data-i18n>📋 Copia impostazioni</button>
+                                <button type="button" class="btn-ghost" data-action="copyShareLink" data-i18n>🔗 Copia link setup</button>
+                            </div>
                         </div>
 
-                        <div class="matrix-subheader">🎥 Ottica & Formato Video</div>
+                        <div class="matrix-subheader" data-i18n>🎥 Ottica & Formato Video</div>
                         <div class="setting-row">
-                            <div class="setting-label">📐 Risoluzione & Aspect</div>
+                            <div class="setting-label" data-i18n>📐 Risoluzione & Aspect</div>
                             <div id="val-res" class="setting-value">4K Verticale (9:16)</div>
                         </div>
                         <div class="setting-row">
-                            <div class="setting-label">🎬 Framerate / Scatto</div>
+                            <div class="setting-label" data-i18n>🎬 Framerate / Scatto</div>
                             <div id="val-fps" class="setting-value">25 fps (PAL)</div>
                         </div>
                         <div class="setting-row">
                             <div class="setting-label">
-                                <span class="tooltip">⏱️ Shutter Speed <span class="tooltip-icon">ℹ️</span>
-                                    <span class="tooltip-text">Regola la fluidità del movimento (Motion Blur). Nel video cinematico è 1/(FPSx2).</span>
+                                <span class="tooltip" role="button" tabindex="0" aria-expanded="false" data-action="toggleTooltip"><span data-i18n>⏱️ Shutter Speed</span> <span class="tooltip-icon" aria-hidden="true">ℹ️</span>
+                                    <span class="tooltip-text" data-i18n>Regola la fluidità del movimento (Motion Blur). Nel video cinematico è 1/(FPSx2).</span>
                                 </span>
                             </div>
                             <div id="val-shutter" class="setting-value highlight-amber">1/50 s</div>
                         </div>
                         <div class="setting-row">
                             <div class="setting-label">
-                                <span class="tooltip">🕶️ Filtro ND <span class="tooltip-icon">ℹ️</span>
-                                    <span class="tooltip-text">Filtri scuri obbligatori di giorno per non "bruciare" l'immagine mantenendo lo shutter basso.</span>
+                                <span class="tooltip" role="button" tabindex="0" aria-expanded="false" data-action="toggleTooltip"><span data-i18n>🕶️ Filtro ND</span> <span class="tooltip-icon" aria-hidden="true">ℹ️</span>
+                                    <span class="tooltip-text" data-i18n>Filtri scuri obbligatori di giorno per non "bruciare" l'immagine mantenendo lo shutter basso.</span>
                                 </span>
                             </div>
                             <div id="val-nd" class="setting-value highlight-green">ND64 / ND128</div>
                         </div>
                         <div class="setting-row">
                             <div class="setting-label">
-                                <span class="tooltip">👁️ FOV / Lente <span class="tooltip-icon">ℹ️</span>
-                                    <span class="tooltip-text">L'ampiezza dell'inquadratura. Lineare per i volti, Ampio per l'azione.</span>
+                                <span class="tooltip" role="button" tabindex="0" aria-expanded="false" data-action="toggleTooltip"><span data-i18n>👁️ FOV / Lente</span> <span class="tooltip-icon" aria-hidden="true">ℹ️</span>
+                                    <span class="tooltip-text" data-i18n>L'ampiezza dell'inquadratura. Lineare per i volti, Ampio per l'azione.</span>
                                 </span>
                             </div>
                             <div id="val-fov" class="setting-value">Standard (Dewarp)</div>
                         </div>
 
-                        <div class="matrix-subheader">🖥️ Elaborazione Sensore & Colore</div>
+                        <div class="matrix-subheader" data-i18n>🖥️ Elaborazione Sensore & Colore</div>
                         <div class="setting-row">
-                            <div class="setting-label">± Esposizione (EV Comp)</div>
+                            <div class="setting-label" data-i18n>± Esposizione (EV Comp)</div>
                             <div id="val-ev" class="setting-value">0.0 (Matrix Metering)</div>
                         </div>
                         <div class="setting-row">
                             <div class="setting-label">
-                                <span class="tooltip">🎨 Profilo Colore <span class="tooltip-icon">ℹ️</span>
-                                    <span class="tooltip-text">Log cattura più gamma dinamica, ma va elaborato ("Graded") al PC/App.</span>
+                                <span class="tooltip" role="button" tabindex="0" aria-expanded="false" data-action="toggleTooltip"><span data-i18n>🎨 Profilo Colore</span> <span class="tooltip-icon" aria-hidden="true">ℹ️</span>
+                                    <span class="tooltip-text" data-i18n>Log cattura più gamma dinamica, ma va elaborato ("Graded") al PC/App.</span>
                                 </span>
                             </div>
                             <div id="val-color" class="setting-value">10-bit D-Log M</div>
                         </div>
                         <div class="setting-row">
-                            <div class="setting-label">🔲 Stabilizzazione Elettronica</div>
+                            <div class="setting-label" data-i18n>🔲 Stabilizzazione Elettronica</div>
                             <div id="val-stab" class="setting-value">RockSteady</div>
                         </div>
                         <div class="setting-row">
-                            <div class="setting-label">🎛️ Nitidezza / Noise Red.</div>
+                            <div class="setting-label" data-i18n>🎛️ Nitidezza / Noise Red.</div>
                             <div id="val-sharp" class="setting-value">Sharp: -1 | Noise: -1</div>
                         </div>
                         <div class="setting-row">
                             <div class="setting-label">
-                                <span class="tooltip">🎚️ Range ISO <span class="tooltip-icon">ℹ️</span>
-                                    <span class="tooltip-text">Sensibilità. Se troppo alto genera sgranatura e rumore digitale al buio.</span>
+                                <span class="tooltip" role="button" tabindex="0" aria-expanded="false" data-action="toggleTooltip"><span data-i18n>🎚️ Range ISO</span> <span class="tooltip-icon" aria-hidden="true">ℹ️</span>
+                                    <span class="tooltip-text" data-i18n>Sensibilità. Se troppo alto genera sgranatura e rumore digitale al buio.</span>
                                 </span>
                             </div>
                             <div id="val-iso" class="setting-value">ISO 100 / Max 800</div>
                         </div>
                         <div class="setting-row">
-                            <div class="setting-label">🌡️ Bilanciamento Bianco (WB)</div>
+                            <div class="setting-label" data-i18n>🌡️ Bilanciamento Bianco (WB)</div>
                             <div id="val-wb" class="setting-value">Manuale 5500K</div>
                         </div>
 
-                        <div class="matrix-subheader">🔌 Hardware & Dati</div>
+                        <div class="matrix-subheader" data-i18n>🔌 Hardware & Dati</div>
                         <div class="setting-row">
-                            <div class="setting-label">🎙️ Profilo Audio</div>
+                            <div class="setting-label" data-i18n>🎙️ Profilo Audio</div>
                             <div id="val-audio-prof" class="setting-value">Stereo Nativo</div>
                         </div>
                         <div class="setting-row">
-                            <div class="setting-label">🛰️ Telemetria (GPS)</div>
+                            <div class="setting-label" data-i18n>🛰️ Telemetria (GPS)</div>
                             <div id="val-gps" class="setting-value">OFF</div>
                         </div>
                     </div>
@@ -481,11 +541,11 @@
                     <!-- METRICHE & ALLARMI -->
                     <div class="metrics-card">
                         <div class="metric-item">
-                            <span class="metric-label">Bitrate Output</span>
+                            <span class="metric-label" data-i18n>Bitrate Output</span>
                             <span id="metric-bitrate" class="metric-val">~110 Mbps (H.265)</span>
                         </div>
                         <div class="metric-item">
-                            <span class="metric-label">Consumo Memoria</span>
+                            <span class="metric-label" data-i18n>Consumo Memoria</span>
                             <span id="metric-size" class="metric-val">~8.2 GB / 10 min</span>
                         </div>
                     </div>
@@ -494,7 +554,7 @@
                     <!-- MOTORE CONFLITTI -->
                     <div id="wrapper-tradeoffs" class="tradeoff-card">
                         <div class="tradeoff-title">
-                            <span>🎛️ Motore Risoluzione Conflitti</span>
+                            <span data-i18n>🎛️ Motore Risoluzione Conflitti</span>
                         </div>
                         <div id="container-conflicts"></div>
                     </div>
@@ -503,38 +563,38 @@
         </div>
 
         <!-- TAB 2: RIGGING & CALC (RINOMINATO) -->
-        <div id="panel-calc" class="panel">
+        <div id="panel-calc" class="panel" role="tabpanel" aria-labelledby="tab-calc" hidden>
             <div class="desktop-split-layout">
                 <!-- COL SINISTRA: CALCOLATRICI -->
                 <div class="desktop-left-col">
-                    <div class="section-title">Calcolatore Otturatore (180° Rule)</div>
+                    <div class="section-title" data-i18n>Calcolatore Otturatore (180° Rule)</div>
                     <div class="calc-card">
-                        <div class="section-title" style="margin-top: 0; margin-bottom: 8px;">1. FPS Target del Progetto</div>
+                        <div class="section-title" style="margin-top: 0; margin-bottom: 8px;" data-i18n>1. FPS Target del Progetto</div>
                         <div class="options-grid cols-3" style="margin-bottom: 12px;">
-                            <button class="btn-radio" onclick="calcShutter(25, this)">25 FPS</button>
-                            <button class="btn-radio active" onclick="calcShutter(30, this)">30 FPS</button>
-                            <button class="btn-radio" onclick="calcShutter(50, this)">50 FPS</button>
-                            <button class="btn-radio" onclick="calcShutter(60, this)">60 FPS</button>
-                            <button class="btn-radio" onclick="calcShutter(100, this)">100 FPS</button>
-                            <button class="btn-radio" onclick="calcShutter(120, this)">120 FPS</button>
+                            <button class="btn-radio" data-action="calcShutter" data-value="25">25 FPS</button>
+                            <button class="btn-radio active" data-action="calcShutter" data-value="30">30 FPS</button>
+                            <button class="btn-radio" data-action="calcShutter" data-value="50">50 FPS</button>
+                            <button class="btn-radio" data-action="calcShutter" data-value="60">60 FPS</button>
+                            <button class="btn-radio" data-action="calcShutter" data-value="100">100 FPS</button>
+                            <button class="btn-radio" data-action="calcShutter" data-value="120">120 FPS</button>
                         </div>
                         <div class="calc-output">
-                            <div style="font-size: 0.78rem; color: var(--text-secondary); text-transform: uppercase;">Shutter Perfetto</div>
+                            <div style="font-size: 0.78rem; color: var(--text-secondary); text-transform: uppercase;" data-i18n>Shutter Perfetto</div>
                             <div id="calc-result-shutter" class="calc-val">1/60 s</div>
                             <div id="calc-result-nd" class="calc-sub">In sole diretto (EV15): ND64 / ND128</div>
                         </div>
                     </div>
 
-                    <div class="section-title">Calcolatore Autonomia (Stress Test)</div>
+                    <div class="section-title" data-i18n>Calcolatore Autonomia (Stress Test)</div>
                     <div class="calc-card">
-                        <div class="section-title" style="margin-top:0; margin-bottom: 8px;">2. Temperatura Esterna</div>
+                        <div class="section-title" style="margin-top:0; margin-bottom: 8px;" data-i18n>2. Temperatura Esterna</div>
                         <div class="options-grid cols-3" style="margin-bottom: 12px;">
-                            <button class="btn-radio" onclick="calcBattery(-10, this)">❄️ Freddo (-10°)</button>
-                            <button class="btn-radio active" onclick="calcBattery(20, this)">🌤️ Mite (20°)</button>
-                            <button class="btn-radio" onclick="calcBattery(35, this)">🔥 Caldo (35°)</button>
+                            <button class="btn-radio" data-action="calcBattery" data-value="-10" data-i18n>❄️ Freddo (-10°)</button>
+                            <button class="btn-radio active" data-action="calcBattery" data-value="20" data-i18n>🌤️ Mite (20°)</button>
+                            <button class="btn-radio" data-action="calcBattery" data-value="35" data-i18n>🔥 Caldo (35°)</button>
                         </div>
                         <div class="calc-output" style="border-color: var(--amber);">
-                            <div style="font-size: 0.78rem; color: var(--text-secondary); text-transform: uppercase;">Autonomia Continua (1080p/30)</div>
+                            <div style="font-size: 0.78rem; color: var(--text-secondary); text-transform: uppercase;" data-i18n>Autonomia Continua (1080p/30)</div>
                             <div id="battery-result-time" class="calc-val" style="color:var(--amber);">~115 Minuti</div>
                             <div id="battery-result-note" class="calc-sub">Condizioni ottimali per batteria standard</div>
                         </div>
@@ -544,24 +604,24 @@
                 <!-- COL DESTRA: HARDWARE, RIGGING & AUDIO (SPOSTATO QUI) -->
                 <div class="desktop-right-col">
                     
-                    <div class="section-title">🔧 Setup Fisico & Rigging (Dinamico)</div>
+                    <div class="section-title" data-i18n>🔧 Setup Fisico & Rigging (Dinamico)</div>
                     <!-- RIGGING CARD MOVED TO TAB 2 -->
                     <div id="wrapper-rigging" class="rigging-card" style="margin-top:0;">
                         <div class="rigging-title">
-                            <span>Mount & Supporti Consigliati</span>
+                            <span data-i18n>Mount & Supporti Consigliati</span>
                         </div>
                         <div id="rigging-text" class="rigging-text" style="font-size:0.85rem;">
                             Seleziona un modello e un'azione nel Tab 1 per vedere qui il setup hardware perfetto (Pettorina, Out-Front Mount, Treppiede, ecc.).
                         </div>
                     </div>
 
-                    <div class="section-title">🎙️ Audio Gain Staging (Esterno)</div>
+                    <div class="section-title" data-i18n>🎙️ Audio Gain Staging (Esterno)</div>
                     <div class="editing-card">
                         <div id="audio-rigging-title" class="editing-card-title" style="color:var(--cyan);">Regolazione Trasmettitore (DJI Mic / Rode)</div>
                         <ul id="audio-rigging-list" class="editing-list">
-                            <li><b>Parlato / Vlog Calmo:</b> Ricevitore/Camera Gain a <b>0 dB</b>, Trasmettitore TX a <b>-2 dB</b>.</li>
-                            <li><b>Sport / Azione (Urla/Affanno):</b> Trasmettitore TX a <b>-6 dB</b> per evitare il *clipping* distorsivo.</li>
-                            <li><b>Low-Cut Filter (HPF):</b> Attiva il filtro <b>150 Hz</b> (taglio basso) nelle impostazioni TX durante le riprese veloci per tagliare il rimbombo del vento sul microfono.</li>
+                            <li data-i18n-html><b>Parlato / Vlog Calmo:</b> Ricevitore/Camera Gain a <b>0 dB</b>, Trasmettitore TX a <b>-2 dB</b>.</li>
+                            <li data-i18n-html><b>Sport / Azione (Urla/Affanno):</b> Trasmettitore TX a <b>-6 dB</b> per evitare il *clipping* distorsivo.</li>
+                            <li data-i18n-html><b>Low-Cut Filter (HPF):</b> Attiva il filtro <b>150 Hz</b> (taglio basso) nelle impostazioni TX durante le riprese veloci per tagliare il rimbombo del vento sul microfono.</li>
                         </ul>
                     </div>
                 </div>
@@ -569,7 +629,7 @@
         </div>
 
         <!-- TAB 3: EDITING -->
-        <div id="panel-editing" class="panel">
+        <div id="panel-editing" class="panel" role="tabpanel" aria-labelledby="tab-editing" hidden>
             <div class="desktop-split-layout">
                 
                 <div class="desktop-edit-left">
@@ -577,61 +637,59 @@
                         <span id="editing-app-header" class="section-title">Assistente Editing In-App</span>
                     </div>
 
-                    <div class="section-title" style="margin-top:4px;">Seleziona Obiettivi Editing</div>
+                    <div class="section-title" style="margin-top:4px;" data-i18n>Seleziona Obiettivi Editing</div>
                     <div class="options-grid">
-                        <button class="btn-chip selected" onclick="toggleEditGoal('dlog_lut', this)"><span>🎨 Grading Log/Flat</span></button>
-                        <button class="btn-chip" onclick="toggleEditGoal('reel_fast', this)"><span>📱 Reel In-App 9:16</span></button>
-                        <button class="btn-chip" onclick="toggleEditGoal('speed_ramp', this)"><span>⚡ Speed Ramp</span></button>
-                        <button class="btn-chip" onclick="toggleEditGoal('audio_clean', this)"><span>🎙️ Audio & Vento</span></button>
-                        <button class="btn-chip" onclick="toggleEditGoal('underwater_color', this)"><span>🏓 Colore Subacqueo</span></button>
+                        <button class="btn-chip selected" data-action="toggleEditGoal" data-value="dlog_lut"><span data-i18n>🎨 Grading Log/Flat</span></button>
+                        <button class="btn-chip" data-action="toggleEditGoal" data-value="reel_fast"><span data-i18n>📱 Reel In-App 9:16</span></button>
+                        <button class="btn-chip" data-action="toggleEditGoal" data-value="speed_ramp"><span data-i18n>⚡ Speed Ramp</span></button>
+                        <button class="btn-chip" data-action="toggleEditGoal" data-value="audio_clean"><span data-i18n>🎙️ Audio & Vento</span></button>
+                        <button class="btn-chip" data-action="toggleEditGoal" data-value="underwater_color"><span data-i18n>🏓 Colore Subacqueo</span></button>
                     </div>
 
                     <!-- SIMULATORE VISIVO PROFESSIONALE -->
                     <div class="simulator-container">
                         <div class="section-title" style="margin-top:0; color:var(--teal); display:flex; justify-content:space-between; align-items:center;">
-                            <span id="sim-title-label">🎨 Simulatore Sensore</span>
-                            <span style="font-size:0.72rem; color:var(--text-secondary); text-transform:none;">Trascina sull'immagine ↔</span>
+                            <span id="sim-title-label" data-i18n>🎨 Simulatore Sensore</span>
+                            <span style="font-size:0.72rem; color:var(--text-secondary); text-transform:none;" data-i18n>Trascina sull'immagine ↔</span>
                         </div>
                         
                         <div class="sim-image-box">
-                            <input type="range" min="0" max="100" value="50" class="sim-slider" oninput="updateSimSlider(this.value)">
+                            <input type="range" min="0" max="100" value="50" class="sim-slider" data-action="updateSimSlider" aria-label="Confronto fra immagine piatta e immagine gradata" data-i18n-aria-label="Confronto fra immagine piatta e immagine gradata">
                             <div id="sim-iso-noise" class="sim-noise-overlay"></div>
 
-                            <div class="sim-layer-flat">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 300" preserveAspectRatio="xMidYMid slice" style="width:100%; height:100%; display:block;">
-                                    <defs>
-                                        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0284c7"/><stop offset="60%" stop-color="#38bdf8"/><stop offset="100%" stop-color="#f59e0b"/></linearGradient>
-                                        <linearGradient id="sun" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#fef08a"/><stop offset="100%" stop-color="#f97316"/></linearGradient>
-                                        <linearGradient id="mountains" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#334155"/><stop offset="100%" stop-color="#0f172a"/></linearGradient>
-                                        <linearGradient id="grass" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#15803d"/><stop offset="100%" stop-color="#052e16"/></linearGradient>
-                                    </defs>
-                                    <rect width="600" height="300" fill="url(#sky)"/><circle cx="450" cy="110" r="45" fill="url(#sun)" opacity="0.9"/><circle cx="450" cy="110" r="65" fill="#fef08a" opacity="0.25"/>
-                                    <path d="M0,220 L80,140 L160,190 L270,110 L380,200 L490,130 L600,210 L600,300 L0,300 Z" fill="#1e293b" opacity="0.7"/><path d="M0,250 L110,170 L210,210 L310,150 L430,220 L530,160 L600,230 L600,300 L0,300 Z" fill="url(#mountains)"/>
-                                    <path d="M0,260 Q150,220 300,250 T600,240 L600,300 L0,300 Z" fill="url(#grass)"/><path d="M220,300 L280,245 L320,245 L380,300 Z" fill="#475569"/><path d="M298,300 L299,245 M302,300 L301,245" stroke="#facc15" stroke-width="2" stroke-dasharray="8 6"/>
-                                    <path d="M50,260 L60,230 L70,260 Z M53,245 L60,220 L67,245 Z" fill="#022c22"/><path d="M80,265 L90,232 L100,265 Z M83,248 L90,222 L97,248 Z" fill="#022c22"/><path d="M520,255 L530,225 L540,255 Z M523,240 L530,215 L537,240 Z" fill="#022c22"/>
-                                    <g id="subject-flat" class="action-subject" transform="translate(285, 222) scale(0.45)" fill="#0f172a">
-                                        <circle cx="15" cy="40" r="14" stroke="#0f172a" stroke-width="3" fill="none"/><circle cx="55" cy="40" r="14" stroke="#0f172a" stroke-width="3" fill="none"/><path d="M15,40 L30,40 L45,25 L25,25 Z" stroke="#0f172a" stroke-width="3" fill="none"/><path d="M30,40 L25,25 M45,25 L55,40" stroke="#0f172a" stroke-width="3"/><circle cx="30" cy="10" r="5"/><path d="M30,15 L38,24 L48,22 M30,18 L22,30 L18,38 M30,18 L35,32 L40,38" stroke="#0f172a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                            <!-- La scena e' definita una volta sola e riusata dai due
+                                 livelli con <use>. Il motion blur del soggetto arriva
+                                 dalla variabile --subject-blur, che si eredita anche
+                                 dentro al contenuto clonato. -->
+                            <svg xmlns="http://www.w3.org/2000/svg" width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+                                <defs>
+                                    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0284c7"/><stop offset="60%" stop-color="#38bdf8"/><stop offset="100%" stop-color="#f59e0b"/></linearGradient>
+                                    <linearGradient id="sun" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#fef08a"/><stop offset="100%" stop-color="#f97316"/></linearGradient>
+                                    <linearGradient id="mountains" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#334155"/><stop offset="100%" stop-color="#0f172a"/></linearGradient>
+                                    <linearGradient id="grass" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#15803d"/><stop offset="100%" stop-color="#052e16"/></linearGradient>
+                                    <g id="sim-scene">
+                                        <rect width="600" height="300" fill="url(#sky)"/><circle cx="450" cy="110" r="45" fill="url(#sun)" opacity="0.9"/><circle cx="450" cy="110" r="65" fill="#fef08a" opacity="0.25"/>
+                                        <path d="M0,220 L80,140 L160,190 L270,110 L380,200 L490,130 L600,210 L600,300 L0,300 Z" fill="#1e293b" opacity="0.7"/><path d="M0,250 L110,170 L210,210 L310,150 L430,220 L530,160 L600,230 L600,300 L0,300 Z" fill="url(#mountains)"/>
+                                        <path d="M0,260 Q150,220 300,250 T600,240 L600,300 L0,300 Z" fill="url(#grass)"/><path d="M220,300 L280,245 L320,245 L380,300 Z" fill="#475569"/><path d="M298,300 L299,245 M302,300 L301,245" stroke="#facc15" stroke-width="2" stroke-dasharray="8 6"/>
+                                        <path d="M50,260 L60,230 L70,260 Z M53,245 L60,220 L67,245 Z" fill="#022c22"/><path d="M80,265 L90,232 L100,265 Z M83,248 L90,222 L97,248 Z" fill="#022c22"/><path d="M520,255 L530,225 L540,255 Z M523,240 L530,215 L537,240 Z" fill="#022c22"/>
+                                        <g class="action-subject" transform="translate(285, 222) scale(0.45)" fill="#0f172a" style="filter: blur(var(--subject-blur, 0px));">
+                                            <circle cx="15" cy="40" r="14" stroke="#0f172a" stroke-width="3" fill="none"/><circle cx="55" cy="40" r="14" stroke="#0f172a" stroke-width="3" fill="none"/><path d="M15,40 L30,40 L45,25 L25,25 Z" stroke="#0f172a" stroke-width="3" fill="none"/><path d="M30,40 L25,25 M45,25 L55,40" stroke="#0f172a" stroke-width="3"/><circle cx="30" cy="10" r="5"/><path d="M30,15 L38,24 L48,22 M30,18 L22,30 L18,38 M30,18 L35,32 L40,38" stroke="#0f172a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                                        </g>
                                     </g>
+                                </defs>
+                            </svg>
+
+                            <div class="sim-layer-flat">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 300" preserveAspectRatio="xMidYMid slice" style="width:100%; height:100%; display:block;" aria-hidden="true" focusable="false">
+                                    <use href="#sim-scene"/>
                                 </svg>
                                 <span id="sim-tag-flat-text" class="sim-tag sim-tag-left">10-BIT LOG</span>
                             </div>
-                            
+
                             <div id="sim-graded-layer" class="sim-layer-graded">
                                 <div class="sim-inner-graded">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 300" preserveAspectRatio="xMidYMid slice" style="width:100%; height:100%; display:block;">
-                                        <defs>
-                                            <linearGradient id="sky2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0284c7"/><stop offset="60%" stop-color="#38bdf8"/><stop offset="100%" stop-color="#f59e0b"/></linearGradient>
-                                            <linearGradient id="sun2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#fef08a"/><stop offset="100%" stop-color="#f97316"/></linearGradient>
-                                            <linearGradient id="mountains2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#334155"/><stop offset="100%" stop-color="#0f172a"/></linearGradient>
-                                            <linearGradient id="grass2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#15803d"/><stop offset="100%" stop-color="#052e16"/></linearGradient>
-                                        </defs>
-                                        <rect width="600" height="300" fill="url(#sky2)"/><circle cx="450" cy="110" r="45" fill="url(#sun2)" opacity="0.9"/><circle cx="450" cy="110" r="65" fill="#fef08a" opacity="0.25"/>
-                                        <path d="M0,220 L80,140 L160,190 L270,110 L380,200 L490,130 L600,210 L600,300 L0,300 Z" fill="#1e293b" opacity="0.7"/><path d="M0,250 L110,170 L210,210 L310,150 L430,220 L530,160 L600,230 L600,300 L0,300 Z" fill="url(#mountains2)"/>
-                                        <path d="M0,260 Q150,220 300,250 T600,240 L600,300 L0,300 Z" fill="url(#grass2)"/><path d="M220,300 L280,245 L320,245 L380,300 Z" fill="#475569"/><path d="M298,300 L299,245 M302,300 L301,245" stroke="#facc15" stroke-width="2" stroke-dasharray="8 6"/>
-                                        <path d="M50,260 L60,230 L70,260 Z M53,245 L60,220 L67,245 Z" fill="#022c22"/><path d="M80,265 L90,232 L100,265 Z M83,248 L90,222 L97,248 Z" fill="#022c22"/><path d="M520,255 L530,225 L540,255 Z M523,240 L530,215 L537,240 Z" fill="#022c22"/>
-                                        <g id="subject-grad" class="action-subject" transform="translate(285, 222) scale(0.45)" fill="#0f172a">
-                                            <circle cx="15" cy="40" r="14" stroke="#0f172a" stroke-width="3" fill="none"/><circle cx="55" cy="40" r="14" stroke="#0f172a" stroke-width="3" fill="none"/><path d="M15,40 L30,40 L45,25 L25,25 Z" stroke="#0f172a" stroke-width="3" fill="none"/><path d="M30,40 L25,25 M45,25 L55,40" stroke="#0f172a" stroke-width="3"/><circle cx="30" cy="10" r="5"/><path d="M30,15 L38,24 L48,22 M30,18 L22,30 L18,38 M30,18 L35,32 L40,38" stroke="#0f172a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-                                        </g>
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 300" preserveAspectRatio="xMidYMid slice" style="width:100%; height:100%; display:block;" aria-hidden="true" focusable="false">
+                                        <use href="#sim-scene"/>
                                     </svg>
                                     <span id="sim-tag-graded-text" class="sim-tag sim-tag-right">REC.709 (GRADED)</span>
                                 </div>
@@ -640,8 +698,8 @@
                         </div>
                         
                         <div style="display:flex; justify-content:space-between; font-size:0.72rem; color:var(--text-secondary); margin-top:10px; font-weight: 600;">
-                            <span id="sim-sub-left">◀ Ottica / Sensore</span>
-                            <span id="sim-sub-right">Elaborazione Finale ▶</span>
+                            <span id="sim-sub-left" data-i18n>◀ Ottica / Sensore</span>
+                            <span id="sim-sub-right" data-i18n>Elaborazione Finale ▶</span>
                         </div>
                     </div>
                 </div> 
@@ -655,25 +713,25 @@
                             <div id="edit-pills" class="selected-tags-pills"></div>
                         </div>
                         <div class="editing-card">
-                            <div class="editing-card-title"><span class="editing-step-num">1</span>Passaggi Operativi</div>
+                            <div class="editing-card-title"><span class="editing-step-num">1</span><span data-i18n>Passaggi Operativi</span></div>
                             <ul id="edit-steps-list" class="editing-list"></ul>
                         </div>
                         <div class="editing-card">
-                            <div class="editing-card-title"><span class="editing-step-num">2</span>Regolazioni & Rifinitura Fine</div>
+                            <div class="editing-card-title"><span class="editing-step-num">2</span><span data-i18n>Regolazioni & Rifinitura Fine</span></div>
                             <ul id="edit-tweak-list" class="editing-list"></ul>
                         </div>
                         <div class="editing-card" style="margin-bottom:0;">
-                            <div class="editing-card-title"><span class="editing-step-num">3</span>Impostazioni Esportazione</div>
+                            <div class="editing-card-title"><span class="editing-step-num">3</span><span data-i18n>Impostazioni Esportazione</span></div>
                             <ul id="edit-export-list" class="editing-list"></ul>
                         </div>
                     </div>
 
-                    <div class="section-title" style="margin-top:16px;">🛰️ Integrazione Telemetria (Dati GPS)</div>
+                    <div class="section-title" style="margin-top:16px;" data-i18n>🛰️ Integrazione Telemetria (Dati GPS)</div>
                     <div class="editing-card" style="border-color: var(--cyan);">
                         <ul class="editing-list">
-                            <li><b>Esportazione File:</b> Estrai il file dell'attività (formato <b>.FIT</b> o <b>.GPX</b>) dal ciclocomputer.</li>
-                            <li><b>Sincronizzazione Video:</b> Importa il video e il file dati in software come <b>Telemetry Overlay</b>.</li>
-                            <li><b>Metrica Suggerita (Sport):</b> Sovrapponi sul video i <b>Watt (Potenza)</b>, <b>Cadenza</b>, <b>BPM</b>. Regola lo slider di sincro in modo che il picco visivo di accelerazione combaci col picco dei Watt.</li>
+                            <li data-i18n-html><b>Esportazione File:</b> Estrai il file dell'attività (formato <b>.FIT</b> o <b>.GPX</b>) dal ciclocomputer.</li>
+                            <li data-i18n-html><b>Sincronizzazione Video:</b> Importa il video e il file dati in software come <b>Telemetry Overlay</b>.</li>
+                            <li data-i18n-html><b>Metrica Suggerita (Sport):</b> Sovrapponi sul video i <b>Watt (Potenza)</b>, <b>Cadenza</b>, <b>BPM</b>. Regola lo slider di sincro in modo che il picco visivo di accelerazione combaci col picco dei Watt.</li>
                         </ul>
                     </div>
                 </div> 
@@ -681,38 +739,38 @@
         </div>
 
         <!-- TAB 4: GUIDA RAPIDA -->
-        <div id="panel-guide" class="panel">
-            <div class="section-title">Schede di Consultazione Rapida (Cheat Sheets)</div>
+        <div id="panel-guide" class="panel" role="tabpanel" aria-labelledby="tab-guide" hidden>
+            <div class="section-title" data-i18n>Schede di Consultazione Rapida (Cheat Sheets)</div>
             <div class="ref-grid-desktop">
                 
                 <div class="ref-card">
-                    <div class="ref-title"><span>📱 Reel Instagram</span><span class="ref-badge">4K 9:16</span></div>
-                    <div class="ref-details"><b>Setting:</b> 25/30 FPS | Shutter 1/50s | Log | Dewarp<br><b>Note:</b> Filtro ND32/64 di giorno. Nitidezza -1. Ideale per clip cinematiche verticali.</div>
+                    <div class="ref-title"><span data-i18n>📱 Reel Instagram</span><span class="ref-badge">4K 9:16</span></div>
+                    <div class="ref-details" data-i18n-html><b>Setting:</b> 25/30 FPS | Shutter 1/50s | Log | Dewarp<br><b>Note:</b> Filtro ND32/64 di giorno. Nitidezza -1. Ideale per clip cinematiche verticali.</div>
                 </div>
                 
                 <div class="ref-card">
-                    <div class="ref-title"><span>🚴 Bici & Action</span><span class="ref-badge">4K 50/60FPS</span></div>
-                    <div class="ref-details"><b>Setting:</b> 50/60 FPS | Shutter 1/100s | Wide / SuperView<br><b>Note:</b> Il framerate alto e shutter rapido riducono il motion blur stabilizzando le micro-vibrazioni.</div>
+                    <div class="ref-title"><span data-i18n>🚴 Bici & Action</span><span class="ref-badge">4K 50/60FPS</span></div>
+                    <div class="ref-details" data-i18n-html><b>Setting:</b> 50/60 FPS | Shutter 1/100s | Wide / SuperView<br><b>Note:</b> Il framerate alto e shutter rapido riducono il motion blur stabilizzando le micro-vibrazioni.</div>
                 </div>
 
                 <div class="ref-card">
-                    <div class="ref-title"><span>⚡ Slow-Mo (B-Roll)</span><span class="ref-badge">4K 100/120FPS</span></div>
-                    <div class="ref-details"><b>Setting:</b> 100/120 FPS | Shutter 1/200s | Log | Standard<br><b>Note:</b> Da rallentare al 25% (25fps) in post. Richiede MOLTA luce, rimuovi sempre i filtri ND.</div>
+                    <div class="ref-title"><span data-i18n>⚡ Slow-Mo (B-Roll)</span><span class="ref-badge">4K 100/120FPS</span></div>
+                    <div class="ref-details" data-i18n-html><b>Setting:</b> 100/120 FPS | Shutter 1/200s | Log | Standard<br><b>Note:</b> Da rallentare al 25% (25fps) in post. Richiede MOLTA luce, rimuovi sempre i filtri ND.</div>
                 </div>
 
                 <div class="ref-card">
-                    <div class="ref-title"><span>⏱️ Timelapse (Statico)</span><span class="ref-badge">4K / 5.3K</span></div>
-                    <div class="ref-details"><b>Setting:</b> Int. 2s | Shutter 1s | ND64/128 | Stab: OFF<br><b>Note:</b> Montaggio su treppiede. L'uso con shutter lungo "spalma" le nuvole creando le scie.</div>
+                    <div class="ref-title"><span data-i18n>⏱️ Timelapse (Statico)</span><span class="ref-badge">4K / 5.3K</span></div>
+                    <div class="ref-details" data-i18n-html><b>Setting:</b> Int. 2s | Shutter 1s | ND64/128 | Stab: OFF<br><b>Note:</b> Montaggio su treppiede. L'uso con shutter lungo "spalma" le nuvole creando le scie.</div>
                 </div>
 
                 <div class="ref-card">
-                    <div class="ref-title"><span>🚶 Hyperlapse (In moto)</span><span class="ref-badge">4K 30FPS</span></div>
-                    <div class="ref-details"><b>Setting:</b> Int. Auto o 0.5s | Shutter Auto | Stab: Boost<br><b>Note:</b> Tieni la cam al petto o su grip. Punta sempre dritto. Ottimo per transizioni rapide.</div>
+                    <div class="ref-title"><span data-i18n>🚶 Hyperlapse (In moto)</span><span class="ref-badge">4K 30FPS</span></div>
+                    <div class="ref-details" data-i18n-html><b>Setting:</b> Int. Auto o 0.5s | Shutter Auto | Stab: Boost<br><b>Note:</b> Tieni la cam al petto o su grip. Punta sempre dritto. Ottimo per transizioni rapide.</div>
                 </div>
 
                 <div class="ref-card">
-                    <div class="ref-title"><span>🌙 Notturno / Low-Light</span><span class="ref-badge">4K 25/30FPS</span></div>
-                    <div class="ref-details"><b>Setting:</b> 25/30 FPS | Shutter AUTO | ISO Max 1600<br><b>Note:</b> NO filtri ND. Disattiva la stabilizzazione estrema (che crea jitter/sfarfallii al buio).</div>
+                    <div class="ref-title"><span data-i18n>🌙 Notturno / Low-Light</span><span class="ref-badge">4K 25/30FPS</span></div>
+                    <div class="ref-details" data-i18n-html><b>Setting:</b> 25/30 FPS | Shutter AUTO | ISO Max 1600<br><b>Note:</b> NO filtri ND. Disattiva la stabilizzazione estrema (che crea jitter/sfarfallii al buio).</div>
                 </div>
 
             </div> 
@@ -720,12 +778,16 @@
 
     </div>
 
+    <!-- Conferme effimere (copia, export, import). aria-live le annuncia
+         anche ai lettori di schermo. -->
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
     <!-- BOTTOM TAB NAVIGATION -->
-    <div class="tab-nav">
-        <button class="tab-btn active" onclick="switchTab('wizard', this)"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg><span>Setup Wizard</span></button>
-        <button class="tab-btn" onclick="switchTab('calc', this)"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 14H7v-2h10v2zm0-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg><span>Rigging & Calc</span></button>
-        <button class="tab-btn" onclick="switchTab('editing', this)"><svg viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4zM14 16H5V8h9v8z"/></svg><span>Editing & Vis</span></button>
-        <button class="tab-btn" onclick="switchTab('guide', this)"><svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/></svg><span>Cheat Sheets</span></button>
+    <div class="tab-nav" role="tablist" aria-label="Sezioni dell'app" data-i18n-aria-label="Sezioni dell'app">
+        <button type="button" class="tab-btn active" role="tab" id="tab-wizard" aria-controls="panel-wizard" aria-selected="true" data-action="switchTab" data-value="wizard"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg><span data-i18n>Setup Wizard</span></button>
+        <button type="button" class="tab-btn" role="tab" id="tab-calc" aria-controls="panel-calc" aria-selected="false" data-action="switchTab" data-value="calc"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 14H7v-2h10v2zm0-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg><span data-i18n>Rigging & Calc</span></button>
+        <button type="button" class="tab-btn" role="tab" id="tab-editing" aria-controls="panel-editing" aria-selected="false" data-action="switchTab" data-value="editing"><svg viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4zM14 16H5V8h9v8z"/></svg><span data-i18n>Editing & Vis</span></button>
+        <button type="button" class="tab-btn" role="tab" id="tab-guide" aria-controls="panel-guide" aria-selected="false" data-action="switchTab" data-value="guide"><svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/></svg><span data-i18n>Cheat Sheets</span></button>
     </div>
 
     <script>
@@ -741,26 +803,29 @@
         const STORAGE_KEYS = {
             theme: 'camstudio_theme',
             legacyTheme: 'theme',
+            lang: 'camstudio_lang',
             presets: 'camstudio_presets_v11',
             legacyPresets: 'action4_custom_presets'
         };
 
+        // batteryMin: minuti indicativi di registrazione continua a 1080p/30 in
+        // condizioni miti. Sono stime da calibrare sul campo, non dati ufficiali.
         const cameraModelsData = {
             dji: {
-                'action5pro': { name: 'DJI Osmo Action 5 Pro', shortName: 'Action 5 Pro', maxRes: '4K @ 120fps (Sensore 1/1.3" 4:3)', logProfile: '10-bit D-Log M', waterproof: 20, mount: 'Sgancio Mag. v2', audio: 'Dual BT Direct DJI Mic 2.', bitrate: 110, photoRes: '40 MP RAW' },
-                'action4': { name: 'DJI Osmo Action 4', shortName: 'Action 4', maxRes: '4K @ 120fps (Sensore 1/1.3" 4:3)', logProfile: '10-bit D-Log M', waterproof: 18, mount: 'Sgancio Mag. Rapido', audio: 'BT Direct DJI Mic 2.', bitrate: 110, photoRes: '10 MP RAW' },
-                'action3': { name: 'DJI Osmo Action 3', shortName: 'Action 3', maxRes: '4K @ 120fps (Sensore 1/1.7" 4:3)', logProfile: '10-bit D-Cinelike', waterproof: 16, mount: 'Sgancio Mag. Rapido', audio: 'RX USB-C per DJI Mic.', bitrate: 100, photoRes: '12 MP RAW' }
+                'action5pro': { name: 'DJI Osmo Action 5 Pro', shortName: 'Action 5 Pro', maxRes: '4K @ 120fps (Sensore 1/1.3" 4:3)', logProfile: '10-bit D-Log M', waterproof: 20, mount: 'Sgancio Mag. v2', audio: 'Dual BT Direct DJI Mic 2.', bitrate: 110, photoRes: '40 MP RAW', batteryMin: 150 },
+                'action4': { name: 'DJI Osmo Action 4', shortName: 'Action 4', maxRes: '4K @ 120fps (Sensore 1/1.3" 4:3)', logProfile: '10-bit D-Log M', waterproof: 18, mount: 'Sgancio Mag. Rapido', audio: 'BT Direct DJI Mic 2.', bitrate: 110, photoRes: '10 MP RAW', batteryMin: 120 },
+                'action3': { name: 'DJI Osmo Action 3', shortName: 'Action 3', maxRes: '4K @ 120fps (Sensore 1/1.7" 4:3)', logProfile: '10-bit D-Cinelike', waterproof: 16, mount: 'Sgancio Mag. Rapido', audio: 'RX USB-C per DJI Mic.', bitrate: 100, photoRes: '12 MP RAW', batteryMin: 115 }
             },
             gopro: {
-                'hero13': { name: 'GoPro HERO 13 Black', shortName: 'HERO 13 Black', maxRes: '5.3K @ 60fps (8:7)', logProfile: '10-bit GP-Log / HLG', waterproof: 10, mount: 'Linguette + Latch Mag.', audio: 'BT AirPods/Mic / Media Mod.', bitrate: 120, photoRes: '27 MP RAW' },
-                'hero12': { name: 'GoPro HERO 12 Black', shortName: 'HERO 12 Black', maxRes: '5.3K @ 60fps (8:7)', logProfile: '10-bit GP-Log / HDR', waterproof: 10, mount: 'Linguette Pieghevoli', audio: 'Dual BT Audio / Media Mod.', bitrate: 120, photoRes: '27 MP RAW' },
-                'hero11': { name: 'GoPro HERO 11 Black', shortName: 'HERO 11 Black', maxRes: '5.3K @ 60fps (8:7)', logProfile: '10-bit Flat', waterproof: 10, mount: 'Linguette Pieghevoli', audio: 'Media Mod o Mic 3.5mm.', bitrate: 120, photoRes: '27 MP RAW' },
-                'hero10_9': { name: 'GoPro HERO 10 / 9 Black', shortName: 'HERO 10 / 9', maxRes: '5.3K @ 60fps', logProfile: '8-bit Flat', waterproof: 10, mount: 'Linguette Pieghevoli', audio: 'Media Mod o Mic 3.5mm.', bitrate: 100, photoRes: '23 MP RAW' }
+                'hero13': { name: 'GoPro HERO 13 Black', shortName: 'HERO 13 Black', maxRes: '5.3K @ 60fps (8:7)', logProfile: '10-bit GP-Log / HLG', waterproof: 10, mount: 'Linguette + Latch Mag.', audio: 'BT AirPods/Mic / Media Mod.', bitrate: 120, photoRes: '27 MP RAW', batteryMin: 100 },
+                'hero12': { name: 'GoPro HERO 12 Black', shortName: 'HERO 12 Black', maxRes: '5.3K @ 60fps (8:7)', logProfile: '10-bit GP-Log / HDR', waterproof: 10, mount: 'Linguette Pieghevoli', audio: 'Dual BT Audio / Media Mod.', bitrate: 120, photoRes: '27 MP RAW', batteryMin: 95 },
+                'hero11': { name: 'GoPro HERO 11 Black', shortName: 'HERO 11 Black', maxRes: '5.3K @ 60fps (8:7)', logProfile: '10-bit Flat', waterproof: 10, mount: 'Linguette Pieghevoli', audio: 'Media Mod o Mic 3.5mm.', bitrate: 120, photoRes: '27 MP RAW', batteryMin: 90 },
+                'hero10_9': { name: 'GoPro HERO 10 / 9 Black', shortName: 'HERO 10 / 9', maxRes: '5.3K @ 60fps', logProfile: '8-bit Flat', waterproof: 10, mount: 'Linguette Pieghevoli', audio: 'Media Mod o Mic 3.5mm.', bitrate: 100, photoRes: '23 MP RAW', batteryMin: 75 }
             },
             insta360: {
-                'acepro2': { name: 'Insta360 Ace Pro 2', shortName: 'Ace Pro 2', maxRes: '8K @ 30fps (Leica 1/1.3")', logProfile: '10-bit I-Log', waterproof: 12, mount: 'Sgancio Mag. Dual-Latch', audio: 'BT Mic / Cardo / Sena.', bitrate: 120, photoRes: '48 MP RAW' },
-                'x4': { name: 'Insta360 X4 (360°)', shortName: 'X4 360°', maxRes: '8K @ 30fps 360°', logProfile: '10-bit I-Log / Flat 360°', waterproof: 10, mount: 'Filetto Standard 1/4"', audio: 'Vento 360° + Adattatore Mic.', bitrate: 130, photoRes: '72 MP RAW' },
-                'goultra': { name: 'Insta360 GO Ultra', shortName: 'GO Ultra', maxRes: '4K @ 60fps', logProfile: '10-bit Flat', waterproof: 10, mount: 'Action Mount Mag.', audio: 'Mic stereo anti-vento.', bitrate: 100, photoRes: '12 MP RAW' }
+                'acepro2': { name: 'Insta360 Ace Pro 2', shortName: 'Ace Pro 2', maxRes: '8K @ 30fps (Leica 1/1.3")', logProfile: '10-bit I-Log', waterproof: 12, mount: 'Sgancio Mag. Dual-Latch', audio: 'BT Mic / Cardo / Sena.', bitrate: 120, photoRes: '48 MP RAW', batteryMin: 120 },
+                'x4': { name: 'Insta360 X4 (360°)', shortName: 'X4 360°', maxRes: '8K @ 30fps 360°', logProfile: '10-bit I-Log / Flat 360°', waterproof: 10, mount: 'Filetto Standard 1/4"', audio: 'Vento 360° + Adattatore Mic.', bitrate: 130, photoRes: '72 MP RAW', batteryMin: 100 },
+                'goultra': { name: 'Insta360 GO Ultra', shortName: 'GO Ultra', maxRes: '4K @ 60fps', logProfile: '10-bit Flat', waterproof: 10, mount: 'Action Mount Mag.', audio: 'Mic stereo anti-vento.', bitrate: 100, photoRes: '12 MP RAW', batteryMin: 70 }
             }
         };
 
@@ -794,10 +859,12 @@
             eco: { factor: 0.50, label: 'Endurance' }
         };
 
-        const BATTERY_ESTIMATES = {
-            '-10': { time: '~70 Minuti', color: '#ef4444', note: '⚠️ Freddo intenso: tensione batteria cala. Conservale al caldo.' },
-            '20': { time: '~115 Minuti', color: 'var(--green)', note: '✅ Condizioni ottimali di registrazione continua.' },
-            '35': { time: '~90 Minuti', color: 'var(--amber)', note: '☀️ Caldo estivo: in 4K/60fps la cam può surriscaldarsi.' }
+        // L'autonomia parte dal dato del modello e viene scalata dalla
+        // temperatura, invece di essere un numero fisso uguale per tutte le cam.
+        const BATTERY_TEMPS = {
+            '-10': { factor: 0.61, color: '#ef4444', note: '⚠️ Freddo intenso: tensione batteria cala. Conservale al caldo.' },
+            '20': { factor: 1, color: 'var(--green)', note: '✅ Condizioni ottimali di registrazione continua.' },
+            '35': { factor: 0.78, color: 'var(--amber)', note: '☀️ Caldo estivo: in 4K/60fps la cam può surriscaldarsi.' }
         };
 
         /* ==================================================================
@@ -822,6 +889,39 @@
             try { localStorage.setItem(key, value); return true; } catch (e) { return false; }
         }
 
+        let toastTimer = null;
+        function showToast(message) {
+            const el = $('toast');
+            if (!el) return;
+            el.innerText = message;
+            el.classList.add('visible');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => el.classList.remove('visible'), 2600);
+        }
+
+        // navigator.clipboard non esiste ovunque (e richiede un contesto sicuro):
+        // in mancanza si ricade sulla textarea temporanea.
+        async function copyToClipboard(text) {
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(text);
+                    return true;
+                }
+            } catch (e) { /* si prova il fallback */ }
+            try {
+                const area = document.createElement('textarea');
+                area.value = text;
+                area.setAttribute('readonly', '');
+                area.style.position = 'fixed';
+                area.style.opacity = '0';
+                document.body.appendChild(area);
+                area.select();
+                const ok = document.execCommand('copy');
+                document.body.removeChild(area);
+                return ok;
+            } catch (e) { return false; }
+        }
+
         function shutterFor(fps) { return `1/${fps * 2} s`; }
 
         function ndFor(fps, light) {
@@ -836,11 +936,474 @@
 
         function activeBrandConfig() { return BRAND_CONFIG[currentBrand] || BRAND_CONFIG.dji; }
 
-        // Marca come .active il solo bottone il cui onclick contiene il valore dato.
-        function syncRadioGroup(selector, value) {
-            document.querySelectorAll(selector).forEach(btn => {
-                btn.classList.toggle('active', (btn.getAttribute('onclick') || '').includes(`'${value}'`));
+        // Marca come .active (e aria-pressed) il solo bottone del gruppo il cui
+        // data-value corrisponde allo stato corrente.
+        function syncRadioGroup(action, value, scope) {
+            document.querySelectorAll(`${scope || ''} [data-action="${action}"]`).forEach(btn => {
+                const on = btn.dataset.value === String(value);
+                btn.classList.toggle('active', on);
+                btn.setAttribute('aria-pressed', on ? 'true' : 'false');
             });
+        }
+
+        /* ==================================================================
+           0. LINGUE
+           La chiave di traduzione è il testo italiano stesso: l'italiano resta
+           la sorgente nel markup e nel codice, e serve un solo dizionario.
+           Se manca una voce si ricade sull'italiano invece di mostrare una
+           chiave grezza.
+           ================================================================== */
+
+        const EN = {
+            // --- Intestazioni e navigazione ---
+            'Setup Wizard': 'Setup Wizard',
+            'Rigging & Calc': 'Rigging & Calc',
+            'Editing & Vis': 'Editing & Preview',
+            'Cheat Sheets': 'Cheat Sheets',
+            "Sezioni dell'app": 'App sections',
+            '📸 Setup Camera': '📸 Camera Setup',
+            'Modello Specifico': 'Specific Model',
+            '🎬 Azione & Scenari': '🎬 Action & Scenarios',
+            '🎥 Video': '🎥 Video',
+            '📸 Foto': '📸 Photo',
+            '⏱️ T-Lapse': '⏱️ T-Lapse',
+            'Seleziona Situazioni': 'Select Situations',
+            '✨ Multi-Selezione': '✨ Multi-Select',
+            '🌍 Ambiente': '🌍 Environment',
+            'Luce Ambientale': 'Ambient Light',
+            'Location (Emerso/Sub)': 'Location (Surface/Underwater)',
+            '⚙️ Specifiche Tecniche': '⚙️ Technical Specs',
+            'Profilo Energetico / Bitrate': 'Power Profile / Bitrate',
+            'Frequenza di Rete (Antiflicker)': 'Mains Frequency (Anti-flicker)',
+
+            // --- Scenari e opzioni ---
+            '📱 Reel / IG 9:16': '📱 Reels / IG 9:16',
+            '🚴 Bici / Sport': '🚴 Cycling / Sport',
+            '✈️ Viaggi / Family': '✈️ Travel / Family',
+            '🏠 Indoor / Casa': '🏠 Indoor / Home',
+            '🚗 POV Auto': '🚗 Car POV',
+            '🌙 Notturno': '🌙 Night',
+            '⚡ Slow-Motion': '⚡ Slow Motion',
+            '💻 Gyroflow PC': '💻 Gyroflow PC',
+            '☀️ Sole': '☀️ Sun',
+            '☁️ Ombra': '☁️ Shade',
+            '🌆 Scarsa': '🌆 Low',
+            '🏞️ Sopra la superficie': '🏞️ Above water',
+            "🏓 Sott'Acqua": '🏓 Underwater',
+            '🔥 Max Qual': '🔥 Max Qual',
+            '⚖️ Standard': '⚖️ Standard',
+            '🔋 Endurance': '🔋 Endurance',
+            '🇮🇹 PAL (50Hz)': '🇪🇺 PAL (50Hz)',
+            '🇺🇸 NTSC (60Hz)': '🇺🇸 NTSC (60Hz)',
+
+            // --- Preset ---
+            '💾 Preset Veloci': '💾 Quick Presets',
+            'Nome del preset da salvare': 'Name of the preset to save',
+            'Salva setup (es. Corsa Luce)...': 'Save setup (e.g. Daylight Ride)...',
+            'Salva': 'Save',
+            '⬇️ Esporta preset': '⬇️ Export presets',
+            '⬆️ Importa preset': '⬆️ Import presets',
+            '🔄 Setup Universale: Triathlon / Transizioni': '🔄 Universal Setup: Triathlon / Transitions',
+            'Nessun preset salvato in locale.': 'No presets saved locally.',
+            'Preset "{name}" salvato': 'Preset "{name}" saved',
+            'Elimina preset {name}': 'Delete preset {name}',
+            'Nessun preset da esportare': 'No presets to export',
+            '{count} preset esportati': '{count} presets exported',
+            '{count} preset importati': '{count} presets imported',
+            'File non valido': 'Invalid file',
+
+            // --- Condivisione ---
+            '📋 Copia impostazioni': '📋 Copy settings',
+            '🔗 Copia link setup': '🔗 Copy setup link',
+            'Link del setup copiato': 'Setup link copied',
+            'Impostazioni copiate': 'Settings copied',
+            'Copia non riuscita': 'Copy failed',
+            'Modalità: {mode} | Scenari: {scenarios}': 'Mode: {mode} | Scenarios: {scenarios}',
+
+            // --- Matrice risultati: etichette ---
+            '🎥 Ottica & Formato Video': '🎥 Optics & Video Format',
+            '📐 Risoluzione & Aspect': '📐 Resolution & Aspect',
+            '🎬 Framerate / Scatto': '🎬 Framerate / Shooting',
+            '⏱️ Shutter Speed': '⏱️ Shutter Speed',
+            '🕶️ Filtro ND': '🕶️ ND Filter',
+            '👁️ FOV / Lente': '👁️ FOV / Lens',
+            '🖥️ Elaborazione Sensore & Colore': '🖥️ Sensor & Colour Processing',
+            '± Esposizione (EV Comp)': '± Exposure (EV Comp)',
+            '🎨 Profilo Colore': '🎨 Colour Profile',
+            '🔲 Stabilizzazione Elettronica': '🔲 Electronic Stabilisation',
+            '🎛️ Nitidezza / Noise Red.': '🎛️ Sharpness / Noise Red.',
+            '🎚️ Range ISO': '🎚️ ISO Range',
+            '🌡️ Bilanciamento Bianco (WB)': '🌡️ White Balance (WB)',
+            '🔌 Hardware & Dati': '🔌 Hardware & Data',
+            '🎙️ Profilo Audio': '🎙️ Audio Profile',
+            '🛰️ Telemetria (GPS)': '🛰️ Telemetry (GPS)',
+            'Bitrate Output': 'Output Bitrate',
+            'Consumo Memoria': 'Storage Use',
+            '🎛️ Motore Risoluzione Conflitti': '🎛️ Conflict Resolution Engine',
+
+            // --- Tooltip ---
+            'Regola la fluidità del movimento (Motion Blur). Nel video cinematico è 1/(FPSx2).':
+                'Controls how smooth motion looks (motion blur). Cinematic video uses 1/(FPS×2).',
+            'Filtri scuri obbligatori di giorno per non "bruciare" l\'immagine mantenendo lo shutter basso.':
+                'Dark filters, essential in daylight to keep a slow shutter without blowing out the image.',
+            "L'ampiezza dell'inquadratura. Lineare per i volti, Ampio per l'azione.":
+                'How wide the frame is. Linear for faces, Wide for action.',
+            'Log cattura più gamma dinamica, ma va elaborato ("Graded") al PC/App.':
+                'Log captures more dynamic range, but has to be graded afterwards on a PC or app.',
+            'Sensibilità. Se troppo alto genera sgranatura e rumore digitale al buio.':
+                'Sensitivity. Too high and you get grain and digital noise in the dark.',
+
+            // --- Titoli dei risultati ---
+            'Matrice {model}': '{model} Matrix',
+            '📸 Setup Foto {model}': '📸 {model} Photo Setup',
+            '⏱️ Setup Timelapse {model}': '⏱️ {model} Timelapse Setup',
+            '📱 Reel': '📱 Reels',
+            '🚴 Sport': '🚴 Sport',
+            '✈️ Viaggi': '✈️ Travel',
+            '🏠 Indoor': '🏠 Indoor',
+            '🚗 Auto': '🚗 Car',
+            '⚡ SlowMo': '⚡ SlowMo',
+            '💻 Gyroflow': '💻 Gyroflow',
+
+            // --- Brand ---
+            'DJI Selected': 'DJI Selected',
+            'GoPro Selected': 'GoPro Selected',
+            'Insta360 Selected': 'Insta360 Selected',
+
+            // --- Valori calcolati ---
+            '4K Verticale (9:16)': '4K Vertical (9:16)',
+            '5.3K / 4K Verticale (8:7)': '5.3K / 4K Vertical (8:7)',
+            '4K Nativo (4:3 o 8:7)': '4K Native (4:3 or 8:7)',
+            '❌ NO ND (Sottoesposizione)': '❌ NO ND (Underexposure)',
+            '❌ RIMUOVERE ND': '❌ REMOVE ND',
+            'Nessuno o ND8': 'None or ND8',
+            'ND16 / Nessuno': 'ND16 / None',
+            'Nessuno': 'None',
+            'AUTO (o 1/{shutter}s in sup.)': 'AUTO (or 1/{shutter}s at the surface)',
+            '1/{shutter}s (Scuro!)': '1/{shutter}s (Dark!)',
+            'AUTO (Max {max})': 'AUTO (Max {max})',
+            'AUTO (EV Regolato)': 'AUTO (EV adjusted)',
+            'Normal / Natural': 'Normal / Natural',
+            'Normal / Natural (Non Log)': 'Normal / Natural (not Log)',
+            'Max Qualità: {profile}': 'Max Quality: {profile}',
+            'Std Qualità: {profile}': 'Std Quality: {profile}',
+            'Endurance: {profile} (Rec.709)': 'Endurance: {profile} (Rec.709)',
+            'Wide (Grezzo senza Dewarp)': 'Wide (raw, no dewarp)',
+            '{fov} (Ampio)': '{fov} (Wide)',
+            '{fov} (Linee dritte)': '{fov} (Straight lines)',
+            'Standard (Dewarp)': 'Standard (Dewarp)',
+            'Linear (o Horizon Lock)': 'Linear (or Horizon Lock)',
+            'Dewarp (o MegaView)': 'Dewarp (or MegaView)',
+            'OFF (Disattivata per Gyroflow)': 'OFF (disabled for Gyroflow)',
+            'OFF (Per Gyroflow)': 'OFF (for Gyroflow)',
+            'Min ISO 100 / Max 1600': 'Min ISO 100 / Max 1600',
+            'Min ISO 100 / Max 800': 'Min ISO 100 / Max 800',
+            'Manuale 6500K - 7500K': 'Manual 6500K - 7500K',
+            'Manuale 3800K - 4200K': 'Manual 3800K - 4200K',
+            'Manuale 5500K': 'Manual 5500K',
+            'Auto WB': 'Auto WB',
+            '0.0 (Matrix Metering)': '0.0 (Matrix metering)',
+            '-0.3 (Protegge le alte luci)': '-0.3 (Protects highlights)',
+            '-0.5 (Evita rumore)': '-0.5 (Avoids noise)',
+            '+0.3 (Schiarisci ombre)': '+0.3 (Lifts shadows)',
+            "+0.5 (Compensa l'assorbimento)": '+0.5 (Compensates absorption)',
+            'OFF (Risparmio Batteria)': 'OFF (Battery saving)',
+            'OFF FORZATO (Risparmio energetico)': 'FORCED OFF (Power saving)',
+            'ON (Raccogli dati Vel/Tracciato)': 'ON (Records speed and track)',
+            'Stereo (Massima fedeltà)': 'Stereo (Maximum fidelity)',
+            '🔇 Mute (Disattivato)': '🔇 Mute (Disabled)',
+            'Riduzione Vento / Low-Cut': 'Wind reduction / Low-cut',
+            'Focus Vocale / Direzionale': 'Voice focus / Directional',
+            '2.7K (Eco)': '2.7K (Eco)',
+            '4K (Eco)': '4K (Eco)',
+
+            // --- Rigging ---
+            '<b>🏓 Ripresa Subacquea:</b> Impermeabile fino a <b>{depth} metri</b> senza custodia. Attiva il blocco touchscreen.':
+                '<b>🏓 Underwater:</b> Waterproof to <b>{depth} m</b> without a housing. Turn on the touchscreen lock.',
+            '<b>🚴 Corsa / Bici:</b> Supporto a pettorina o out-front mount. Fissa saldamente.':
+                '<b>🚴 Running / Cycling:</b> Chest harness or out-front mount. Fasten it firmly.',
+            '<b>🚗 POV Auto:</b> Ventosa con braccio snodato sul parabrezza.':
+                '<b>🚗 Car POV:</b> Suction cup with an articulated arm on the windscreen.',
+            '<b>📱 Reel / Vlog:</b> Montaggio verticale (9:16) su treppiede o asta.':
+                '<b>📱 Reels / Vlog:</b> Vertical mount (9:16) on a tripod or pole.',
+            '<b>✈️ Viaggi:</b> Impugnatura estensibile o treppiede compatto.':
+                '<b>✈️ Travel:</b> Extendable grip or compact tripod.',
+            '<b>📸 Scatto Sport:</b> Attacco frontale rigido su manubrio o pettorina. Più il supporto è rigido, meno vibrazioni e micro-mosso.':
+                '<b>📸 Sport stills:</b> Rigid front mount on the handlebar or chest. The stiffer the mount, the less vibration and micro-blur.',
+            '<b>📸 Subacqueo:</b> Usa il timer a 3s per evitare micro-movimenti al tocco.':
+                '<b>📸 Underwater:</b> Use the 3s timer to avoid shake from your finger.',
+            '<b>📸 Setup Fotografico:</b> Mini-treppiede o mano libera. Attiva comando vocale.':
+                '<b>📸 Photo setup:</b> Mini tripod or handheld. Turn on voice control.',
+            '<b>🚶 Hyperlapse:</b> Cam salda al petto o su grip. Punta dritto. Ottimo per transizioni.':
+                '<b>🚶 Hyperlapse:</b> Camera firm on your chest or a grip. Aim straight ahead. Great for transitions.',
+            '<b>🌃 Night Lapse:</b> Treppiede solido. Spegni la stabilizzazione per evitare scatti sgradevoli al buio.':
+                '<b>🌃 Night lapse:</b> Solid tripod. Turn stabilisation off to avoid ugly jumps in the dark.',
+            '<b>⏱️ Timelapse:</b> Treppiede. L\'ND con shutter lento "spalma" le nuvole creando un effetto cinematico.':
+                '<b>⏱️ Timelapse:</b> Tripod. An ND with a slow shutter smears the clouds into a cinematic trail.',
+
+            // --- Foto e timelapse ---
+            'Scatto Intervalli (1s/2s) o Burst': 'Interval shooting (1s/2s) or burst',
+            'Lunga Esposizione / Night Mode': 'Long exposure / Night mode',
+            'Scatto Singolo / Timer 3s': 'Single shot / 3s timer',
+            '1/1000s o 1/2000s (Congela azione)': '1/1000s or 1/2000s (Freezes the action)',
+            '❌ Nessuno (Max luce)': '❌ None (Maximum light)',
+            'Esposizione Lunga (2s-10s su treppiede)': 'Long exposure (2s-10s on a tripod)',
+            '❌ Nessuno': '❌ None',
+            'Nessuno o ND8 ': 'None or ND8 ',
+            'Formato RAW (.DNG)': 'RAW format (.DNG)',
+            'Wide / Linear': 'Wide / Linear',
+            'OIS / IBIS Attivo': 'OIS / IBIS enabled',
+            'Nitidezza: Bassa': 'Sharpness: Low',
+            'ISO 100 fisso (Su treppiede)': 'ISO 100 fixed (on a tripod)',
+            'ISO Auto (Max 400)': 'Auto ISO (Max 400)',
+            '~30 MB a scatto': '~30 MB per shot',
+            '~1500 foto su 64GB': '~1500 photos on 64GB',
+            'Hyperlapse / TimeWarp (Int. Auto/0.5s)': 'Hyperlapse / TimeWarp (Interval auto/0.5s)',
+            'AUTO (O 1/100s per ridurre blur)': 'AUTO (or 1/100s to cut blur)',
+            'Nessuno (o ND8 in pieno sole)': 'None (or ND8 in full sun)',
+            'Max / Boost (Fondamentale in moto)': 'Max / Boost (essential while moving)',
+            'Night Lapse (Int. 5s-10s)': 'Night lapse (interval 5s-10s)',
+            'Esposizione fissa (2s-5s)': 'Fixed exposure (2s-5s)',
+            'OFF (Treppiede Obbligatorio)': 'OFF (tripod required)',
+            'Timelapse Statico (Int. 1s-2s)': 'Static timelapse (interval 1s-2s)',
+            '1/2s o 1s (Con ND per Blur)': '1/2s or 1s (with ND for blur)',
+            'ND64 / ND128 (Per scie fluide)': 'ND64 / ND128 (for smooth trails)',
+            'Video MP4 (o Foto RAW)': 'MP4 video (or RAW stills)',
+            'Wide / Standard': 'Wide / Standard',
+            'Sharpness: Low | Colore: Standard': 'Sharpness: Low | Colour: Standard',
+            'ISO Min 100 / Max 800': 'ISO Min 100 / Max 800',
+            'ISO 100 fisso': 'ISO 100 fixed',
+            'Variabile (Basso consumo)': 'Variable (low usage)',
+            '~1 GB / Ora di ripresa reale': '~1 GB per hour of real recording',
+            '{res} (Max Res)': '{res} (Max res)',
+
+            // --- Conflitti ---
+            '⚡ Framerate: Scarsa Luce vs Sport': '⚡ Framerate: Low light vs Sport',
+            '💡 Luce ({fps} fps)': '💡 Light ({fps} fps)',
+            '🚴 Azione ({fps} fps)': '🚴 Action ({fps} fps)',
+            '🎨 Profilo Colore: Reel vs Notturno': '🎨 Colour profile: Reels vs Night',
+            '🌙 Standard': '🌙 Standard',
+            '📐 FOV: Linee Diritte vs Ampio': '📐 FOV: Straight lines vs Wide',
+            '📱 Linear': '📱 Linear',
+            '🚴 Wide': '🚴 Wide',
+            '🔲 Stabilizzazione Sportiva': '🔲 Sport stabilisation',
+            '🏃 Max / Boost': '🏃 Max / Boost',
+            '⚖️ Horizon': '⚖️ Horizon',
+            '✅ <b>Nessun conflitto rilevato!</b> Setup perfetto.': '✅ <b>No conflicts found.</b> The setup is consistent.',
+            '✅ <b>Modalità Fotografia.</b> Concentrati su composizione ed esposizione.':
+                '✅ <b>Photo mode.</b> Focus on composition and exposure.',
+            '✅ <b>Modalità Timelapse.</b> Attenzione alla batteria: disattiva lo schermo (Screen OFF).':
+                '✅ <b>Timelapse mode.</b> Mind the battery: turn the screen off.',
+            '⚠️ <b>Allarme MicroSD:</b> Flusso dati molto elevato (~{mbps} Mbps). Utilizza scheda certificata <b>V30 (U3)</b>.':
+                '⚠️ <b>MicroSD warning:</b> Very high data rate (~{mbps} Mbps). Use a <b>V30 (U3)</b> rated card.',
+
+            // --- Calcolatori ---
+            'Calcolatore Otturatore (180° Rule)': 'Shutter Calculator (180° rule)',
+            '1. FPS Target del Progetto': '1. Target project FPS',
+            'Shutter Perfetto': 'Ideal Shutter',
+            'In sole diretto (EV15): {nd}': 'In direct sun (EV15): {nd}',
+            'Calcolatore Autonomia (Stress Test)': 'Battery Calculator (stress test)',
+            '2. Temperatura Esterna': '2. Outside temperature',
+            '❄️ Freddo (-10°)': '❄️ Cold (-10°)',
+            '🌤️ Mite (20°)': '🌤️ Mild (20°)',
+            '🔥 Caldo (35°)': '🔥 Hot (35°)',
+            'Autonomia Continua (1080p/30)': 'Continuous recording (1080p/30)',
+            '~{minutes} Minuti': '~{minutes} minutes',
+            '{note} (stima per {model})': '{note} (estimate for {model})',
+            '⚠️ Freddo intenso: tensione batteria cala. Conservale al caldo.':
+                '⚠️ Hard cold: battery voltage drops. Keep spares warm.',
+            '✅ Condizioni ottimali di registrazione continua.': '✅ Ideal conditions for continuous recording.',
+            '☀️ Caldo estivo: in 4K/60fps la cam può surriscaldarsi.':
+                '☀️ Summer heat: the camera may overheat at 4K/60fps.',
+
+            // --- Rigging e audio ---
+            '🔧 Setup Fisico & Rigging (Dinamico)': '🔧 Physical Setup & Rigging (dynamic)',
+            'Mount & Supporti Consigliati': 'Recommended Mounts & Supports',
+            '🎙️ Audio Gain Staging (Esterno)': '🎙️ Audio Gain Staging (external)',
+            'Regolazione Trasmettitore (DJI Mic / Rode)': 'Transmitter settings (DJI Mic / Rode)',
+            '<b>Parlato / Vlog Calmo:</b> Ricevitore/Camera Gain a <b>0 dB</b>, Trasmettitore TX a <b>-2 dB</b>.':
+                '<b>Speech / calm vlog:</b> Receiver/camera gain at <b>0 dB</b>, TX transmitter at <b>-2 dB</b>.',
+            '<b>Sport / Azione (Urla/Affanno):</b> Trasmettitore TX a <b>-6 dB</b> per evitare il *clipping* distorsivo.':
+                '<b>Sport / action (shouting, hard breathing):</b> TX transmitter at <b>-6 dB</b> to avoid clipping.',
+            '<b>Low-Cut Filter (HPF):</b> Attiva il filtro <b>150 Hz</b> (taglio basso) nelle impostazioni TX durante le riprese veloci per tagliare il rimbombo del vento sul microfono.':
+                '<b>Low-cut filter (HPF):</b> Enable the <b>150 Hz</b> high-pass filter in the TX settings during fast riding, to cut wind rumble on the mic.',
+
+            // --- Editing ---
+            'Assistente Editing In-App': 'In-App Editing Assistant',
+            'Assistente Editing App ({app})': 'Editing Assistant ({app})',
+            'Seleziona Obiettivi Editing': 'Select Editing Goals',
+            '🎨 Grading Log/Flat': '🎨 Log/Flat grading',
+            '📱 Reel In-App 9:16': '📱 In-app Reels 9:16',
+            '⚡ Speed Ramp': '⚡ Speed ramp',
+            '🎙️ Audio & Vento': '🎙️ Audio & Wind',
+            '🏓 Colore Subacqueo': '🏓 Underwater colour',
+            '🎨 Grading {profile}': '🎨 {profile} grading',
+            '⚡ Speed Ramp Sport': '⚡ Sport speed ramp',
+            'Workflow Integrato Misto': 'Combined workflow',
+            'Workflow di Editing Combinato': 'Combined Editing Workflow',
+            'Passaggi Operativi': 'Operational Steps',
+            'Regolazioni & Rifinitura Fine': 'Adjustments & Fine Tuning',
+            'Impostazioni Esportazione': 'Export Settings',
+            '🎨 Simulatore Sensore': '🎨 Sensor Simulator',
+            "Trascina sull'immagine ↔": 'Drag across the image ↔',
+            'Confronto fra immagine piatta e immagine gradata': 'Comparison between flat and graded image',
+            '◀ Ottica / Sensore': '◀ Optics / Sensor',
+            'Elaborazione Finale ▶': 'Final Processing ▶',
+            '<li><b>Color Grading:</b> Importa in <b>{app}</b> e applica il LUT / Preset <b>{profile}</b>.</li>':
+                '<li><b>Colour grading:</b> Import into <b>{app}</b> and apply the <b>{profile}</b> LUT or preset.</li>',
+            '<li><b>Montaggio 9:16:</b> Collega {model} via Wi-Fi a <b>{app}</b>, usa Smart Edit.</li>':
+                '<li><b>9:16 edit:</b> Connect the {model} over Wi-Fi to <b>{app}</b> and use Smart Edit.</li>',
+            '<li><b>Speed Ramping:</b> Seleziona i clip ad alti framerate, tocca <i>Velocità</i> e attiva la Curva.</li>':
+                '<li><b>Speed ramping:</b> Select the high-framerate clips, tap <i>Speed</i> and enable the curve.</li>',
+            '<li><b>Trattamento Audio:</b> Usa i microfoni integrati. Attiva soppressione vento.</li>':
+                '<li><b>Audio treatment:</b> Use the built-in mics. Enable wind suppression.</li>',
+            '<li><b>Colore Sub:</b> In <b>{app}</b> attiva il ripristino colore acqua.</li>':
+                '<li><b>Underwater colour:</b> In <b>{app}</b> enable underwater colour restore.</li>',
+            "<li><b>Rifinitura:</b> Contrasto <b>+5</b>, Saturazione <b>+5</b> preservando l'incarnato.</li>":
+                '<li><b>Fine tuning:</b> Contrast <b>+5</b>, saturation <b>+5</b>, keeping skin tones natural.</li>',
+            '<li><b>Inquadratura:</b> Volti nel terzo superiore, transizioni a <b>0.3s</b>.</li>':
+                '<li><b>Framing:</b> Faces in the upper third, transitions at <b>0.3s</b>.</li>',
+            "<li><b>Climax:</b> 1.5x avvicinamento, <b>0.25x (25% Slow-Mo)</b> nell'azione.</li>":
+                '<li><b>Climax:</b> 1.5x on the approach, <b>0.25x (25% slow motion)</b> at the peak.</li>',
+            '<li><b>Mixaggio:</b> Musica al <b>15%</b>, parlato al <b>115%</b> (Ducking attivo).</li>':
+                '<li><b>Mixing:</b> Music at <b>15%</b>, speech at <b>115%</b> (ducking on).</li>',
+            '<li><b>Bilanciamento:</b> Tinta Magenta (<b>+10</b>), Temp verso caldi (<b>6500K+</b>).</li>':
+                '<li><b>Balance:</b> Magenta tint (<b>+10</b>), temperature towards warm (<b>6500K+</b>).</li>',
+            '<li><b>Social:</b> 1080 x 1920 (9:16) a <b>25 / 30 FPS</b>.</li>':
+                '<li><b>Social:</b> 1080 x 1920 (9:16) at <b>25 / 30 FPS</b>.</li>',
+            '<li><b>Azione:</b> Esporta a <b>50 / 60 FPS</b> per preservare la nitidezza.</li>':
+                '<li><b>Action:</b> Export at <b>50 / 60 FPS</b> to keep the sharpness.</li>',
+            '<li><b>Master:</b> 1080p o 4K stesso framerate di ripresa.</li>':
+                '<li><b>Master:</b> 1080p or 4K at the same framerate you shot.</li>',
+            '<li><b>Audio Output:</b> Stereo AAC 48kHz, normalizzazione a <b>-1 dB</b>.</li>':
+                '<li><b>Audio output:</b> Stereo AAC 48kHz, normalised to <b>-1 dB</b>.</li>',
+
+            // --- Simulatore ---
+            '10-BIT LOG': '10-BIT LOG',
+            'REC.709 LUT': 'REC.709 LUT',
+            'RAW SENSOR': 'RAW SENSOR',
+            'NIGHT PROCESS': 'NIGHT PROCESS',
+            'DIVE PROFILE': 'DIVE PROFILE',
+            'AQUA RESTORE': 'AQUA RESTORE',
+            'STANDARD PROFILE': 'STANDARD PROFILE',
+            'IN-APP ENHANCE': 'IN-APP ENHANCE',
+
+            // --- Telemetria ---
+            '🛰️ Integrazione Telemetria (Dati GPS)': '🛰️ Telemetry Integration (GPS data)',
+            "<b>Esportazione File:</b> Estrai il file dell'attività (formato <b>.FIT</b> o <b>.GPX</b>) dal ciclocomputer.":
+                '<b>File export:</b> Pull the activity file (<b>.FIT</b> or <b>.GPX</b>) off your bike computer.',
+            '<b>Sincronizzazione Video:</b> Importa il video e il file dati in software come <b>Telemetry Overlay</b>.':
+                '<b>Video sync:</b> Import the video and the data file into software such as <b>Telemetry Overlay</b>.',
+            '<b>Metrica Suggerita (Sport):</b> Sovrapponi sul video i <b>Watt (Potenza)</b>, <b>Cadenza</b>, <b>BPM</b>. Regola lo slider di sincro in modo che il picco visivo di accelerazione combaci col picco dei Watt.':
+                '<b>Suggested metrics (sport):</b> Overlay <b>watts (power)</b>, <b>cadence</b> and <b>BPM</b> on the video. Move the sync slider until the visible burst of acceleration lines up with the power peak.',
+
+            // --- Cheat sheets ---
+            'Schede di Consultazione Rapida (Cheat Sheets)': 'Quick Reference (cheat sheets)',
+            '📱 Reel Instagram': '📱 Instagram Reels',
+            '🚴 Bici & Action': '🚴 Cycling & Action',
+            '⚡ Slow-Mo (B-Roll)': '⚡ Slow motion (B-roll)',
+            '⏱️ Timelapse (Statico)': '⏱️ Timelapse (static)',
+            '🚶 Hyperlapse (In moto)': '🚶 Hyperlapse (moving)',
+            '🌙 Notturno / Low-Light': '🌙 Night / Low light',
+            '<b>Setting:</b> 25/30 FPS | Shutter 1/50s | Log | Dewarp<br><b>Note:</b> Filtro ND32/64 di giorno. Nitidezza -1. Ideale per clip cinematiche verticali.':
+                '<b>Setting:</b> 25/30 FPS | Shutter 1/50s | Log | Dewarp<br><b>Note:</b> ND32/64 filter in daylight. Sharpness -1. Ideal for cinematic vertical clips.',
+            '<b>Setting:</b> 50/60 FPS | Shutter 1/100s | Wide / SuperView<br><b>Note:</b> Il framerate alto e shutter rapido riducono il motion blur stabilizzando le micro-vibrazioni.':
+                '<b>Setting:</b> 50/60 FPS | Shutter 1/100s | Wide / SuperView<br><b>Note:</b> The high framerate and fast shutter cut motion blur and settle micro-vibrations.',
+            '<b>Setting:</b> 100/120 FPS | Shutter 1/200s | Log | Standard<br><b>Note:</b> Da rallentare al 25% (25fps) in post. Richiede MOLTA luce, rimuovi sempre i filtri ND.':
+                '<b>Setting:</b> 100/120 FPS | Shutter 1/200s | Log | Standard<br><b>Note:</b> Slow to 25% (25fps) in post. Needs a LOT of light — always remove ND filters.',
+            '<b>Setting:</b> Int. 2s | Shutter 1s | ND64/128 | Stab: OFF<br><b>Note:</b> Montaggio su treppiede. L\'uso con shutter lungo "spalma" le nuvole creando le scie.':
+                '<b>Setting:</b> Interval 2s | Shutter 1s | ND64/128 | Stab: OFF<br><b>Note:</b> Tripod mounted. A long shutter smears the clouds into trails.',
+            '<b>Setting:</b> Int. Auto o 0.5s | Shutter Auto | Stab: Boost<br><b>Note:</b> Tieni la cam al petto o su grip. Punta sempre dritto. Ottimo per transizioni rapide.':
+                '<b>Setting:</b> Interval auto or 0.5s | Shutter auto | Stab: Boost<br><b>Note:</b> Keep the camera on your chest or a grip. Always aim straight. Great for fast transitions.',
+            '<b>Setting:</b> 25/30 FPS | Shutter AUTO | ISO Max 1600<br><b>Note:</b> NO filtri ND. Disattiva la stabilizzazione estrema (che crea jitter/sfarfallii al buio).':
+                '<b>Setting:</b> 25/30 FPS | Shutter AUTO | ISO Max 1600<br><b>Note:</b> NO ND filters. Turn off extreme stabilisation, which causes jitter and flicker in the dark.',
+
+            // --- Riepilogo copiabile ---
+            'Risoluzione': 'Resolution',
+            'Framerate': 'Framerate',
+            'Shutter': 'Shutter',
+            'Filtro ND': 'ND filter',
+            'FOV': 'FOV',
+            'Esposizione': 'Exposure',
+            'Profilo colore': 'Colour profile',
+            'Stabilizzazione': 'Stabilisation',
+            'Nitidezza': 'Sharpness',
+            'ISO': 'ISO',
+            'Bilanciamento bianco': 'White balance',
+            'Audio': 'Audio',
+            'GPS': 'GPS'
+        };
+
+        const SUPPORTED_LANGS = ['it', 'en'];
+        let currentLang = 'it';
+
+        // Italiano per chi naviga in italiano, inglese per tutti gli altri:
+        // l'app è pensata anche per un pubblico fuori dall'Italia.
+        function detectLanguage() {
+            const stored = storageGet(STORAGE_KEYS.lang);
+            if (SUPPORTED_LANGS.includes(stored)) return stored;
+            const fromHash = new URLSearchParams(location.hash.replace(/^#/, '')).get('lang');
+            if (SUPPORTED_LANGS.includes(fromHash)) return fromHash;
+            const nav = (navigator.language || 'en').toLowerCase();
+            return nav.startsWith('it') ? 'it' : 'en';
+        }
+
+        function interpolate(text, vars) {
+            if (!vars) return text;
+            return text.replace(/\{(\w+)\}/g, (m, name) => (name in vars ? vars[name] : m));
+        }
+
+        // La chiave è il testo italiano: se il dizionario non ha la voce,
+        // l'utente vede l'italiano, mai un identificatore.
+        function t(key, vars) {
+            if (currentLang === 'it') return interpolate(key, vars);
+            const dict = EN;
+            return interpolate(Object.prototype.hasOwnProperty.call(dict, key) ? dict[key] : key, vars);
+        }
+
+        function applyTranslations() {
+            document.documentElement.lang = currentLang;
+
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                if (!el.dataset.i18nKey) el.dataset.i18nKey = el.textContent.trim();
+                el.textContent = t(el.dataset.i18nKey);
+            });
+            document.querySelectorAll('[data-i18n-html]').forEach(el => {
+                if (!el.dataset.i18nKey) el.dataset.i18nKey = el.innerHTML.trim();
+                el.innerHTML = t(el.dataset.i18nKey);
+            });
+            document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+                el.placeholder = t(el.dataset.i18nPlaceholder);
+            });
+            document.querySelectorAll('[data-i18n-aria-label]').forEach(el => {
+                el.setAttribute('aria-label', t(el.dataset.i18nAriaLabel));
+            });
+
+            const label = $('lang-label');
+            if (label) label.textContent = currentLang === 'it' ? 'EN' : 'IT';
+            const btn = $('lang-switch');
+            if (btn) btn.setAttribute('aria-label', currentLang === 'it' ? 'Switch to English' : 'Passa all\'italiano');
+        }
+
+        // Ridisegna tutto il contenuto generato da JS. Serve all'avvio, al
+        // cambio di lingua e all'arrivo di un link condiviso.
+        function renderAll() {
+            updateUIState();
+            renderSavedPresets();
+            updateResults();
+            updateEditingGuide();
+        }
+
+        function setLanguage(lang) {
+            if (!SUPPORTED_LANGS.includes(lang)) return;
+            currentLang = lang;
+            storageSet(STORAGE_KEYS.lang, lang);
+            applyTranslations();
+            renderAll();
+        }
+
+        function toggleLanguage() {
+            setLanguage(currentLang === 'it' ? 'en' : 'it');
         }
 
         /* ==================================================================
@@ -872,18 +1435,43 @@
             if (toggle) toggle.checked = (theme === 'light');
         }
 
-        function toggleTheme(checkbox) {
-            const theme = checkbox.checked ? 'light' : 'dark';
+        function toggleTheme(el) {
+            const theme = el.checked ? 'light' : 'dark';
             document.documentElement.setAttribute('data-theme', theme);
             storageSet(STORAGE_KEYS.theme, theme);
         }
 
-        function switchTab(tabId, btn) {
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-            btn.classList.add('active');
-            const panel = $('panel-' + tabId);
-            if (panel) panel.classList.add('active');
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                const on = btn.dataset.value === tabId;
+                btn.classList.toggle('active', on);
+                btn.setAttribute('aria-selected', on ? 'true' : 'false');
+            });
+            document.querySelectorAll('.panel').forEach(panel => {
+                const on = panel.id === 'panel-' + tabId;
+                panel.classList.toggle('active', on);
+                // hidden tiene allineata la semantica per i lettori di schermo.
+                if (on) panel.removeAttribute('hidden');
+                else panel.setAttribute('hidden', '');
+            });
+        }
+
+        // I tooltip devono aprirsi anche con un tap o da tastiera, non solo
+        // al passaggio del mouse.
+        function toggleTooltip(el) {
+            const open = el.classList.contains('open');
+            closeAllTooltips();
+            if (!open) {
+                el.classList.add('open');
+                el.setAttribute('aria-expanded', 'true');
+            }
+        }
+
+        function closeAllTooltips() {
+            document.querySelectorAll('.tooltip.open').forEach(t => {
+                t.classList.remove('open');
+                t.setAttribute('aria-expanded', 'false');
+            });
         }
 
         /* ==================================================================
@@ -891,22 +1479,22 @@
            ================================================================== */
 
         function updateUIState() {
-            syncRadioGroup('#panel-wizard .btn-radio[onclick*="setMode"]', currentMode);
-            syncRadioGroup('#panel-wizard .btn-radio[onclick*="setRegion"]', currentRegion);
-            syncRadioGroup('#panel-wizard .btn-radio[onclick*="setLuce"]', currentLuce);
-            syncRadioGroup('#panel-wizard .btn-radio[onclick*="setSub"]', currentSub);
-            syncRadioGroup('#panel-wizard .btn-radio[onclick*="setBitrateProf"]', currentBitrateProfile);
+            syncRadioGroup('setMode', currentMode, '#panel-wizard');
+            syncRadioGroup('setRegion', currentRegion, '#panel-wizard');
+            syncRadioGroup('setLuce', currentLuce, '#panel-wizard');
+            syncRadioGroup('setSub', currentSub, '#panel-wizard');
+            syncRadioGroup('setBitrateProf', currentBitrateProfile, '#panel-wizard');
 
-            // Solo i chip degli scenari: i chip dei modelli vivono in un altro
-            // container e vengono ridisegnati da renderModelChips().
-            document.querySelectorAll('#scenario-chips-container .btn-chip').forEach(btn => {
-                const onclick = btn.getAttribute('onclick') || '';
-                btn.classList.toggle('selected', selectedScenarios.some(scen => onclick.includes(`'${scen}'`)));
+            document.querySelectorAll('[data-action="toggleScenario"]').forEach(btn => {
+                const on = selectedScenarios.includes(btn.dataset.value);
+                btn.classList.toggle('selected', on);
+                btn.setAttribute('aria-pressed', on ? 'true' : 'false');
             });
 
-            document.querySelectorAll('#panel-editing .btn-chip').forEach(btn => {
-                const onclick = btn.getAttribute('onclick') || '';
-                btn.classList.toggle('selected', selectedEditGoals.some(goal => onclick.includes(`'${goal}'`)));
+            document.querySelectorAll('[data-action="toggleEditGoal"]').forEach(btn => {
+                const on = selectedEditGoals.includes(btn.dataset.value);
+                btn.classList.toggle('selected', on);
+                btn.setAttribute('aria-pressed', on ? 'true' : 'false');
             });
 
             renderBrandCards();
@@ -917,12 +1505,15 @@
             Object.keys(BRAND_CONFIG).forEach(brand => {
                 const cfg = BRAND_CONFIG[brand];
                 const card = $(cfg.cardId);
-                if (card) card.className = 'brand-card' + (brand === currentBrand ? ' ' + cfg.activeClass : '');
+                if (!card) return;
+                const on = brand === currentBrand;
+                card.className = 'brand-card' + (on ? ' ' + cfg.activeClass : '');
+                card.setAttribute('aria-pressed', on ? 'true' : 'false');
             });
             const cfg = activeBrandConfig();
             document.documentElement.style.setProperty('--brand-color', cfg.colorVar);
             setText('app-brand-badge', cfg.badge);
-            setText('brand-indicator', cfg.indicator);
+            setText('brand-indicator', t(cfg.indicator));
         }
 
         function renderModelChips() {
@@ -930,9 +1521,10 @@
             const models = cameraModelsData[currentBrand];
             if (models[currentModelKey]) setText('model-indicator', models[currentModelKey].shortName);
             if (!container) return;
-            container.innerHTML = Object.keys(models).map(key =>
-                `<button class="btn-chip ${key === currentModelKey ? 'selected' : ''}" onclick="selectModel('${key}', this)"><span>${escapeHtml(models[key].shortName)}</span></button>`
-            ).join('');
+            container.innerHTML = Object.keys(models).map(key => {
+                const on = key === currentModelKey;
+                return `<button type="button" class="btn-chip ${on ? 'selected' : ''}" data-action="selectModel" data-value="${escapeHtml(key)}" aria-pressed="${on}"><span>${escapeHtml(models[key].shortName)}</span></button>`;
+            }).join('');
         }
 
         function selectBrand(brand) {
@@ -945,14 +1537,10 @@
             updateEditingGuide();
         }
 
-        function selectModel(modelKey, btn) {
+        function selectModel(modelKey) {
             if (!cameraModelsData[currentBrand][modelKey]) return;
             currentModelKey = modelKey;
-            if (btn && btn.parentElement) {
-                btn.parentElement.querySelectorAll('.btn-chip').forEach(b => b.classList.remove('selected'));
-                btn.classList.add('selected');
-            }
-            setText('model-indicator', cameraModelsData[currentBrand][currentModelKey].shortName);
+            renderModelChips();
             updateResults();
             updateEditingGuide();
         }
@@ -962,16 +1550,21 @@
         function setRegion(reg) { currentRegion = reg; updateUIState(); updateResults(); }
         function setLuce(luce) { currentLuce = luce; updateUIState(); updateResults(); }
         function setSub(sub) { currentSub = sub; updateUIState(); updateResults(); }
-        function setCompromise(key, val) { compromiseChoices[key] = val; updateResults(); }
 
-        function toggleScenario(scen, btn) {
+        function setCompromise(el) {
+            compromiseChoices[el.dataset.key] = el.dataset.value;
+            updateResults();
+        }
+
+        function toggleScenario(scen) {
             const index = selectedScenarios.indexOf(scen);
             if (index > -1) {
-                if (selectedScenarios.length > 1) { selectedScenarios.splice(index, 1); btn.classList.remove('selected'); }
+                // Almeno uno scenario deve restare selezionato.
+                if (selectedScenarios.length > 1) selectedScenarios.splice(index, 1);
             } else {
                 selectedScenarios.push(scen);
-                btn.classList.add('selected');
             }
+            updateUIState();
             updateResults();
         }
 
@@ -1009,44 +1602,53 @@
 
         function writePresets(presets) { storageSet(STORAGE_KEYS.presets, JSON.stringify(presets)); }
 
+        function currentPresetPayload(name) {
+            return {
+                brand: currentBrand, modelKey: currentModelKey, name: name,
+                mode: currentMode, scenarios: [...selectedScenarios], luce: currentLuce,
+                region: currentRegion, sub: currentSub, bitrateProf: currentBitrateProfile
+            };
+        }
+
         function saveCurrentPreset() {
             const nameInput = $('input-preset-name');
             const name = nameInput.value.trim();
             if (!name) return;
             const presets = readPresets();
-            presets.push({
-                brand: currentBrand, modelKey: currentModelKey, name: name,
-                mode: currentMode, scenarios: [...selectedScenarios], luce: currentLuce,
-                region: currentRegion, sub: currentSub, bitrateProf: currentBitrateProfile
-            });
+            presets.push(currentPresetPayload(name));
             writePresets(presets);
             nameInput.value = '';
             renderSavedPresets();
+            showToast(t('Preset "{name}" salvato', { name }));
         }
 
-        function loadPreset(index) {
-            const presets = readPresets();
-            const preset = presets[index];
+        function applyPreset(preset) {
             if (!preset) return;
-            selectedScenarios = [...preset.scenarios];
+            selectedScenarios = Array.isArray(preset.scenarios) && preset.scenarios.length ? [...preset.scenarios] : ['reel'];
             currentMode = preset.mode || 'video';
-            currentLuce = preset.luce;
+            currentLuce = preset.luce || 'sole';
             currentRegion = preset.region || 'pal';
             currentSub = preset.sub || 'fuori';
             currentBitrateProfile = preset.bitrateProf || 'high';
             if (preset.brand && cameraModelsData[preset.brand]) {
                 currentBrand = preset.brand;
-                currentModelKey = preset.modelKey || Object.keys(cameraModelsData[preset.brand])[0];
+                currentModelKey = cameraModelsData[preset.brand][preset.modelKey]
+                    ? preset.modelKey
+                    : Object.keys(cameraModelsData[preset.brand])[0];
             }
             updateUIState();
             updateResults();
             updateEditingGuide();
         }
 
-        function deletePreset(index, event) {
+        function loadPreset(el) {
+            applyPreset(readPresets()[Number(el.dataset.index)]);
+        }
+
+        function deletePreset(el, event) {
             event.stopPropagation();
             const presets = readPresets();
-            presets.splice(index, 1);
+            presets.splice(Number(el.dataset.index), 1);
             writePresets(presets);
             renderSavedPresets();
         }
@@ -1056,37 +1658,174 @@
             if (!container) return;
             const presets = readPresets();
             if (presets.length === 0) {
-                container.innerHTML = '<span style="font-size:0.72rem; color:var(--text-secondary);">Nessun preset salvato in locale.</span>';
+                container.innerHTML = `<span style="font-size:0.72rem; color:var(--text-secondary);">${t('Nessun preset salvato in locale.')}</span>`;
                 return;
             }
             // Il nome arriva da un input libero: va sempre escapizzato.
             container.innerHTML = presets.map((p, i) =>
-                `<button class="preset-tag-btn" onclick="loadPreset(${i})"><span>📌 [${escapeHtml((p.brand || 'dji').toUpperCase())}] ${escapeHtml(p.name)}</span><span class="preset-del" onclick="deletePreset(${i}, event)">×</span></button>`
+                `<button type="button" class="preset-tag-btn" data-action="loadPreset" data-index="${i}"><span>📌 [${escapeHtml((p.brand || 'dji').toUpperCase())}] ${escapeHtml(p.name)}</span><span class="preset-del" role="button" tabindex="0" aria-label="${escapeHtml(t('Elimina preset {name}', { name: p.name }))}" data-action="deletePreset" data-index="${i}">×</span></button>`
             ).join('');
         }
 
+        // Export/import: i preset vivono solo in localStorage, quindi cambiando
+        // telefono o browser andrebbero altrimenti persi.
+        function exportPresets() {
+            const presets = readPresets();
+            if (presets.length === 0) { showToast(t('Nessun preset da esportare')); return; }
+            const blob = new Blob([JSON.stringify({ app: 'action-cam-studio', version: 11, presets }, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'camstudio-presets.json';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            showToast(t('{count} preset esportati', { count: presets.length }));
+        }
+
+        function importPresets() {
+            const input = $('input-import-presets');
+            if (input) input.click();
+        }
+
+        function handleImportFile(file) {
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = () => {
+                try {
+                    const parsed = JSON.parse(String(reader.result));
+                    const incoming = Array.isArray(parsed) ? parsed : parsed.presets;
+                    if (!Array.isArray(incoming)) throw new Error('formato non riconosciuto');
+                    // Si tiene solo ciò che ha la forma attesa, per non
+                    // corrompere l'elenco con dati arbitrari.
+                    const valid = incoming.filter(p => p && typeof p.name === 'string' && Array.isArray(p.scenarios));
+                    if (valid.length === 0) throw new Error('nessun preset valido');
+                    writePresets(readPresets().concat(valid));
+                    renderSavedPresets();
+                    showToast(t('{count} preset importati', { count: valid.length }));
+                } catch (e) {
+                    showToast(t('File non valido'));
+                }
+            };
+            reader.readAsText(file);
+        }
+
         /* ==================================================================
-           7. TAB CALCOLATORI
+           7. CONDIVISIONE DELLA CONFIGURAZIONE
+           Lo stato sta nell'hash dell'URL, così un setup si manda a qualcuno
+           con un link invece di descriverlo a voce.
            ================================================================== */
 
-        function calcShutter(fps, btn) {
-            btn.parentElement.querySelectorAll('.btn-radio').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            setText('calc-result-shutter', shutterFor(fps));
-            setText('calc-result-nd', `In sole diretto (EV15): ${ndFor(fps, 'sole')}`);
+        function buildShareUrl() {
+            const params = new URLSearchParams({
+                b: currentBrand, m: currentModelKey, mode: currentMode,
+                s: selectedScenarios.join(','), l: currentLuce,
+                r: currentRegion, sub: currentSub, bp: currentBitrateProfile, lang: currentLang
+            });
+            return `${location.origin}${location.pathname}#${params.toString()}`;
         }
 
-        function calcBattery(temp, btn) {
-            currentTemp = temp;
-            btn.parentElement.querySelectorAll('.btn-radio').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            const estimate = BATTERY_ESTIMATES[String(temp)] || BATTERY_ESTIMATES['20'];
+        function applyStateFromHash() {
+            const hash = location.hash.replace(/^#/, '');
+            if (!hash) return false;
+            const params = new URLSearchParams(hash);
+            if (!params.has('b') && !params.has('s')) return false;
+
+            const brand = params.get('b');
+            if (brand && cameraModelsData[brand]) {
+                currentBrand = brand;
+                const model = params.get('m');
+                currentModelKey = (model && cameraModelsData[brand][model]) ? model : Object.keys(cameraModelsData[brand])[0];
+            }
+            const scenarios = (params.get('s') || '').split(',').filter(s => SCENARIO_LABELS[s]);
+            if (scenarios.length) selectedScenarios = scenarios;
+            if (['video', 'foto', 'timelapse'].includes(params.get('mode'))) currentMode = params.get('mode');
+            if (['sole', 'ombra', 'scarsa'].includes(params.get('l'))) currentLuce = params.get('l');
+            if (['pal', 'ntsc'].includes(params.get('r'))) currentRegion = params.get('r');
+            if (['fuori', 'sub'].includes(params.get('sub'))) currentSub = params.get('sub');
+            if (BITRATE_PROFILES[params.get('bp')]) currentBitrateProfile = params.get('bp');
+
+            // Un link condiviso porta anche la lingua, ma una scelta esplicita
+            // gia' memorizzata dall'utente ha la precedenza.
+            const lang = params.get('lang');
+            if (SUPPORTED_LANGS.includes(lang) && !SUPPORTED_LANGS.includes(storageGet(STORAGE_KEYS.lang))) {
+                currentLang = lang;
+            }
+            return true;
+        }
+
+        async function copyShareLink() {
+            const ok = await copyToClipboard(buildShareUrl());
+            showToast(t(ok ? 'Link del setup copiato' : 'Copia non riuscita'));
+        }
+
+        // Riepilogo testuale, da incollare nelle note del telefono davanti
+        // alla camera.
+        function buildSettingsText() {
+            const model = activeModel();
+            const rows = [
+                ['Risoluzione', 'val-res'], ['Framerate', 'val-fps'], ['Shutter', 'val-shutter'],
+                ['Filtro ND', 'val-nd'], ['FOV', 'val-fov'], ['Esposizione', 'val-ev'],
+                ['Profilo colore', 'val-color'], ['Stabilizzazione', 'val-stab'],
+                ['Nitidezza', 'val-sharp'], ['ISO', 'val-iso'], ['Bilanciamento bianco', 'val-wb'],
+                ['Audio', 'val-audio-prof'], ['GPS', 'val-gps']
+            ];
+            const scenari = selectedScenarios.map(s => t(SCENARIO_LABELS[s])).join(', ');
+            const body = rows
+                .map(([label, id]) => { const el = $(id); return el ? `${t(label)}: ${el.innerText}` : null; })
+                .filter(Boolean)
+                .join('\n');
+            const meta = t('Modalità: {mode} | Scenari: {scenarios}', { mode: currentMode, scenarios: scenari });
+            return `Action Cam Studio — ${model.name}\n${meta}\n\n${body}\n\n${buildShareUrl()}`;
+        }
+
+        async function copySettings() {
+            const ok = await copyToClipboard(buildSettingsText());
+            showToast(t(ok ? 'Impostazioni copiate' : 'Copia non riuscita'));
+        }
+
+        /* ==================================================================
+           8. TAB CALCOLATORI
+           ================================================================== */
+
+        function calcShutter(fps, el) {
+            const value = Number(fps);
+            if (el && el.parentElement) {
+                el.parentElement.querySelectorAll('.btn-radio').forEach(b => {
+                    const on = b === el;
+                    b.classList.toggle('active', on);
+                    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+                });
+            }
+            setText('calc-result-shutter', shutterFor(value));
+            setText('calc-result-nd', t('In sole diretto (EV15): {nd}', { nd: t(ndFor(value, 'sole')) }));
+        }
+
+        function calcBattery(temp, el) {
+            currentTemp = Number(temp);
+            if (el && el.parentElement) {
+                el.parentElement.querySelectorAll('.btn-radio').forEach(b => {
+                    const on = b === el;
+                    b.classList.toggle('active', on);
+                    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+                });
+            }
+            renderBattery();
+        }
+
+        function renderBattery() {
+            const preset = BATTERY_TEMPS[String(currentTemp)] || BATTERY_TEMPS['20'];
+            const base = activeModel().batteryMin || 115;
+            // Arrotondato a 5 minuti: è una stima, non un cronometro.
+            const minutes = Math.round((base * preset.factor) / 5) * 5;
             const timeEl = $('battery-result-time');
-            if (timeEl) { timeEl.innerText = estimate.time; timeEl.style.color = estimate.color; }
-            setText('battery-result-note', estimate.note);
+            if (timeEl) { timeEl.innerText = t('~{minutes} Minuti', { minutes }); timeEl.style.color = preset.color; }
+            setText('battery-result-note', t('{note} (stima per {model})', { note: t(preset.note), model: activeModel().shortName }));
         }
 
-        function updateSimSlider(val) {
+        function updateSimSlider(el) {
+            const val = el.value;
             const layer = $('sim-graded-layer');
             const handle = $('sim-handle');
             if (layer) layer.style.width = val + '%';
@@ -1094,27 +1833,27 @@
         }
 
         /* ==================================================================
-           8. TAB EDITING
+           9. TAB EDITING
            ================================================================== */
 
         function editGoalLabels(model) {
             return {
-                'dlog_lut': `🎨 Grading ${model.logProfile.split(' ')[0]}`,
-                'reel_fast': '📱 Reel In-App 9:16',
-                'speed_ramp': '⚡ Speed Ramp Sport',
-                'audio_clean': '🎙️ Audio & Vento',
-                'underwater_color': '🏓 Colore Subacqueo'
+                'dlog_lut': t('🎨 Grading {profile}', { profile: model.logProfile.split(' ')[0] }),
+                'reel_fast': t('📱 Reel In-App 9:16'),
+                'speed_ramp': t('⚡ Speed Ramp Sport'),
+                'audio_clean': t('🎙️ Audio & Vento'),
+                'underwater_color': t('🏓 Colore Subacqueo')
             };
         }
 
-        function toggleEditGoal(goal, btn) {
+        function toggleEditGoal(goal) {
             const index = selectedEditGoals.indexOf(goal);
             if (index > -1) {
-                if (selectedEditGoals.length > 1) { selectedEditGoals.splice(index, 1); btn.classList.remove('selected'); }
+                if (selectedEditGoals.length > 1) selectedEditGoals.splice(index, 1);
             } else {
                 selectedEditGoals.push(goal);
-                btn.classList.add('selected');
             }
+            updateUIState();
             updateEditingGuide();
         }
 
@@ -1122,32 +1861,32 @@
             const model = activeModel();
             const appName = activeBrandConfig().editApp;
             const labels = editGoalLabels(model);
-            setText('editing-app-header', `Assistente Editing App (${appName})`);
+            setText('editing-app-header', t('Assistente Editing App ({app})', { app: appName }));
 
             setHtml('edit-pills', selectedEditGoals.map(g =>
                 `<span class="pill-tag" style="background:var(--brand-color); color:#ffffff; font-weight:800;">${labels[g]}</span>`
             ).join(''));
-            setText('edit-goal-title', selectedEditGoals.length === 1 ? labels[selectedEditGoals[0]] : 'Workflow Integrato Misto');
+            setText('edit-goal-title', selectedEditGoals.length === 1 ? labels[selectedEditGoals[0]] : t('Workflow Integrato Misto'));
 
             const has = goal => selectedEditGoals.includes(goal);
             let stepsHTML = '', tweaksHTML = '', exportHTML = '';
 
-            if (has('dlog_lut')) stepsHTML += `<li><b>Color Grading:</b> Importa in <b>${appName}</b> e applica il LUT / Preset <b>${model.logProfile}</b>.</li>`;
-            if (has('reel_fast')) stepsHTML += `<li><b>Montaggio 9:16:</b> Collega ${model.shortName} via Wi-Fi a <b>${appName}</b>, usa Smart Edit.</li>`;
-            if (has('speed_ramp')) stepsHTML += `<li><b>Speed Ramping:</b> Seleziona i clip ad alti framerate, tocca <i>Velocità</i> e attiva la Curva.</li>`;
-            if (has('audio_clean')) stepsHTML += `<li><b>Trattamento Audio:</b> Usa i microfoni integrati. Attiva soppressione vento.</li>`;
-            if (has('underwater_color')) stepsHTML += `<li><b>Colore Sub:</b> In <b>${appName}</b> attiva il ripristino colore acqua.</li>`;
+            if (has('dlog_lut')) stepsHTML += t('<li><b>Color Grading:</b> Importa in <b>{app}</b> e applica il LUT / Preset <b>{profile}</b>.</li>', { app: appName, profile: model.logProfile });
+            if (has('reel_fast')) stepsHTML += t('<li><b>Montaggio 9:16:</b> Collega {model} via Wi-Fi a <b>{app}</b>, usa Smart Edit.</li>', { model: model.shortName, app: appName });
+            if (has('speed_ramp')) stepsHTML += t('<li><b>Speed Ramping:</b> Seleziona i clip ad alti framerate, tocca <i>Velocità</i> e attiva la Curva.</li>');
+            if (has('audio_clean')) stepsHTML += t('<li><b>Trattamento Audio:</b> Usa i microfoni integrati. Attiva soppressione vento.</li>');
+            if (has('underwater_color')) stepsHTML += t('<li><b>Colore Sub:</b> In <b>{app}</b> attiva il ripristino colore acqua.</li>', { app: appName });
 
-            if (has('dlog_lut')) tweaksHTML += `<li><b>Rifinitura:</b> Contrasto <b>+5</b>, Saturazione <b>+5</b> preservando l'incarnato.</li>`;
-            if (has('reel_fast')) tweaksHTML += `<li><b>Inquadratura:</b> Volti nel terzo superiore, transizioni a <b>0.3s</b>.</li>`;
-            if (has('speed_ramp')) tweaksHTML += `<li><b>Climax:</b> 1.5x avvicinamento, <b>0.25x (25% Slow-Mo)</b> nell'azione.</li>`;
-            if (has('audio_clean')) tweaksHTML += `<li><b>Mixaggio:</b> Musica al <b>15%</b>, parlato al <b>115%</b> (Ducking attivo).</li>`;
-            if (has('underwater_color')) tweaksHTML += `<li><b>Bilanciamento:</b> Tinta Magenta (<b>+10</b>), Temp verso caldi (<b>6500K+</b>).</li>`;
+            if (has('dlog_lut')) tweaksHTML += t("<li><b>Rifinitura:</b> Contrasto <b>+5</b>, Saturazione <b>+5</b> preservando l'incarnato.</li>");
+            if (has('reel_fast')) tweaksHTML += t('<li><b>Inquadratura:</b> Volti nel terzo superiore, transizioni a <b>0.3s</b>.</li>');
+            if (has('speed_ramp')) tweaksHTML += t("<li><b>Climax:</b> 1.5x avvicinamento, <b>0.25x (25% Slow-Mo)</b> nell'azione.</li>");
+            if (has('audio_clean')) tweaksHTML += t('<li><b>Mixaggio:</b> Musica al <b>15%</b>, parlato al <b>115%</b> (Ducking attivo).</li>');
+            if (has('underwater_color')) tweaksHTML += t('<li><b>Bilanciamento:</b> Tinta Magenta (<b>+10</b>), Temp verso caldi (<b>6500K+</b>).</li>');
 
-            if (has('reel_fast')) exportHTML += `<li><b>Social:</b> 1080 x 1920 (9:16) a <b>25 / 30 FPS</b>.</li>`;
-            else if (has('speed_ramp')) exportHTML += `<li><b>Azione:</b> Esporta a <b>50 / 60 FPS</b> per preservare la nitidezza.</li>`;
-            else exportHTML += `<li><b>Master:</b> 1080p o 4K stesso framerate di ripresa.</li>`;
-            if (has('audio_clean')) exportHTML += `<li><b>Audio Output:</b> Stereo AAC 48kHz, normalizzazione a <b>-1 dB</b>.</li>`;
+            if (has('reel_fast')) exportHTML += t('<li><b>Social:</b> 1080 x 1920 (9:16) a <b>25 / 30 FPS</b>.</li>');
+            else if (has('speed_ramp')) exportHTML += t('<li><b>Azione:</b> Esporta a <b>50 / 60 FPS</b> per preservare la nitidezza.</li>');
+            else exportHTML += t('<li><b>Master:</b> 1080p o 4K stesso framerate di ripresa.</li>');
+            if (has('audio_clean')) exportHTML += t('<li><b>Audio Output:</b> Stereo AAC 48kHz, normalizzazione a <b>-1 dB</b>.</li>');
 
             setHtml('edit-steps-list', stepsHTML);
             setHtml('edit-tweak-list', tweaksHTML);
@@ -1155,7 +1894,7 @@
         }
 
         /* ==================================================================
-           9. MOTORE RISULTATI
+           10. MOTORE RISULTATI
            updateResults() orchestra: calcola il contesto una volta sola e lo
            passa ai renderer specifici per modalità.
            ================================================================== */
@@ -1174,43 +1913,44 @@
         }
 
         function renderHeader(ctx) {
-            let pills = selectedScenarios.map(s => `<span class="pill-tag">${SCENARIO_LABELS[s]}</span>`).join('');
-            if (ctx.isSub) pills += `<span class="pill-tag" style="background:var(--accent); color:white;">🏓 Sott'Acqua</span>`;
+            let pills = selectedScenarios.map(s => `<span class="pill-tag">${t(SCENARIO_LABELS[s])}</span>`).join('');
+            if (ctx.isSub) pills += `<span class="pill-tag" style="background:var(--accent); color:white;">${t("🏓 Sott'Acqua")}</span>`;
             setHtml('res-pills', pills);
 
-            let title = `Matrice ${ctx.model.shortName}`;
-            if (currentMode === 'foto') title = `📸 Setup Foto ${ctx.model.shortName}`;
-            else if (currentMode === 'timelapse') title = `⏱️ Setup Timelapse ${ctx.model.shortName}`;
+            const model = ctx.model.shortName;
+            let title = t('Matrice {model}', { model });
+            if (currentMode === 'foto') title = t('📸 Setup Foto {model}', { model });
+            else if (currentMode === 'timelapse') title = t('⏱️ Setup Timelapse {model}', { model });
             setText('res-title', title);
         }
 
         // Esposizione, GPS e audio non dipendono dalla modalità.
         function renderCommonSettings(ctx) {
-            let evComp = '0.0 (Matrix Metering)';
-            if (ctx.isCar || ctx.isIndoor) evComp = '-0.3 (Protegge le alte luci)';
-            if (ctx.isNight) evComp = '-0.5 (Evita rumore)';
-            if (currentLuce === 'scarsa' && !ctx.isNight) evComp = '+0.3 (Schiarisci ombre)';
-            if (ctx.isSub) evComp = '+0.5 (Compensa l\'assorbimento)';
+            let evComp = t('0.0 (Matrix Metering)');
+            if (ctx.isCar || ctx.isIndoor) evComp = t('-0.3 (Protegge le alte luci)');
+            if (ctx.isNight) evComp = t('-0.5 (Evita rumore)');
+            if (currentLuce === 'scarsa' && !ctx.isNight) evComp = t('+0.3 (Schiarisci ombre)');
+            if (ctx.isSub) evComp = t("+0.5 (Compensa l'assorbimento)");
             setText('val-ev', evComp);
 
-            let gps = 'OFF (Risparmio Batteria)';
-            if (ctx.isEco || currentMode === 'timelapse') gps = 'OFF FORZATO (Risparmio energetico)';
-            else if (ctx.isSport || ctx.isCar) gps = 'ON (Raccogli dati Vel/Tracciato)';
+            let gps = t('OFF (Risparmio Batteria)');
+            if (ctx.isEco || currentMode === 'timelapse') gps = t('OFF FORZATO (Risparmio energetico)');
+            else if (ctx.isSport || ctx.isCar) gps = t('ON (Raccogli dati Vel/Tracciato)');
             setText('val-gps', gps);
 
-            let audio = 'Stereo (Massima fedeltà)';
-            if (currentMode === 'foto' || currentMode === 'timelapse') audio = '🔇 Mute (Disattivato)';
-            else if (ctx.isSport || ctx.isCar || ctx.isSub) audio = 'Riduzione Vento / Low-Cut';
-            else if (ctx.isReel || ctx.isIndoor) audio = 'Focus Vocale / Direzionale';
+            let audio = t('Stereo (Massima fedeltà)');
+            if (currentMode === 'foto' || currentMode === 'timelapse') audio = t('🔇 Mute (Disattivato)');
+            else if (ctx.isSport || ctx.isCar || ctx.isSub) audio = t('Riduzione Vento / Low-Cut');
+            else if (ctx.isReel || ctx.isIndoor) audio = t('Focus Vocale / Direzionale');
             setText('val-audio-prof', audio);
         }
 
         function computeResolution(ctx) {
             let res;
-            if (ctx.isReel) res = (currentBrand === 'gopro' && currentModelKey.includes('hero11')) ? '5.3K / 4K Verticale (8:7)' : '4K Verticale (9:16)';
-            else if (ctx.isGyro) res = '4K Nativo (4:3 o 8:7)';
+            if (ctx.isReel) res = (currentBrand === 'gopro' && currentModelKey.includes('hero11')) ? t('5.3K / 4K Verticale (8:7)') : t('4K Verticale (9:16)');
+            else if (ctx.isGyro) res = t('4K Nativo (4:3 o 8:7)');
             else res = ctx.model.maxRes;
-            if (ctx.isEco) res = res.replace('4K', '2.7K (Eco)').replace('5.3K', '2.7K (Eco)').replace('8K', '4K (Eco)');
+            if (ctx.isEco) res = res.replace('4K', t('2.7K (Eco)')).replace('5.3K', t('2.7K (Eco)')).replace('8K', t('4K (Eco)'));
             return res;
         }
 
@@ -1232,21 +1972,21 @@
 
         function computeExposure(ctx, fps, hasFpsConflict) {
             let shutter = shutterFor(fps);
-            let nd = ndFor(fps, currentLuce);
+            let nd = t(ndFor(fps, currentLuce));
 
             if (ctx.isSub) {
-                nd = '❌ RIMUOVERE ND';
-                shutter = `AUTO (o 1/${fps * 2}s in sup.)`;
+                nd = t('❌ RIMUOVERE ND');
+                shutter = t('AUTO (o 1/{shutter}s in sup.)', { shutter: fps * 2 });
             } else if (ctx.isSlowmo && currentLuce !== 'sole') {
-                nd = '❌ RIMUOVERE ND';
+                nd = t('❌ RIMUOVERE ND');
             } else if (ctx.isNight || ctx.isIndoor || currentLuce === 'scarsa') {
-                nd = ND_NONE;
+                nd = t(ND_NONE);
                 shutter = (compromiseChoices.fpsPriority === 'action' && hasFpsConflict)
-                    ? `1/${fps * 2}s (Scuro!)`
-                    : `AUTO (Max ${ctx.isPal ? '1/50s' : '1/60s'})`;
+                    ? t('1/{shutter}s (Scuro!)', { shutter: fps * 2 })
+                    : t('AUTO (Max {max})', { max: ctx.isPal ? '1/50s' : '1/60s' });
             } else if ((ctx.isTravel || ctx.isCar) && !ctx.isReel && !ctx.isSport) {
-                shutter = 'AUTO (EV Regolato)';
-                nd = (currentLuce === 'sole') ? 'ND16 / Nessuno' : 'Nessuno';
+                shutter = t('AUTO (EV Regolato)');
+                nd = (currentLuce === 'sole') ? t('ND16 / Nessuno') : t('Nessuno');
             }
             return { shutter, nd };
         }
@@ -1254,33 +1994,37 @@
         function computeColorProfile(ctx, hasProfileConflict) {
             let profile = ctx.model.logProfile;
             if (hasProfileConflict) {
-                profile = (compromiseChoices.profilePriority === 'normal') ? 'Normal / Natural' : ctx.model.logProfile;
+                profile = (compromiseChoices.profilePriority === 'normal') ? t('Normal / Natural') : ctx.model.logProfile;
             } else if (ctx.isNight || ctx.isIndoor || (ctx.isTravel && !ctx.isReel) || ctx.isEco) {
-                profile = 'Normal / Natural (Non Log)';
+                profile = t('Normal / Natural (Non Log)');
             }
-            if (currentBitrateProfile === 'high') return `Max Qualità: ${profile}`;
-            if (currentBitrateProfile === 'std') return `Std Qualità: ${profile}`;
-            return `Endurance: ${profile} (Rec.709)`;
+            if (currentBitrateProfile === 'high') return t('Max Qualità: {profile}', { profile });
+            if (currentBitrateProfile === 'std') return t('Std Qualità: {profile}', { profile });
+            return t('Endurance: {profile} (Rec.709)', { profile });
         }
 
         function computeFov(ctx) {
             const wideFov = (currentBrand === 'insta360' && currentModelKey === 'x4') ? '360° Dual Lens' : ctx.brandCfg.wideFov;
             const baseFov = ctx.brandCfg.baseFov;
-            if (ctx.isGyro) return 'Wide (Grezzo senza Dewarp)';
-            if (ctx.isReel && ctx.isSport) return (compromiseChoices.fovPriority === 'wide') ? wideFov + ' (Ampio)' : baseFov + ' (Linee dritte)';
-            if (ctx.isSport) return wideFov;
-            return baseFov;
+            if (ctx.isGyro) return t('Wide (Grezzo senza Dewarp)');
+            if (ctx.isReel && ctx.isSport) {
+                return (compromiseChoices.fovPriority === 'wide')
+                    ? t('{fov} (Ampio)', { fov: t(wideFov) })
+                    : t('{fov} (Linee dritte)', { fov: t(baseFov) });
+            }
+            if (ctx.isSport) return t(wideFov);
+            return t(baseFov);
         }
 
         function computeStabilization(ctx) {
             if (currentBrand === 'gopro') {
-                if (ctx.isGyro) return 'OFF (Per Gyroflow)';
+                if (ctx.isGyro) return t('OFF (Per Gyroflow)');
                 return ctx.isSport ? 'HyperSmooth AutoBoost / Boost' : 'HyperSmooth On';
             }
             if (currentBrand === 'insta360') {
                 return ctx.isGyro ? 'OFF' : 'FlowState / Horizon Lock 360°';
             }
-            if (ctx.isGyro) return 'OFF (Disattivata per Gyroflow)';
+            if (ctx.isGyro) return t('OFF (Disattivata per Gyroflow)');
             if (ctx.isSport) return compromiseChoices.stabPriority === 'horizon' ? 'HorizonBalancing (±45°)' : 'RockSteady+';
             return 'RockSteady';
         }
@@ -1293,11 +2037,11 @@
         }
 
         function computeVideoRigging(ctx) {
-            if (ctx.isSub) return `<b>🏓 Ripresa Subacquea:</b> Impermeabile fino a <b>${ctx.model.waterproof} metri</b> senza custodia. Attiva il blocco touchscreen.`;
-            if (ctx.isSport) return `<b>🚴 Corsa / Bici:</b> Supporto a pettorina o out-front mount. Fissa saldamente.`;
-            if (ctx.isCar) return `<b>🚗 POV Auto:</b> Ventosa con braccio snodato sul parabrezza.`;
-            if (ctx.isReel) return `<b>📱 Reel / Vlog:</b> Montaggio verticale (9:16) su treppiede o asta.`;
-            return `<b>✈️ Viaggi:</b> Impugnatura estensibile o treppiede compatto.`;
+            if (ctx.isSub) return t('<b>🏓 Ripresa Subacquea:</b> Impermeabile fino a <b>{depth} metri</b> senza custodia. Attiva il blocco touchscreen.', { depth: ctx.model.waterproof });
+            if (ctx.isSport) return t('<b>🚴 Corsa / Bici:</b> Supporto a pettorina o out-front mount. Fissa saldamente.');
+            if (ctx.isCar) return t('<b>🚗 POV Auto:</b> Ventosa con braccio snodato sul parabrezza.');
+            if (ctx.isReel) return t('<b>📱 Reel / Vlog:</b> Montaggio verticale (9:16) su treppiede o asta.');
+            return t('<b>✈️ Viaggi:</b> Impugnatura estensibile o treppiede compatto.');
         }
 
         function renderStorageMetrics(ctx, fps) {
@@ -1313,7 +2057,7 @@
             if (!alert) return;
             if (mbps > 105 || fps >= 100) {
                 alert.style.display = 'block';
-                alert.innerHTML = `⚠️ <b>Allarme MicroSD:</b> Flusso dati molto elevato (~${mbps} Mbps). Utilizza scheda certificata <b>V30 (U3)</b>.`;
+                alert.innerHTML = t('⚠️ <b>Allarme MicroSD:</b> Flusso dati molto elevato (~{mbps} Mbps). Utilizza scheda certificata <b>V30 (U3)</b>.', { mbps });
             } else {
                 alert.style.display = 'none';
             }
@@ -1321,39 +2065,39 @@
 
         function conflictBlock(label, key, options) {
             const buttons = options.map(opt =>
-                `<button class="btn-compromise ${compromiseChoices[key] === opt.value ? 'active' : ''}" onclick="setCompromise('${key}', '${opt.value}')">${opt.label}</button>`
+                `<button type="button" class="btn-compromise ${compromiseChoices[key] === opt.value ? 'active' : ''}" data-action="setCompromise" data-key="${key}" data-value="${opt.value}" aria-pressed="${compromiseChoices[key] === opt.value}">${opt.label}</button>`
             ).join('');
-            return `<div class="conflict-block"><div class="conflict-label">${label}</div><div class="compromise-selector">${buttons}</div></div>`;
+            return `<div class="conflict-block"><div class="conflict-label">${label}</div><div class="compromise-selector" role="group" aria-label="${label}">${buttons}</div></div>`;
         }
 
         function renderConflicts(ctx, hasFpsConflict, hasProfileConflict) {
             let html = '';
             if (hasFpsConflict) {
                 const actionFps = ctx.isSlowmo ? (ctx.isPal ? '100' : '120') : (ctx.isPal ? '50' : '60');
-                html += conflictBlock('⚡ Framerate: Scarsa Luce vs Sport', 'fpsPriority', [
-                    { value: 'light', label: `💡 Luce (${ctx.isPal ? '25' : '30'} fps)` },
-                    { value: 'action', label: `🚴 Azione (${actionFps} fps)` }
+                html += conflictBlock(t('⚡ Framerate: Scarsa Luce vs Sport'), 'fpsPriority', [
+                    { value: 'light', label: t('💡 Luce ({fps} fps)', { fps: ctx.isPal ? '25' : '30' }) },
+                    { value: 'action', label: t('🚴 Azione ({fps} fps)', { fps: actionFps }) }
                 ]);
             }
             if (hasProfileConflict) {
-                html += conflictBlock('🎨 Profilo Colore: Reel vs Notturno', 'profilePriority', [
+                html += conflictBlock(t('🎨 Profilo Colore: Reel vs Notturno'), 'profilePriority', [
                     { value: 'dlog', label: `🎬 ${ctx.model.logProfile.split(' ')[0]}` },
-                    { value: 'normal', label: '🌙 Standard' }
+                    { value: 'normal', label: t('🌙 Standard') }
                 ]);
             }
             if (ctx.isReel && ctx.isSport) {
-                html += conflictBlock('📐 FOV: Linee Diritte vs Ampio', 'fovPriority', [
-                    { value: 'dewarp', label: '📱 Linear' },
-                    { value: 'wide', label: '🚴 Wide' }
+                html += conflictBlock(t('📐 FOV: Linee Diritte vs Ampio'), 'fovPriority', [
+                    { value: 'dewarp', label: t('📱 Linear') },
+                    { value: 'wide', label: t('🚴 Wide') }
                 ]);
             }
             if (ctx.isSport && !ctx.isGyro) {
-                html += conflictBlock('🔲 Stabilizzazione Sportiva', 'stabPriority', [
-                    { value: 'rocksteady', label: '🏃 Max / Boost' },
-                    { value: 'horizon', label: '⚖️ Horizon' }
+                html += conflictBlock(t('🔲 Stabilizzazione Sportiva'), 'stabPriority', [
+                    { value: 'rocksteady', label: t('🏃 Max / Boost') },
+                    { value: 'horizon', label: t('⚖️ Horizon') }
                 ]);
             }
-            if (!html) html = `<div style="font-size: 0.78rem; color: var(--text-secondary);">✅ <b>Nessun conflitto rilevato!</b> Setup perfetto.</div>`;
+            if (!html) html = `<div style="font-size: 0.78rem; color: var(--text-secondary);">${t('✅ <b>Nessun conflitto rilevato!</b> Setup perfetto.')}</div>`;
             setHtml('container-conflicts', html);
         }
 
@@ -1371,8 +2115,8 @@
             setText('val-fov', computeFov(ctx));
             setText('val-stab', computeStabilization(ctx));
             setText('val-sharp', computeSharpness(ctx));
-            setText('val-iso', (ctx.isNight || ctx.isIndoor || ctx.isSub) ? 'Min ISO 100 / Max 1600' : 'Min ISO 100 / Max 800');
-            setText('val-wb', ctx.isSub ? 'Manuale 6500K - 7500K' : ctx.isIndoor ? 'Manuale 3800K - 4200K' : ctx.isNight ? 'Auto WB' : 'Manuale 5500K');
+            setText('val-iso', t((ctx.isNight || ctx.isIndoor || ctx.isSub) ? 'Min ISO 100 / Max 1600' : 'Min ISO 100 / Max 800'));
+            setText('val-wb', t(ctx.isSub ? 'Manuale 6500K - 7500K' : ctx.isIndoor ? 'Manuale 3800K - 4200K' : ctx.isNight ? 'Auto WB' : 'Manuale 5500K'));
             setHtml('rigging-text', computeVideoRigging(ctx));
 
             renderStorageMetrics(ctx, fps);
@@ -1381,79 +2125,78 @@
         }
 
         function renderPhotoMode(ctx) {
-            setText('val-res', ctx.model.photoRes || 'Massima Risoluzione (RAW+JPEG)');
-            setText('val-fps', ctx.isSport ? 'Scatto Intervalli (1s/2s) o Burst' : ctx.isNight ? 'Lunga Esposizione / Night Mode' : 'Scatto Singolo / Timer 3s');
+            setText('val-res', ctx.model.photoRes || t('Massima Risoluzione (RAW+JPEG)'));
+            setText('val-fps', t(ctx.isSport ? 'Scatto Intervalli (1s/2s) o Burst' : ctx.isNight ? 'Lunga Esposizione / Night Mode' : 'Scatto Singolo / Timer 3s'));
 
             if (ctx.isSport) {
-                setText('val-shutter', '1/1000s o 1/2000s (Congela azione)');
-                setText('val-nd', '❌ Nessuno (Max luce)');
+                setText('val-shutter', t('1/1000s o 1/2000s (Congela azione)'));
+                setText('val-nd', t('❌ Nessuno (Max luce)'));
             } else if (ctx.isNight) {
-                setText('val-shutter', 'Esposizione Lunga (2s-10s su treppiede)');
-                setText('val-nd', '❌ Nessuno');
+                setText('val-shutter', t('Esposizione Lunga (2s-10s su treppiede)'));
+                setText('val-nd', t('❌ Nessuno'));
             } else {
                 setText('val-shutter', 'AUTO');
-                setText('val-nd', (currentLuce === 'sole') ? 'Nessuno o ND8' : 'Nessuno');
+                setText('val-nd', t((currentLuce === 'sole') ? 'Nessuno o ND8' : 'Nessuno'));
             }
 
-            setText('val-color', 'Formato RAW (.DNG)');
-            setText('val-fov', 'Wide / Linear');
-            setText('val-stab', 'OIS / IBIS Attivo');
-            setText('val-sharp', 'Nitidezza: Bassa');
-            setText('val-iso', ctx.isNight ? 'ISO 100 fisso (Su treppiede)' : 'ISO Auto (Max 400)');
+            setText('val-color', t('Formato RAW (.DNG)'));
+            setText('val-fov', t('Wide / Linear'));
+            setText('val-stab', t('OIS / IBIS Attivo'));
+            setText('val-sharp', t('Nitidezza: Bassa'));
+            setText('val-iso', t(ctx.isNight ? 'ISO 100 fisso (Su treppiede)' : 'ISO Auto (Max 400)'));
 
-            if (ctx.isSport) setHtml('rigging-text', `<b>📸 Scatto Sport:</b> Attacco frontale rigido su manubrio o pettorina. Più il supporto è rigido, meno vibrazioni e micro-mosso.`);
-            else if (ctx.isSub) setHtml('rigging-text', `<b>📸 Subacqueo:</b> Usa il timer a 3s per evitare micro-movimenti al tocco.`);
-            else setHtml('rigging-text', `<b>📸 Setup Fotografico:</b> Mini-treppiede o mano libera. Attiva comando vocale.`);
+            if (ctx.isSport) setHtml('rigging-text', t(`<b>📸 Scatto Sport:</b> Attacco frontale rigido su manubrio o pettorina. Più il supporto è rigido, meno vibrazioni e micro-mosso.`));
+            else if (ctx.isSub) setHtml('rigging-text', t(`<b>📸 Subacqueo:</b> Usa il timer a 3s per evitare micro-movimenti al tocco.`));
+            else setHtml('rigging-text', t(`<b>📸 Setup Fotografico:</b> Mini-treppiede o mano libera. Attiva comando vocale.`));
 
-            setText('metric-bitrate', '~30 MB a scatto');
-            setText('metric-size', '~1500 foto su 64GB');
+            setText('metric-bitrate', t('~30 MB a scatto'));
+            setText('metric-size', t('~1500 foto su 64GB'));
             const alert = $('sd-alert');
             if (alert) alert.style.display = 'none';
-            setHtml('container-conflicts', `<div style="font-size: 0.78rem; color: var(--text-secondary);">✅ <b>Modalità Fotografia.</b> Concentrati su composizione ed esposizione.</div>`);
+            setHtml('container-conflicts', `<div style="font-size: 0.78rem; color: var(--text-secondary);">${t('✅ <b>Modalità Fotografia.</b> Concentrati su composizione ed esposizione.')}</div>`);
         }
 
         function renderTimelapseMode(ctx) {
-            setText('val-res', ctx.model.maxRes.replace(/@.*/, '') + ' (Max Res)');
+            setText('val-res', t('{res} (Max Res)', { res: ctx.model.maxRes.replace(/@.*/, '').trim() }));
             const isHyperlapse = ctx.isSport || ctx.isTravel || ctx.isCar;
 
             if (isHyperlapse) {
-                setText('val-fps', 'Hyperlapse / TimeWarp (Int. Auto/0.5s)');
-                setText('val-shutter', 'AUTO (O 1/100s per ridurre blur)');
-                setText('val-nd', 'Nessuno (o ND8 in pieno sole)');
-                setText('val-stab', 'Max / Boost (Fondamentale in moto)');
-                setHtml('rigging-text', `<b>🚶 Hyperlapse:</b> Cam salda al petto o su grip. Punta dritto. Ottimo per transizioni.`);
+                setText('val-fps', t('Hyperlapse / TimeWarp (Int. Auto/0.5s)'));
+                setText('val-shutter', t('AUTO (O 1/100s per ridurre blur)'));
+                setText('val-nd', t('Nessuno (o ND8 in pieno sole)'));
+                setText('val-stab', t('Max / Boost (Fondamentale in moto)'));
+                setHtml('rigging-text', t(`<b>🚶 Hyperlapse:</b> Cam salda al petto o su grip. Punta dritto. Ottimo per transizioni.`));
             } else if (ctx.isNight) {
-                setText('val-fps', 'Night Lapse (Int. 5s-10s)');
-                setText('val-shutter', 'Esposizione fissa (2s-5s)');
-                setText('val-nd', '❌ Nessuno');
-                setText('val-stab', 'OFF (Treppiede Obbligatorio)');
-                setHtml('rigging-text', `<b>🌃 Night Lapse:</b> Treppiede solido. Spegni la stabilizzazione per evitare scatti sgradevoli al buio.`);
+                setText('val-fps', t('Night Lapse (Int. 5s-10s)'));
+                setText('val-shutter', t('Esposizione fissa (2s-5s)'));
+                setText('val-nd', t('❌ Nessuno'));
+                setText('val-stab', t('OFF (Treppiede Obbligatorio)'));
+                setHtml('rigging-text', t(`<b>🌃 Night Lapse:</b> Treppiede solido. Spegni la stabilizzazione per evitare scatti sgradevoli al buio.`));
             } else {
-                setText('val-fps', 'Timelapse Statico (Int. 1s-2s)');
-                setText('val-shutter', '1/2s o 1s (Con ND per Blur)');
-                setText('val-nd', 'ND64 / ND128 (Per scie fluide)');
-                setText('val-stab', 'OFF (Treppiede Obbligatorio)');
-                setHtml('rigging-text', `<b>⏱️ Timelapse:</b> Treppiede. L'ND con shutter lento "spalma" le nuvole creando un effetto cinematico.`);
+                setText('val-fps', t('Timelapse Statico (Int. 1s-2s)'));
+                setText('val-shutter', t('1/2s o 1s (Con ND per Blur)'));
+                setText('val-nd', t('ND64 / ND128 (Per scie fluide)'));
+                setText('val-stab', t('OFF (Treppiede Obbligatorio)'));
+                setHtml('rigging-text', t(`<b>⏱️ Timelapse:</b> Treppiede. L'ND con shutter lento "spalma" le nuvole creando un effetto cinematico.`));
             }
 
-            setText('val-color', 'Video MP4 (o Foto RAW)');
-            setText('val-fov', 'Wide / Standard');
-            setText('val-sharp', 'Sharpness: Low | Colore: Standard');
-            setText('val-iso', ctx.isNight ? 'ISO Min 100 / Max 800' : 'ISO 100 fisso');
-            setText('metric-bitrate', 'Variabile (Basso consumo)');
-            setText('metric-size', '~1 GB / Ora di ripresa reale');
+            setText('val-color', t('Video MP4 (o Foto RAW)'));
+            setText('val-fov', t('Wide / Standard'));
+            setText('val-sharp', t('Sharpness: Low | Colore: Standard'));
+            setText('val-iso', t(ctx.isNight ? 'ISO Min 100 / Max 800' : 'ISO 100 fisso'));
+            setText('metric-bitrate', t('Variabile (Basso consumo)'));
+            setText('metric-size', t('~1 GB / Ora di ripresa reale'));
             const alert = $('sd-alert');
             if (alert) alert.style.display = 'none';
-            setHtml('container-conflicts', `<div style="font-size: 0.78rem; color: var(--text-secondary);">✅ <b>Modalità Timelapse.</b> Attenzione alla batteria: disattiva lo schermo (Screen OFF).</div>`);
+            setHtml('container-conflicts', `<div style="font-size: 0.78rem; color: var(--text-secondary);">${t('✅ <b>Modalità Timelapse.</b> Attenzione alla batteria: disattiva lo schermo (Screen OFF).')}</div>`);
         }
 
         // Simulatore: traduce le impostazioni calcolate in filtri CSS applicati
         // alla scena SVG (rumore ISO, motion blur, curva LOG vs gradata).
         function renderSimulator(ctx, fps) {
+            const box = document.querySelector('.sim-image-box');
             const flatLayer = document.querySelector('.sim-layer-flat');
             const gradLayer = document.querySelector('.sim-inner-graded');
-            const subjectFlat = $('subject-flat');
-            const subjectGrad = $('subject-grad');
             const noiseOverlay = $('sim-iso-noise');
 
             let isoNoiseLevel = 0;
@@ -1471,24 +2214,25 @@
 
             let fContrast = 0.6, fSat = 0.3, fBri = 1.1, fHue = 0;
             let gContrast = 1.25, gSat = 1.45, gBri = 0.96, gHue = 0;
-            let tagFlat = '10-BIT LOG', tagGrad = 'REC.709 LUT';
+            let tagFlat = t('10-BIT LOG'), tagGrad = t('REC.709 LUT');
 
             if (ctx.isNight) {
                 fBri -= 0.45; gBri -= 0.35; fHue -= 15; gHue -= 15; fContrast += 0.2; gContrast += 0.35;
-                tagFlat = 'RAW SENSOR'; tagGrad = 'NIGHT PROCESS';
+                tagFlat = t('RAW SENSOR'); tagGrad = t('NIGHT PROCESS');
             }
             if (ctx.isSub) {
                 fHue += 140; gHue += 140; fBri -= 0.15;
-                tagFlat = 'DIVE PROFILE'; tagGrad = 'AQUA RESTORE';
+                tagFlat = t('DIVE PROFILE'); tagGrad = t('AQUA RESTORE');
             }
             if (ctx.isEco || currentMode === 'foto' || currentMode === 'timelapse') {
                 fContrast = 0.95; fSat = 0.9; fBri = gBri;
-                if (!ctx.isNight && !ctx.isSub) { tagFlat = 'STANDARD PROFILE'; tagGrad = 'IN-APP ENHANCE'; }
+                if (!ctx.isNight && !ctx.isSub) { tagFlat = t('STANDARD PROFILE'); tagGrad = t('IN-APP ENHANCE'); }
             }
 
             if (noiseOverlay) noiseOverlay.style.opacity = isoNoiseLevel;
-            if (subjectFlat) subjectFlat.style.filter = `blur(${motionBlurPx}px)`;
-            if (subjectGrad) subjectGrad.style.filter = `blur(${motionBlurPx}px)`;
+            // La scena è condivisa dai due livelli via <use>: il blur viaggia
+            // come variabile CSS, che si eredita anche nel contenuto clonato.
+            if (box) box.style.setProperty('--subject-blur', `${motionBlurPx}px`);
             if (flatLayer) flatLayer.style.filter = `contrast(${fContrast}) saturate(${fSat}) brightness(${fBri}) hue-rotate(${fHue}deg)`;
             if (gradLayer) gradLayer.style.filter = `contrast(${gContrast}) saturate(${gSat}) brightness(${gBri}) hue-rotate(${gHue}deg)`;
 
@@ -1506,22 +2250,106 @@
             else if (currentMode === 'timelapse') renderTimelapseMode(ctx);
 
             renderSimulator(ctx, lastComputedFps);
+            renderBattery();
         }
 
         /* ==================================================================
-           10. AVVIO
+           11. EVENTI
+           Un solo dispatcher legge data-action dal DOM: niente handler inline,
+           e i controlli generati dinamicamente funzionano senza riagganciarli.
+           ================================================================== */
+
+        const ACTIONS = {
+            selectBrand: el => selectBrand(el.dataset.value),
+            selectModel: el => selectModel(el.dataset.value),
+            setMode: el => setMode(el.dataset.value),
+            setBitrateProf: el => setBitrateProf(el.dataset.value),
+            setRegion: el => setRegion(el.dataset.value),
+            setLuce: el => setLuce(el.dataset.value),
+            setSub: el => setSub(el.dataset.value),
+            toggleScenario: el => toggleScenario(el.dataset.value),
+            toggleEditGoal: el => toggleEditGoal(el.dataset.value),
+            setCompromise: el => setCompromise(el),
+            switchTab: el => switchTab(el.dataset.value),
+            toggleTooltip: el => toggleTooltip(el),
+            calcShutter: el => calcShutter(el.dataset.value, el),
+            calcBattery: el => calcBattery(el.dataset.value, el),
+            updateSimSlider: el => updateSimSlider(el),
+            toggleTheme: el => toggleTheme(el),
+            toggleLanguage: () => toggleLanguage(),
+            saveCurrentPreset: () => saveCurrentPreset(),
+            applyMultisportPreset: () => applyMultisportPreset(),
+            loadPreset: el => loadPreset(el),
+            deletePreset: (el, event) => deletePreset(el, event),
+            exportPresets: () => exportPresets(),
+            importPresets: () => importPresets(),
+            copySettings: () => copySettings(),
+            copyShareLink: () => copyShareLink()
+        };
+
+        function dispatch(event) {
+            const el = event.target.closest('[data-action]');
+            if (!el) return;
+            const handler = ACTIONS[el.dataset.action];
+            if (handler) handler(el, event);
+        }
+
+        function bindEvents() {
+            document.addEventListener('click', event => {
+                // Un clic fuori da un tooltip aperto lo richiude.
+                if (!event.target.closest('.tooltip')) closeAllTooltips();
+                const el = event.target.closest('[data-action]');
+                if (!el || el.matches('input')) return;
+                dispatch(event);
+            });
+            document.addEventListener('input', dispatch);
+            document.addEventListener('change', dispatch);
+
+            // Gli elementi con role="button" che non sono <button> hanno
+            // bisogno dell'attivazione da tastiera.
+            document.addEventListener('keydown', event => {
+                if (event.key === 'Escape') { closeAllTooltips(); return; }
+                if (event.key !== 'Enter' && event.key !== ' ') return;
+                const el = event.target.closest('[data-action][role="button"]');
+                if (!el) return;
+                event.preventDefault();
+                dispatch(event);
+            });
+
+            const importInput = $('input-import-presets');
+            if (importInput) {
+                importInput.addEventListener('change', event => {
+                    handleImportFile(event.target.files && event.target.files[0]);
+                    event.target.value = '';
+                });
+            }
+
+            // Un link condiviso aperto mentre l'app è già caricata cambia
+            // solo l'hash: va comunque applicato.
+            window.addEventListener('hashchange', () => {
+                if (applyStateFromHash()) {
+                    applyTranslations();
+                    renderAll();
+                }
+            });
+        }
+
+        /* ==================================================================
+           12. AVVIO
            ================================================================== */
 
         function init() {
             const savedTheme = storageGet(STORAGE_KEYS.theme) || storageGet(STORAGE_KEYS.legacyTheme);
             if (savedTheme) applyTheme(savedTheme);
 
+            currentLang = detectLanguage();
+            applyStateFromHash();
+            applyTranslations();
+            bindEvents();
+
             // Ogni sezione dinamica va disegnata almeno una volta all'avvio,
             // altrimenti i container restano vuoti finché l'utente non li tocca.
-            updateUIState();
-            renderSavedPresets();
-            updateResults();
-            updateEditingGuide();
+            renderAll();
 
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('./sw.js').catch(() => {});
