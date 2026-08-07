@@ -69,8 +69,8 @@ npx playwright install chromium    # solo la prima volta
 npm test
 ```
 
-49 test end-to-end, eseguiti su due profili — desktop e mobile (Pixel 7) — per un
-totale di 98 esecuzioni. Coprono inizializzazione, motore di calcolo, escaping e
+55 test end-to-end, eseguiti su due profili — desktop e mobile (Pixel 7) — per un
+totale di 110 esecuzioni. Coprono inizializzazione, motore di calcolo, escaping e
 persistenza dei preset, export/import, condivisione via link, accessibilità
 (semantica tab, `aria-pressed`, tastiera), safe area del notch, autonomia della
 batteria, reattività del simulatore agli obiettivi di editing, traduzioni e scelta
@@ -134,6 +134,19 @@ difficile da seguire, non più chiaro. C'è un test che lo verifica.
 **Per aggiungere una lingua**: duplica l'oggetto `EN` in `index.html`,
 traducine i valori e aggiungi il codice a `SUPPORTED_LANGS`. Le chiavi restano
 le stesse.
+
+## Colore
+
+Un solo colore indica «selezionato»: quello del brand attivo, che cambia con la
+camera scelta (teal DJI, blu GoPro, giallo Insta360). Le intestazioni di sezione
+sono neutre, così l’accento resta riservato a ciò che è interattivo. Gli altri
+colori hanno un significato preciso e non decorativo: indigo per i preset, ambra
+per la batteria, verde per un esito positivo, rosso per un avviso, cyan per
+l’acqua.
+
+Il testo sopra il colore del brand usa `--brand-ink`, scelto sul contrasto
+misurato invece che a occhio: scuro su teal (7,2:1) e su giallo (9,3:1), bianco
+su blu GoPro (5,2:1). Col bianco fisso, il giallo Insta360 dava 1,9:1.
 
 ## Accessibilità
 
