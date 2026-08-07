@@ -932,22 +932,41 @@
 
         // batteryMin: minuti indicativi di registrazione continua a 1080p/30 in
         // condizioni miti. Sono stime da calibrare sul campo, non dati ufficiali.
+        //
+        // La scala conta più del singolo numero, perché il confronto fra camere
+        // ordina proprio su questo campo: mescolare un dato di marketing con una
+        // stima prudente produrrebbe una classifica falsata. I modelli aggiunti
+        // dopo i primi dieci seguono quindi la stessa regola con cui erano stati
+        // ricavati quelli: circa il 60% del valore di autonomia dichiarato dal
+        // costruttore, che è ottenuto in modalità endurance e a 24 fps.
+        //
+        // Anche bitrate è il valore in alta qualità del modo di punta, non il
+        // picco assoluto raggiungibile con firmware modificati.
         const cameraModelsData = {
             dji: {
                 'action5pro': { name: 'DJI Osmo Action 5 Pro', shortName: 'Action 5 Pro', maxRes: '4K @ 120fps (Sensore 1/1.3" 4:3)', logProfile: '10-bit D-Log M', waterproof: 20, mount: 'Sgancio Mag. v2', audio: 'Dual BT Direct DJI Mic 2.', bitrate: 110, photoRes: '40 MP RAW', batteryMin: 150 },
                 'action4': { name: 'DJI Osmo Action 4', shortName: 'Action 4', maxRes: '4K @ 120fps (Sensore 1/1.3" 4:3)', logProfile: '10-bit D-Log M', waterproof: 18, mount: 'Sgancio Mag. Rapido', audio: 'BT Direct DJI Mic 2.', bitrate: 110, photoRes: '10 MP RAW', batteryMin: 120 },
-                'action3': { name: 'DJI Osmo Action 3', shortName: 'Action 3', maxRes: '4K @ 120fps (Sensore 1/1.7" 4:3)', logProfile: '10-bit D-Cinelike', waterproof: 16, mount: 'Sgancio Mag. Rapido', audio: 'RX USB-C per DJI Mic.', bitrate: 100, photoRes: '12 MP RAW', batteryMin: 115 }
+                'action3': { name: 'DJI Osmo Action 3', shortName: 'Action 3', maxRes: '4K @ 120fps (Sensore 1/1.7" 4:3)', logProfile: '10-bit D-Cinelike', waterproof: 16, mount: 'Sgancio Mag. Rapido', audio: 'RX USB-C per DJI Mic.', bitrate: 100, photoRes: '12 MP RAW', batteryMin: 115 },
+                'action6': { name: 'DJI Osmo Action 6', shortName: 'Action 6', maxRes: '4K @ 120fps (Sensore 1/1.1" 4:3)', logProfile: '10-bit D-Log M', waterproof: 20, mount: 'Sgancio Mag. v2', audio: 'Dual BT Direct DJI Mic 2/3.', bitrate: 120, photoRes: '38 MP RAW', batteryMin: 150 },
+                // L'autonomia presuppone il Vision Dock, incluso in ogni combo:
+                // la sola camera monta 530 mAh e dura molto meno.
+                'osmonano': { name: 'DJI Osmo Nano', shortName: 'Osmo Nano', maxRes: '4K @ 60fps (1/1.3", 120fps in slow-mo)', logProfile: '10-bit D-Log M', waterproof: 10, mount: 'Magnetico bilaterale', audio: 'Mic stereo + BT DJI Mic.', bitrate: 100, photoRes: '35 MP RAW', batteryMin: 120 }
             },
             gopro: {
                 'hero13': { name: 'GoPro HERO 13 Black', shortName: 'HERO 13 Black', maxRes: '5.3K @ 60fps (8:7)', logProfile: '10-bit GP-Log / HLG', waterproof: 10, mount: 'Linguette + Latch Mag.', audio: 'BT AirPods/Mic / Media Mod.', bitrate: 120, photoRes: '27 MP RAW', batteryMin: 100 },
                 'hero12': { name: 'GoPro HERO 12 Black', shortName: 'HERO 12 Black', maxRes: '5.3K @ 60fps (8:7)', logProfile: '10-bit GP-Log / HDR', waterproof: 10, mount: 'Linguette Pieghevoli', audio: 'Dual BT Audio / Media Mod.', bitrate: 120, photoRes: '27 MP RAW', batteryMin: 95 },
                 'hero11': { name: 'GoPro HERO 11 Black', shortName: 'HERO 11 Black', maxRes: '5.3K @ 60fps (8:7)', logProfile: '10-bit Flat', waterproof: 10, mount: 'Linguette Pieghevoli', audio: 'Media Mod o Mic 3.5mm.', bitrate: 120, photoRes: '27 MP RAW', batteryMin: 90 },
-                'hero10_9': { name: 'GoPro HERO 10 / 9 Black', shortName: 'HERO 10 / 9', maxRes: '5.3K @ 60fps', logProfile: '8-bit Flat', waterproof: 10, mount: 'Linguette Pieghevoli', audio: 'Media Mod o Mic 3.5mm.', bitrate: 100, photoRes: '23 MP RAW', batteryMin: 75 }
+                'hero10_9': { name: 'GoPro HERO 10 / 9 Black', shortName: 'HERO 10 / 9', maxRes: '5.3K @ 60fps', logProfile: '8-bit Flat', waterproof: 10, mount: 'Linguette Pieghevoli', audio: 'Media Mod o Mic 3.5mm.', bitrate: 100, photoRes: '23 MP RAW', batteryMin: 75 },
+                'mission1pro': { name: 'GoPro MISSION 1 PRO', shortName: 'MISSION 1 Pro', maxRes: '8K @ 60fps (Sensore 1")', logProfile: '10-bit GP-Log2 / HLG', waterproof: 20, mount: 'Linguette + Filetto 1/4"', audio: '4 mic 32-bit float / USB-C.', bitrate: 240, photoRes: '50 MP RAW', batteryMin: 185 },
+                'max2': { name: 'GoPro MAX2 (360°)', shortName: 'MAX2 360°', maxRes: '8K @ 30fps 360°', logProfile: '10-bit GP-Log', waterproof: 5, mount: 'Linguette Pieghevoli', audio: '6 mic 360° + riduzione vento.', bitrate: 120, photoRes: '29 MP', batteryMin: 85 }
             },
             insta360: {
                 'acepro2': { name: 'Insta360 Ace Pro 2', shortName: 'Ace Pro 2', maxRes: '8K @ 30fps (Leica 1/1.3")', logProfile: '10-bit I-Log', waterproof: 12, mount: 'Sgancio Mag. Dual-Latch', audio: 'BT Mic / Cardo / Sena.', bitrate: 120, photoRes: '48 MP RAW', batteryMin: 120 },
                 'x4': { name: 'Insta360 X4 (360°)', shortName: 'X4 360°', maxRes: '8K @ 30fps 360°', logProfile: '10-bit I-Log / Flat 360°', waterproof: 10, mount: 'Filetto Standard 1/4"', audio: 'Vento 360° + Adattatore Mic.', bitrate: 130, photoRes: '72 MP RAW', batteryMin: 100 },
-                'goultra': { name: 'Insta360 GO Ultra', shortName: 'GO Ultra', maxRes: '4K @ 60fps', logProfile: '10-bit Flat', waterproof: 10, mount: 'Action Mount Mag.', audio: 'Mic stereo anti-vento.', bitrate: 100, photoRes: '12 MP RAW', batteryMin: 70 }
+                'goultra': { name: 'Insta360 GO Ultra', shortName: 'GO Ultra', maxRes: '4K @ 60fps', logProfile: '10-bit Flat', waterproof: 10, mount: 'Action Mount Mag.', audio: 'Mic stereo anti-vento.', bitrate: 100, photoRes: '12 MP RAW', batteryMin: 70 },
+                // I-Log qui è 8-bit e solo in 5.7K: dirlo evita di consigliare
+                // un flusso di lavoro log che la camera non regge davvero.
+                'x5': { name: 'Insta360 X5 (360°)', shortName: 'X5 360°', maxRes: '8K @ 30fps 360°', logProfile: 'I-Log 8-bit (solo 5.7K)', waterproof: 15, mount: 'Filetto Standard 1/4"', audio: 'Wind Guard + Adattatore Mic.', bitrate: 180, photoRes: '72 MP', batteryMin: 130 }
             }
         };
 

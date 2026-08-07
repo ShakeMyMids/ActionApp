@@ -3,8 +3,12 @@
 [![Test](https://github.com/ShakeMyMids/ActionApp/actions/workflows/test.yml/badge.svg)](https://github.com/ShakeMyMids/ActionApp/actions/workflows/test.yml)
 
 PWA bilingue (italiano/inglese) che calcola le impostazioni di ripresa
-consigliate per action cam **DJI Osmo**, **GoPro HERO** e **Insta360**, partendo
+consigliate per action cam **DJI Osmo**, **GoPro** e **Insta360**, partendo
 dallo scenario reale invece che da una tabella di preset fissi.
+
+Il catalogo copre **15 modelli**: Osmo Action 6, 5 Pro, 4, 3 e Osmo Nano per DJI;
+HERO 13, 12, 11 e 10/9 Black, MISSION 1 Pro e MAX2 per GoPro; Ace Pro 2, X5, X4 e
+GO Ultra per Insta360.
 
 Scegli camera, modalità (video / foto / timelapse), situazioni di ripresa, luce e
 profilo energetico: l'app calcola risoluzione, framerate, otturatore, filtro ND,
@@ -63,6 +67,20 @@ tests/              suite Playwright
 ```
 
 Nessun framework, nessun passo di build: `index.html` è direttamente ciò che gira.
+
+## I dati delle camere
+
+Risoluzione massima, profilo colore, profondità senza custodia e risoluzione foto
+sono le specifiche dichiarate dai costruttori. `bitrate` e `batteryMin` sono invece
+**stime su scala interna**: l'autonomia dichiarata è misurata in modalità endurance
+a 24 fps e non è quello che ottieni sul campo, quindi vale circa il 60% del valore
+ufficiale, e il bitrate è quello in alta qualità del modo di punta, non il picco
+raggiungibile con firmware modificati.
+
+Che la scala resti la stessa conta più del singolo numero, perché il confronto fra
+camere ordina proprio su quei campi: mescolare un dato di marketing con una stima
+prudente produrrebbe una classifica falsata. Aggiungendo un modello, segui la
+convenzione documentata sopra `cameraModelsData`.
 
 ## Avvio in locale
 
