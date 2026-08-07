@@ -22,15 +22,16 @@ const MIME = {
   '.md': 'text/markdown; charset=utf-8'
 };
 
-// Marcatore iniettato nel <title> su richiesta dei test: serve a simulare un
-// deploy e verificare che il service worker serva subito la versione nuova.
-let titleMarker = '';
+// Marcatore iniettato su richiesta dei test per simulare un deploy e
+// verificare che il service worker serva subito la versione nuova. Va in un
+// meta e non nel <title>, che l'app riscrive secondo la lingua scelta.
+let deployMarker = '';
 
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
 
   if (url.pathname === '/__test/marker') {
-    titleMarker = url.searchParams.get('value') || '';
+    deployMarker = url.searchParams.get('value') || '';
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     return res.end('ok');
   }
@@ -50,8 +51,9 @@ const server = http.createServer((req, res) => {
 
   const ext = path.extname(file);
   let body = fs.readFileSync(file);
-  if (ext === '.html' && titleMarker) {
-    body = Buffer.from(body.toString('utf8').replace('<title>', `<title>${titleMarker} `));
+  if (ext === '.html' && deployMarker) {
+    body = Buffer.from(body.toString('utf8').replace(
+      '</head>', `<meta name="x-deploy-marker" content="${deployMarker}"></head>`));
   }
 
   res.writeHead(200, {
@@ -64,5 +66,6 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`Action Cam Studio in ascolto su http://localhost:${PORT}`);
+  console.log(`ReadyClickShot in ascolto su http://localhost:${PORT}`);
 });
+
