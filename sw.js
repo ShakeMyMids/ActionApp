@@ -4,7 +4,7 @@
 //     quindi la cache-first bloccherebbe l'utente su una versione vecchia per
 //     sempre. La cache resta come fallback offline.
 //   - Asset statici (icone, manifest): CACHE-FIRST con aggiornamento in background.
-const CACHE_NAME = 'readyclickshot-v12-cache';
+const CACHE_NAME = 'readyclickshot-v13-cache';
 
 const PRECACHE_URLS = [
   './',

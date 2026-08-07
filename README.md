@@ -30,6 +30,21 @@ dominante, il trattamento audio confronta i livelli con e senza vento.
 Restano nel browser, non lasciano il dispositivo — e puoi esportarli in JSON per
 riportarli su un altro telefono.
 
+**Quanto giri davvero.** L'app sa quanto dura la batteria e quanti GB al minuto
+consuma il setup scelto, ma sono due numeri che da soli non rispondono alla
+domanda vera: *mi ferma prima la scheda o la batteria?* Scegliendo la capacità
+della MicroSD il confronto diventa esplicito, e cambia sotto gli occhi quando
+alzi gli fps o passi al profilo Endurance. L'autonomia dichiarata è a 1080p/30,
+e l'app lo dice invece di far finta che i due numeri siano confrontabili alla pari.
+
+**Quale camera porto.** Chi possiede più di una action cam non deve scegliere le
+impostazioni, deve scegliere la camera. Il confronto ordina tutti i modelli sul
+criterio che conta per la ripresa in corso — profondità sott'acqua, autonomia in
+viaggio, bitrate con poca luce — e dichiara perché sono in quell'ordine. Si
+ordina solo su dati numerici inequivocabili: una classifica costruita sulla
+risoluzione massima sembrerebbe precisa senza esserlo, perché «8K a 30 fps» non è
+peggio di «4K a 120 fps», dipende da cosa stai girando.
+
 **Setup condivisibile.** «Copia link setup» produce un URL che contiene l'intera
 configurazione: chi lo apre vede esattamente le tue impostazioni. «Copia
 impostazioni» genera invece un riepilogo testuale da incollare nelle note, comodo
@@ -69,13 +84,14 @@ npx playwright install chromium    # solo la prima volta
 npm test
 ```
 
-63 test end-to-end, eseguiti su due profili — desktop e mobile (Pixel 7) — per un
-totale di 126 esecuzioni. Coprono inizializzazione, motore di calcolo, escaping e
+82 test end-to-end, eseguiti su due profili — desktop e mobile (Pixel 7) — per un
+totale di 164 esecuzioni. Coprono inizializzazione, motore di calcolo, escaping e
 persistenza dei preset, export/import (compresi i file con valori fuori dominio),
-condivisione via link, accessibilità (semantica tab, `aria-pressed`, tastiera),
-safe area del notch, autonomia della batteria, reattività del simulatore agli
-obiettivi di editing, traduzioni e scelta della lingua dal browser, comportamento
-PWA e service worker (aggiornamento dopo un deploy e fallback offline).
+limite di ripresa, confronto fra camere, condivisione via link, accessibilità
+(semantica tab, `aria-pressed`, tastiera), safe area del notch, autonomia della
+batteria, reattività del simulatore agli obiettivi di editing, traduzioni e scelta
+della lingua dal browser, comportamento PWA, shortcut del manifest e service
+worker (aggiornamento dopo un deploy e fallback offline).
 
 Il `package-lock.json` è versionato e la CI installa con `npm ci`, così una nuova
 release di Playwright non entra da sola in un'esecuzione.

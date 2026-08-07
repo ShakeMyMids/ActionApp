@@ -154,6 +154,14 @@
         .app-title span.badge { background: var(--brand-color); color: var(--brand-ink); font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; font-weight: 800; transition: background 0.3s; }
         .container { padding: 16px calc(16px + var(--safe-right)) 16px calc(16px + var(--safe-left)); max-width: 600px; margin: 0 auto; width: 100%; flex: 1 0 auto; }
 
+        /* Piè di pagina: sta fuori dal container perché vale per tutte le
+           schede. flex-shrink: 0 lo tiene attaccato in fondo anche quando il
+           contenuto è corto. */
+        .app-footer { flex: 0 0 auto; text-align: center; padding: 18px calc(16px + var(--safe-right)) 4px calc(16px + var(--safe-left)); font-size: 0.78rem; color: var(--text-secondary); }
+        .app-footer a { color: var(--brand-color); text-decoration: none; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 8px; transition: background 0.2s; }
+        .app-footer a:hover, .app-footer a:focus-visible { background: var(--bg-card); text-decoration: underline; }
+        .app-footer svg { width: 16px; height: 16px; fill: currentColor; }
+
         /* Nav Tabs */
         .tab-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-nav); backdrop-filter: blur(16px); border-top: 1px solid var(--border); display: flex; justify-content: space-around; padding: 8px calc(4px + var(--safe-right)) calc(24px + var(--safe-bottom)) calc(4px + var(--safe-left)); z-index: 100; }
         .tab-btn { font-family: var(--font-display); background: none; border: none; color: var(--text-secondary); display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 0.66rem; font-weight: 600; letter-spacing: 0.1px; cursor: pointer; width: 25%; transition: color 0.2s, transform 0.2s; }
@@ -250,6 +258,20 @@
         .saved-presets-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
         .preset-tag-btn { background: var(--bg-card); color: var(--cyan); border: 1px solid var(--border); padding: 6px 10px; border-radius: 14px; font-size: 0.72rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 4px var(--shadow-subtle); }
         .preset-del { color: #ef4444; font-weight: bold; margin-left: 2px; padding: 0 4px; }
+
+        /* Confronto camere: una riga per modello, ordinate sul criterio che
+           conta per lo scenario scelto. Ogni riga è un bottone, così dal
+           confronto si passa direttamente alla camera. */
+        .compare-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 12px; margin-bottom: 16px; }
+        .compare-reason { font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 10px; line-height: 1.4; }
+        .compare-row { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; margin-bottom: 6px; cursor: pointer; color: var(--text-primary); font-family: inherit; transition: border-color 0.2s, background 0.2s; }
+        .compare-row:hover, .compare-row:focus-visible { border-color: var(--brand-color); }
+        .compare-row.selected { border-color: var(--brand-color); border-left: 4px solid var(--brand-color); }
+        .compare-rank { font-family: var(--font-display); font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); min-width: 16px; }
+        .compare-body { flex: 1; min-width: 0; }
+        .compare-name { display: block; font-family: var(--font-display); font-size: 0.82rem; font-weight: 600; }
+        .compare-specs { display: block; font-size: 0.68rem; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .compare-value { font-family: var(--font-display); font-size: 0.9rem; font-weight: 700; color: var(--brand-color); font-variant-numeric: tabular-nums; white-space: nowrap; }
 
         .rigging-card { background: var(--bg-primary); border: 1px solid var(--indigo); border-left: 4px solid var(--indigo); border-radius: 10px; padding: 12px; margin-bottom: 16px; }
         .rigging-title { font-size: 0.82rem; font-weight: 700; color: var(--indigo); margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
@@ -521,6 +543,12 @@
                             <div class="action-row">
                                 <button type="button" class="btn-ghost" data-action="copySettings" data-i18n>📋 Copia impostazioni</button>
                                 <button type="button" class="btn-ghost" data-action="copyShareLink" data-i18n>🔗 Copia link setup</button>
+                                <!-- Miglioramento progressivo: compare solo dove
+                                     il sistema offre un foglio di condivisione. -->
+                                <button type="button" class="btn-ghost" id="btn-share" data-action="shareSetup" hidden data-i18n>📤 Condividi setup</button>
+                                <!-- Compare solo quando il browser propone
+                                     davvero l'installazione della PWA. -->
+                                <button type="button" class="btn-ghost" id="btn-install" data-action="installApp" hidden data-i18n>⬇️ Installa app</button>
                             </div>
                         </div>
 
@@ -663,12 +691,32 @@
                             <div id="battery-result-time" class="calc-val" style="color:var(--amber);">~115 Minuti</div>
                             <div id="battery-result-note" class="calc-sub">Condizioni ottimali per batteria standard</div>
                         </div>
+
+                        <div class="section-title" style="margin-bottom: 8px;" data-i18n>3. Capacità della MicroSD</div>
+                        <div class="options-grid" style="margin-bottom: 12px;">
+                            <button class="btn-radio" data-action="setCardSize" data-value="64">64 GB</button>
+                            <button class="btn-radio active" data-action="setCardSize" data-value="128">128 GB</button>
+                            <button class="btn-radio" data-action="setCardSize" data-value="256">256 GB</button>
+                            <button class="btn-radio" data-action="setCardSize" data-value="512">512 GB</button>
+                        </div>
+                        <div id="limit-output" class="calc-output">
+                            <div style="font-size: 0.78rem; color: var(--text-secondary); text-transform: uppercase;" data-i18n>Ti fermi prima per</div>
+                            <div id="limit-verdict" class="calc-val">—</div>
+                            <div id="limit-detail" class="calc-sub"></div>
+                            <div id="limit-caveat" class="calc-sub" style="margin-top: 6px; opacity: 0.85;"></div>
+                        </div>
                     </div>
                 </div>
 
                 <!-- COL DESTRA: HARDWARE, RIGGING & AUDIO (SPOSTATO QUI) -->
                 <div class="desktop-right-col">
-                    
+
+                    <div class="section-title" data-i18n>📷 Quale camera porto?</div>
+                    <div class="compare-card">
+                        <div id="compare-reason" class="compare-reason"></div>
+                        <div id="compare-list"></div>
+                    </div>
+
                     <div class="section-title" data-i18n>🔧 Setup Fisico & Rigging (Dinamico)</div>
                     <!-- RIGGING CARD MOVED TO TAB 2 -->
                     <div id="wrapper-rigging" class="rigging-card" style="margin-top:0;">
@@ -678,6 +726,7 @@
                         <div id="rigging-text" class="rigging-text" style="font-size:0.85rem;">
                             Seleziona un modello e un'azione nel Tab 1 per vedere qui il setup hardware perfetto (Pettorina, Out-Front Mount, Treppiede, ecc.).
                         </div>
+                        <div id="rigging-mount" class="rigging-text" style="font-size:0.82rem; margin-top:8px;"></div>
                     </div>
 
                     <div class="section-title" data-i18n>🎙️ Audio Gain Staging (Esterno)</div>
@@ -846,6 +895,14 @@
 
     </div>
 
+    <!-- Piè di pagina. L'handle non si traduce: è un nome proprio, come i
+         nomi commerciali delle camere. -->
+    <footer class="app-footer">
+        <span data-i18n>Creato da</span>
+        <a href="https://instagram.com/ShakeMyMids" target="_blank" rel="noopener noreferrer" aria-label="Instagram: @ShakeMyMids">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41-.56-.22-.96-.48-1.38-.9-.42-.42-.68-.82-.9-1.38-.16-.42-.36-1.06-.41-2.23-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41 1.27-.06 1.65-.07 4.85-.07M12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63c-.79.3-1.46.72-2.13 1.38C1.35 2.68.93 3.35.63 4.14.33 4.9.13 5.78.07 7.05.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.06 1.27.26 2.15.56 2.91.3.79.72 1.46 1.38 2.13.67.66 1.34 1.08 2.13 1.38.76.3 1.64.5 2.91.56C8.33 23.99 8.74 24 12 24s3.67-.01 4.95-.07c1.27-.06 2.15-.26 2.91-.56.79-.3 1.46-.72 2.13-1.38.66-.67 1.08-1.34 1.38-2.13.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.27-.26-2.15-.56-2.91-.3-.79-.72-1.46-1.38-2.13C21.32 1.35 20.65.93 19.86.63c-.76-.3-1.64-.5-2.91-.56C15.67.01 15.26 0 12 0z"/><path d="M12 5.84a6.16 6.16 0 1 0 0 12.32 6.16 6.16 0 0 0 0-12.32zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8z"/><circle cx="18.41" cy="5.59" r="1.44"/></svg>@ShakeMyMids</a>
+    </footer>
+
     <!-- Conferme effimere (copia, export, import). aria-live le annuncia
          anche ai lettori di schermo. -->
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
@@ -867,7 +924,10 @@
             legacyTheme: 'theme',
             lang: 'camstudio_lang',
             presets: 'camstudio_presets_v11',
-            legacyPresets: 'action4_custom_presets'
+            legacyPresets: 'action4_custom_presets',
+            // La scheda è un dato dell'attrezzatura, non della ripresa: resta
+            // fuori dai preset e dal link condiviso, e vale per questo device.
+            cardGb: 'camstudio_card_gb'
         };
 
         // batteryMin: minuti indicativi di registrazione continua a 1080p/30 in
@@ -931,9 +991,26 @@
         const REGION_VALUES = ['pal', 'ntsc'];
         const SUB_VALUES = ['fuori', 'sub'];
 
+        // Tagli di MicroSD offerti dal calcolo del limite di ripresa.
+        const CARD_SIZES = [64, 128, 256, 512];
+
+        // Schede dell'app, raggiungibili anche dagli shortcut del manifest.
+        const TAB_VALUES = ['wizard', 'calc', 'editing', 'guide'];
+
+        // Criteri per il confronto fra camere. Si ordina solo su campi
+        // numerici inequivocabili: una classifica costruita su maxRes
+        // sembrerebbe precisa senza esserlo, perché "8K @ 30fps" non è
+        // peggio di "4K @ 120fps" — dipende da cosa stai girando.
+        const COMPARE_CRITERIA = {
+            depth: { field: 'waterproof', unit: 'm', reason: 'In ordine di profondità: hai scelto la ripresa subacquea, e senza custodia il limite è quello.' },
+            battery: { field: 'batteryMin', unit: 'min', reason: 'In ordine di autonomia: in viaggio la differenza la fa quanto durano lontano da una presa.' },
+            lowlight: { field: 'bitrate', unit: 'Mbps', reason: 'In ordine di bitrate: con poca luce è il flusso dati che trattiene il dettaglio dentro il rumore.' },
+            quality: { field: 'bitrate', unit: 'Mbps', reason: 'In ordine di bitrate: fra questi modelli è la misura di qualità più confrontabile.' }
+        };
+
         // Versione del formato di export dei preset. Segue la major dell'app,
         // così un file salvato resta riconoscibile quando la forma cambia.
-        const PRESET_SCHEMA_VERSION = 12;
+        const PRESET_SCHEMA_VERSION = 13;
 
         // L'autonomia parte dal dato del modello e viene scalata dalla
         // temperatura, invece di essere un numero fisso uguale per tutte le cam.
@@ -1049,6 +1126,7 @@
                 'ReadyClickShot — action cam settings that fit the scene',
 
             // --- Intestazioni e navigazione ---
+            'Creato da': 'Made by',
             'Setup Wizard': 'Setup Wizard',
             'Rigging & Calc': 'Rigging & Calc',
             'Editing & Vis': 'Editing & Preview',
@@ -1296,6 +1374,37 @@
             'Shutter Perfetto': 'Ideal Shutter',
             'In sole diretto (EV15): {nd}': 'In direct sun (EV15): {nd}',
             'Calcolatore Autonomia (Stress Test)': 'Battery Calculator (stress test)',
+
+            // --- Condivisione nativa, installazione, attacco ---
+            '📤 Condividi setup': '📤 Share setup',
+            '⬇️ Installa app': '⬇️ Install app',
+            'Il mio setup per {model}': 'My setup for {model}',
+            '<b>🔩 Attacco della camera:</b> {mount}': '<b>🔩 Camera mount:</b> {mount}',
+
+            // --- Confronto fra camere ---
+            '📷 Quale camera porto?': '📷 Which camera do I take?',
+            'In ordine di profondità: hai scelto la ripresa subacquea, e senza custodia il limite è quello.':
+                'Ranked by depth: you picked underwater shooting, and without a housing that is the limit.',
+            'In ordine di autonomia: in viaggio la differenza la fa quanto durano lontano da una presa.':
+                'Ranked by battery life: travelling, what matters is how long they last away from a socket.',
+            'In ordine di bitrate: con poca luce è il flusso dati che trattiene il dettaglio dentro il rumore.':
+                'Ranked by bitrate: in low light the data rate is what holds detail inside the noise.',
+            'In ordine di bitrate: fra questi modelli è la misura di qualità più confrontabile.':
+                'Ranked by bitrate: across these models it is the most comparable measure of quality.',
+            '{battery} min · {depth} m · {log}': '{battery} min · {depth} m · {log}',
+            'Il limite di ripresa si calcola in modalità video.': 'The recording limit is calculated in video mode.',
+
+            // --- Limite di ripresa: scheda contro batteria ---
+            '3. Capacità della MicroSD': '3. MicroSD capacity',
+            'Ti fermi prima per': 'You run out of',
+            'La scheda': 'Card space',
+            'La batteria': 'Battery',
+            '~{limit} minuti · scheda {card} GB: {cardMin} min · batteria: {batteryMin} min':
+                '~{limit} minutes · {card} GB card: {cardMin} min · battery: {batteryMin} min',
+            'L\'autonomia è dichiarata a 1080p/30: in 4K la batteria cala e potrebbe fermarti prima della scheda.':
+                'Battery life is rated at 1080p/30: in 4K it drops, and may run out before the card does.',
+            'L\'autonomia è dichiarata a 1080p/30: in 4K il margine sulla scheda è ancora più ampio.':
+                'Battery life is rated at 1080p/30: in 4K the margin over the card is wider still.',
             '2. Temperatura Esterna': '2. Outside temperature',
             '❄️ Freddo (-10°)': '❄️ Cold (-10°)',
             '🌤️ Mite (20°)': '🌤️ Mild (20°)',
@@ -1528,10 +1637,15 @@
         let currentRegion = 'pal';
         let currentSub = 'fuori';
         let currentTemp = 20;
+        let currentCardGb = 128;
         let compromiseChoices = { fpsPriority: 'light', profilePriority: 'dlog', fovPriority: 'dewarp', stabPriority: 'rocksteady' };
 
         // fps calcolati dall'ultimo giro del motore video, usati dal simulatore.
         let lastComputedFps = 30;
+
+        // Bitrate dell'ultimo giro del motore, usato dal limite di ripresa:
+        // sta in un'altra scheda ma deve rispecchiare le stesse impostazioni.
+        let lastMbps = 110;
 
         /* ==================================================================
            4. TEMA E NAVIGAZIONE
@@ -1550,6 +1664,9 @@
         }
 
         function switchTab(tabId) {
+            // Con gli shortcut del manifest la scheda arriva dall'URL: un id
+            // sconosciuto spegnerebbe tutti i pannelli lasciando la pagina vuota.
+            if (!TAB_VALUES.includes(tabId)) return;
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 const on = btn.dataset.value === tabId;
                 btn.classList.toggle('active', on);
@@ -1892,9 +2009,46 @@
             return true;
         }
 
+        // Gli shortcut del manifest portano la scheda nell'hash. Serve sia
+        // all'avvio sia a hash cambiato: aprendo uno shortcut con l'app già
+        // viva il browser non ricarica, cambia solo l'hash.
+        function applyTabFromHash() {
+            const tab = new URLSearchParams(location.hash.replace(/^#/, '')).get('tab');
+            if (TAB_VALUES.includes(tab)) switchTab(tab);
+        }
+
         async function copyShareLink() {
             const ok = await copyToClipboard(buildShareUrl());
             showToast(t(ok ? 'Link del setup copiato' : 'Copia non riuscita'));
+        }
+
+        // Sul telefono il foglio di condivisione del sistema è il gesto
+        // naturale, ma non esiste ovunque: resta accanto alla copia negli
+        // appunti invece di sostituirla, e il bottone appare solo dove serve.
+        async function shareSetup() {
+            if (!navigator.share) return;
+            try {
+                await navigator.share({
+                    title: 'ReadyClickShot',
+                    text: t('Il mio setup per {model}', { model: activeModel().shortName }),
+                    url: buildShareUrl()
+                });
+            } catch (e) {
+                // L'utente che annulla il foglio non è un errore da segnalare.
+            }
+        }
+
+        // L'app serve offline in mezzo al nulla, quindi vale la pena invitare
+        // a installarla — ma solo quando è il browser a dire che si può.
+        let installPrompt = null;
+
+        async function installApp() {
+            if (!installPrompt) return;
+            installPrompt.prompt();
+            await installPrompt.userChoice;
+            installPrompt = null;
+            const btn = $('btn-install');
+            if (btn) btn.hidden = true;
         }
 
         // Riepilogo testuale, da incollare nelle note del telefono davanti
@@ -1959,6 +2113,126 @@
             const timeEl = $('battery-result-time');
             if (timeEl) { timeEl.innerText = t('~{minutes} Minuti', { minutes }); timeEl.style.color = preset.color; }
             setText('battery-result-note', t('{note} (stima per {model})', { note: t(preset.note), model: activeModel().shortName }));
+            renderRecordingLimit();
+        }
+
+        // Minuti di ripresa che stanno su una scheda, al bitrate corrente.
+        // La capacità dichiarata delle schede è in GB decimali (10^9), non in
+        // GiB: usare 1024^3 qui gonfierebbe la stima di circa il 7%.
+        function cardMinutes(gb, mbps) {
+            if (!mbps) return 0;
+            return (gb * 8000) / mbps / 60;
+        }
+
+        function batteryMinutes() {
+            const preset = BATTERY_TEMPS[String(currentTemp)] || BATTERY_TEMPS['20'];
+            return ((activeModel().batteryMin || 115) * preset.factor);
+        }
+
+        // Scheda e batteria si esauriscono in momenti diversi, e finora l'app
+        // mostrava i due numeri senza mai confrontarli. Il vincolo vero è il
+        // più basso dei due: è quello che ti ferma davvero.
+        function renderRecordingLimit() {
+            const verdictEl = $('limit-verdict');
+            if (!verdictEl) return;
+
+            // Il bitrate lo produce solo il motore video: in foto e timelapse
+            // resterebbe quello dell'ultimo video, cioè un numero che non
+            // c'entra. Meglio dirlo che mostrarne uno finto.
+            if (currentMode !== 'video') {
+                verdictEl.innerText = '—';
+                verdictEl.style.color = 'var(--text-secondary)';
+                setText('limit-detail', t('Il limite di ripresa si calcola in modalità video.'));
+                setText('limit-caveat', '');
+                return;
+            }
+
+            const card = cardMinutes(currentCardGb, lastMbps);
+            const battery = batteryMinutes();
+            const cardIsLimit = card <= battery;
+            const limit = Math.round(Math.min(card, battery) / 5) * 5;
+
+            verdictEl.innerText = cardIsLimit ? t('La scheda') : t('La batteria');
+            verdictEl.style.color = cardIsLimit ? 'var(--cyan)' : 'var(--amber)';
+
+            setText('limit-detail', t('~{limit} minuti · scheda {card} GB: {cardMin} min · batteria: {batteryMin} min', {
+                limit,
+                card: currentCardGb,
+                cardMin: Math.round(card),
+                batteryMin: Math.round(battery)
+            }));
+
+            // Onestà sui dati: batteryMin è dichiarato a 1080p/30. Girando in
+            // 4K la batteria dura meno di così, quindi quando è già lei il
+            // vincolo lo è ancora di più, e va detto invece di lasciar credere
+            // che i due numeri siano confrontabili alla pari.
+            setText('limit-caveat', cardIsLimit
+                ? t('L\'autonomia è dichiarata a 1080p/30: in 4K la batteria cala e potrebbe fermarti prima della scheda.')
+                : t('L\'autonomia è dichiarata a 1080p/30: in 4K il margine sulla scheda è ancora più ampio.'));
+        }
+
+        // Il criterio segue lo scenario: la subacquea vince su tutto perché è
+        // un vincolo fisico, non una preferenza.
+        function activeCompareCriterion() {
+            if (currentSub === 'sub') return COMPARE_CRITERIA.depth;
+            if (selectedScenarios.includes('night') || selectedScenarios.includes('indoor')) return COMPARE_CRITERIA.lowlight;
+            if (selectedScenarios.includes('travel')) return COMPARE_CRITERIA.battery;
+            return COMPARE_CRITERIA.quality;
+        }
+
+        // Tutti i modelli, di ogni brand, in un elenco piatto.
+        function allModels() {
+            return Object.keys(cameraModelsData).flatMap(brand =>
+                Object.keys(cameraModelsData[brand]).map(key => ({ brand, key, model: cameraModelsData[brand][key] })));
+        }
+
+        // L'app dà per scontato che tu abbia già scelto la camera. Chi ne ha
+        // due si chiede quale portare *per questa ripresa*: qui si risponde
+        // ordinando sul criterio che conta e dicendo qual è.
+        function renderCameraCompare() {
+            const list = $('compare-list');
+            if (!list) return;
+            const criterion = activeCompareCriterion();
+            setText('compare-reason', t(criterion.reason));
+
+            const rows = allModels()
+                .sort((a, b) => (b.model[criterion.field] || 0) - (a.model[criterion.field] || 0));
+
+            list.innerHTML = rows.map((row, i) => {
+                const on = row.brand === currentBrand && row.key === currentModelKey;
+                const specs = t('{battery} min · {depth} m · {log}', {
+                    battery: row.model.batteryMin, depth: row.model.waterproof, log: row.model.logProfile
+                });
+                return `<button type="button" class="compare-row ${on ? 'selected' : ''}" aria-pressed="${on}"`
+                    + ` data-action="pickCamera" data-brand="${escapeHtml(row.brand)}" data-value="${escapeHtml(row.key)}">`
+                    + `<span class="compare-rank">${i + 1}</span>`
+                    + `<span class="compare-body">`
+                    + `<span class="compare-name">${escapeHtml(row.model.shortName)}</span>`
+                    + `<span class="compare-specs">${escapeHtml(specs)}</span>`
+                    + `</span>`
+                    + `<span class="compare-value">${escapeHtml(String(row.model[criterion.field]))} ${escapeHtml(criterion.unit)}</span>`
+                    + `</button>`;
+            }).join('');
+        }
+
+        // Dal confronto si passa direttamente alla camera, altrimenti si
+        // dovrebbe tornare al Tab 1 a rifare la selezione a mano.
+        function pickCamera(el) {
+            const brand = el.dataset.brand;
+            const key = el.dataset.value;
+            if (!cameraModelsData[brand] || !cameraModelsData[brand][key]) return;
+            currentBrand = brand;
+            currentModelKey = key;
+            updateUIState();
+            updateResults();
+            updateEditingGuide();
+        }
+
+        function setCardSize(gb) {
+            currentCardGb = Number(gb);
+            storageSet(STORAGE_KEYS.cardGb, String(currentCardGb));
+            syncRadioGroup('setCardSize', currentCardGb);
+            renderRecordingLimit();
         }
 
         function updateSimSlider(el) {
@@ -2187,6 +2461,12 @@
             let mbps = ctx.model.bitrate;
             if (fps >= 100) mbps += 20;
             mbps = Math.floor(mbps * (BITRATE_PROFILES[currentBitrateProfile] || BITRATE_PROFILES.high).factor);
+
+            // Il calcolo del limite di ripresa vive in un'altra scheda ma
+            // dipende da questo bitrate: lo si tiene qui invece di rifare i
+            // conti, così i due numeri non possono divergere.
+            lastMbps = mbps;
+            renderRecordingLimit();
 
             setText('metric-bitrate', `~${mbps} Mbps (H.265)`);
             const gbPer10Min = ((mbps * 1000000 / 8) * 600) / (1024 * 1024 * 1024);
@@ -2460,6 +2740,11 @@
 
             renderSimulator(ctx, lastComputedFps);
             renderBattery();
+            renderCameraCompare();
+
+            // L'attacco dipende dal modello e non dalla modalità, quindi sta
+            // qui e non dentro il ramo video: serve anche a chi scatta foto.
+            setHtml('rigging-mount', t('<b>🔩 Attacco della camera:</b> {mount}', { mount: escapeHtml(ctx.model.mount) }));
         }
 
         /* ==================================================================
@@ -2483,6 +2768,8 @@
             toggleTooltip: el => toggleTooltip(el),
             calcShutter: el => calcShutter(el.dataset.value, el),
             calcBattery: el => calcBattery(el.dataset.value, el),
+            setCardSize: el => setCardSize(el.dataset.value),
+            pickCamera: el => pickCamera(el),
             updateSimSlider: el => updateSimSlider(el),
             toggleTheme: el => toggleTheme(el),
             toggleLanguage: () => toggleLanguage(),
@@ -2493,7 +2780,9 @@
             exportPresets: () => exportPresets(),
             importPresets: () => importPresets(),
             copySettings: () => copySettings(),
-            copyShareLink: () => copyShareLink()
+            copyShareLink: () => copyShareLink(),
+            shareSetup: () => shareSetup(),
+            installApp: () => installApp()
         };
 
         function dispatch(event) {
@@ -2533,6 +2822,19 @@
                 });
             }
 
+            // I due miglioramenti progressivi: il bottone appare solo se la
+            // funzione c'è davvero, così non si promette ciò che non si può fare.
+            if (navigator.share) {
+                const shareBtn = $('btn-share');
+                if (shareBtn) shareBtn.hidden = false;
+            }
+            window.addEventListener('beforeinstallprompt', event => {
+                event.preventDefault();
+                installPrompt = event;
+                const installBtn = $('btn-install');
+                if (installBtn) installBtn.hidden = false;
+            });
+
             // Un link condiviso aperto mentre l'app è già caricata cambia
             // solo l'hash: va comunque applicato.
             window.addEventListener('hashchange', () => {
@@ -2540,6 +2842,7 @@
                     applyTranslations();
                     renderAll();
                 }
+                applyTabFromHash();
             });
         }
 
@@ -2551,14 +2854,22 @@
             const savedTheme = storageGet(STORAGE_KEYS.theme) || storageGet(STORAGE_KEYS.legacyTheme);
             if (savedTheme) applyTheme(savedTheme);
 
+            const savedCard = Number(storageGet(STORAGE_KEYS.cardGb));
+            if (CARD_SIZES.includes(savedCard)) currentCardGb = savedCard;
+
             currentLang = detectLanguage();
             applyStateFromHash();
             applyTranslations();
             bindEvents();
+            syncRadioGroup('setCardSize', currentCardGb);
 
             // Ogni sezione dinamica va disegnata almeno una volta all'avvio,
             // altrimenti i container restano vuoti finché l'utente non li tocca.
             renderAll();
+
+            // Gli shortcut del manifest aprono l'app direttamente su una
+            // scheda: va fatto dopo renderAll, quando i pannelli esistono.
+            applyTabFromHash();
 
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.register('./sw.js').catch(() => {});
