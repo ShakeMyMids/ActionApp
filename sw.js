@@ -1,10 +1,10 @@
-// Action Cam Studio - Service Worker
+// ReadyClickShot - Service Worker
 // Strategia:
 //   - HTML (navigazioni + index.html): NETWORK-FIRST. L'app è un singolo file,
 //     quindi la cache-first bloccherebbe l'utente su una versione vecchia per
 //     sempre. La cache resta come fallback offline.
 //   - Asset statici (icone, manifest): CACHE-FIRST con aggiornamento in background.
-const CACHE_NAME = 'camstudio-v11-cache';
+const CACHE_NAME = 'readyclickshot-v12-cache';
 
 const PRECACHE_URLS = [
   './',

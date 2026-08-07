@@ -1,8 +1,8 @@
 {
-  "id": "/actioncam-studio/",
-  "name": "Action Cam Studio v11",
-  "short_name": "CamStudio",
-  "description": "Work out the best settings for DJI, GoPro and Insta360 action cams from your shooting scenario, light and priorities.",
+  "id": "/readyclickshot/",
+  "name": "ReadyClickShot",
+  "short_name": "ReadyClick",
+  "description": "Work out the best action cam settings for DJI, GoPro and Insta360 from your shooting scenario, light and priorities.",
   "lang": "en",
   "start_url": "./index.html",
   "scope": "./",

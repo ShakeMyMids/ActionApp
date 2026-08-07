@@ -1,4 +1,4 @@
-# Action Cam Studio
+# ReadyClickShot
 
 [![Test](https://github.com/ShakeMyMids/ActionApp/actions/workflows/test.yml/badge.svg)](https://github.com/ShakeMyMids/ActionApp/actions/workflows/test.yml)
 
@@ -69,8 +69,8 @@ npx playwright install chromium    # solo la prima volta
 npm test
 ```
 
-55 test end-to-end, eseguiti su due profili — desktop e mobile (Pixel 7) — per un
-totale di 110 esecuzioni. Coprono inizializzazione, motore di calcolo, escaping e
+56 test end-to-end, eseguiti su due profili — desktop e mobile (Pixel 7) — per un
+totale di 112 esecuzioni. Coprono inizializzazione, motore di calcolo, escaping e
 persistenza dei preset, export/import, condivisione via link, accessibilità
 (semantica tab, `aria-pressed`, tastiera), safe area del notch, autonomia della
 batteria, reattività del simulatore agli obiettivi di editing, traduzioni e scelta
@@ -147,6 +147,20 @@ l’acqua.
 Il testo sopra il colore del brand usa `--brand-ink`, scelto sul contrasto
 misurato invece che a occhio: scuro su teal (7,2:1) e su giallo (9,3:1), bianco
 su blu GoPro (5,2:1). Col bianco fisso, il giallo Insta360 dava 1,9:1.
+
+## Tipografia
+
+Due famiglie con ruoli distinti. **Space Grotesk** (peso variabile 400–700) porta
+il carattere dove si vede — nome dell’app, intestazioni, valori calcolati, numeri
+grandi, navigazione — mentre il testo di lettura resta sul font di sistema, più
+familiare sulle distanze lunghe.
+
+Il font è **incorporato come data URI** (sottoinsieme latino, 22 KB): l’app deve
+restare utilizzabile offline, e un font remoto sparirebbe proprio quando serve, in
+mezzo al nulla. È distribuito con SIL Open Font License 1.1.
+
+I valori della matrice usano `font-variant-numeric: tabular-nums`: le cifre hanno
+tutte la stessa larghezza, così le colonne non ballano a ogni ricalcolo.
 
 ## Accessibilità
 
