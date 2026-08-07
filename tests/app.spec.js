@@ -513,6 +513,158 @@ test.describe('Autonomia batteria', () => {
   });
 });
 
+test.describe('Limite di ripresa (scheda contro batteria)', () => {
+  // Scheda e batteria si esauriscono in momenti diversi: il vincolo vero e'
+  // il piu' basso dei due, ed e' quello che va detto.
+  test('con una scheda capiente il vincolo e la batteria', async ({ page }) => {
+    await page.locator('#tab-calc').click();
+    // Action 5 Pro a 110 Mbps: 128 GB durano 155 min, la batteria 150.
+    await expect(page.locator('#limit-verdict')).toHaveText('La batteria');
+    await expect(page.locator('#limit-detail')).toContainText('~150 minuti');
+    await expect(page.locator('#limit-detail')).toContainText('batteria: 150 min');
+  });
+
+  test('con una scheda piccola il vincolo diventa la scheda', async ({ page }) => {
+    await page.locator('#tab-calc').click();
+    await page.click('[data-action="setCardSize"][data-value="64"]');
+    await expect(page.locator('#limit-verdict')).toHaveText('La scheda');
+    await expect(page.locator('#limit-detail')).toContainText('~80 minuti');
+  });
+
+  test('il profilo Endurance allunga i minuti sulla scheda', async ({ page }) => {
+    await page.locator('#tab-calc').click();
+    await page.click('[data-action="setCardSize"][data-value="64"]');
+    const alto = await page.locator('#limit-detail').textContent();
+
+    await page.locator('#tab-wizard').click();
+    await page.click('[data-action="setBitrateProf"][data-value="eco"]');
+    await page.locator('#tab-calc').click();
+    const eco = await page.locator('#limit-detail').textContent();
+
+    // Meta' bitrate, il doppio dei minuti. I valori esatti sono 77,6 e
+    // 155,2: si arrotondano a 78 e 155, non a 78 e 156.
+    expect(alto).toContain('scheda 64 GB: 78 min');
+    expect(eco).toContain('scheda 64 GB: 155 min');
+  });
+
+  test('la capacita scelta sopravvive al ricaricamento', async ({ page }) => {
+    await page.locator('#tab-calc').click();
+    await page.click('[data-action="setCardSize"][data-value="256"]');
+    await page.reload();
+    await page.locator('#tab-calc').click();
+    await expect(page.locator('[data-action="setCardSize"][aria-pressed="true"]')).toHaveText('256 GB');
+  });
+
+  test('in modalita foto il limite non mostra un bitrate video stantio', async ({ page }) => {
+    // Il bitrate lo produce solo il motore video: mostrarlo qui sarebbe un
+    // numero che non c'entra con quello che si sta facendo.
+    await page.click('[data-action="setMode"][data-value="foto"]');
+    await page.locator('#tab-calc').click();
+    await expect(page.locator('#limit-verdict')).toHaveText('—');
+    await expect(page.locator('#limit-detail')).toContainText('modalità video');
+  });
+});
+
+test.describe('Confronto fra camere', () => {
+  test('senza scenari particolari ordina per bitrate', async ({ page }) => {
+    await page.locator('#tab-calc').click();
+    await expect(page.locator('#compare-reason')).toContainText('In ordine di bitrate');
+    await expect(page.locator('.compare-row')).toHaveCount(10);
+    await expect(page.locator('.compare-row').first()).toContainText('X4 360°');
+  });
+
+  test('la subacquea riordina per profondita', async ({ page }) => {
+    await page.click('[data-action="setSub"][data-value="sub"]');
+    await page.locator('#tab-calc').click();
+    await expect(page.locator('#compare-reason')).toContainText('profondità');
+    const prima = page.locator('.compare-row').first();
+    await expect(prima).toContainText('Action 5 Pro');
+    await expect(prima).toContainText('20 m');
+  });
+
+  test('i viaggi riordinano per autonomia', async ({ page }) => {
+    await page.click('[data-action="toggleScenario"][data-value="travel"]');
+    await page.locator('#tab-calc').click();
+    await expect(page.locator('#compare-reason')).toContainText('autonomia');
+    await expect(page.locator('.compare-row').first()).toContainText('150 min');
+  });
+
+  test('la camera attiva e evidenziata, e una sola', async ({ page }) => {
+    await page.locator('#tab-calc').click();
+    await expect(page.locator('.compare-row[aria-pressed="true"]')).toHaveCount(1);
+    await expect(page.locator('.compare-row[aria-pressed="true"]')).toContainText('Action 5 Pro');
+  });
+
+  test('dal confronto si passa direttamente a un altro brand', async ({ page }) => {
+    await page.locator('#tab-calc').click();
+    // La prima riga per bitrate e' la X4, che e' Insta360: cambia anche brand.
+    await page.locator('.compare-row').first().click();
+    expect(await page.evaluate(() => currentBrand)).toBe('insta360');
+    await page.locator('#tab-wizard').click();
+    await expect(page.locator('#model-indicator')).toHaveText('X4 360°');
+  });
+});
+
+test.describe('Attacco, condivisione nativa e installazione', () => {
+  test('l attacco segue il modello e vale anche in foto', async ({ page }) => {
+    await page.locator('#tab-calc').click();
+    await expect(page.locator('#rigging-mount')).toContainText('Sgancio Mag. v2');
+
+    await page.locator('#tab-wizard').click();
+    await page.click('#brand-card-gopro');
+    await page.click('[data-action="setMode"][data-value="foto"]');
+    await page.locator('#tab-calc').click();
+    await expect(page.locator('#rigging-mount')).toContainText('Linguette + Latch Mag.');
+  });
+
+  test('i bottoni progressivi compaiono solo se l API esiste', async ({ page }) => {
+    // Non si promette una funzione che il browser non ha.
+    const atteso = await page.evaluate(() => !!navigator.share);
+    expect(await page.locator('#btn-share').isVisible()).toBe(atteso);
+    // beforeinstallprompt non scatta senza i criteri di engagement.
+    await expect(page.locator('#btn-install')).toBeHidden();
+  });
+});
+
+test.describe('Shortcut del manifest', () => {
+  test('il manifest dichiara una scorciatoia per ogni scheda', async ({ page }) => {
+    const manifest = await page.evaluate(async () => (await fetch('./manifest.json')).json());
+    expect(manifest.shortcuts.map(s => s.url)).toEqual([
+      './index.html#tab=wizard', './index.html#tab=calc',
+      './index.html#tab=editing', './index.html#tab=guide'
+    ]);
+  });
+
+  test('aprire uno shortcut porta sulla scheda giusta', async ({ page }) => {
+    await page.goto('/index.html#tab=guide');
+    await page.reload();
+    await expect(page.locator('.tab-btn.active')).toHaveAttribute('data-value', 'guide');
+  });
+
+  test('una scheda inesistente non svuota la pagina', async ({ page }) => {
+    // switchTab senza convalida spegnerebbe tutti i pannelli.
+    await page.goto('/index.html#tab=inesistente');
+    await page.reload();
+    await expect(page.locator('.tab-btn.active')).toHaveAttribute('data-value', 'wizard');
+    await expect(page.locator('.panel:not([hidden])')).toHaveCount(1);
+  });
+
+  test('uno shortcut aperto con l app gia viva cambia scheda lo stesso', async ({ page }) => {
+    // Il browser non ricarica se cambia solo l'hash: serve hashchange.
+    await page.evaluate(() => { location.hash = 'tab=calc'; });
+    await expect(page.locator('.tab-btn.active')).toHaveAttribute('data-value', 'calc');
+  });
+});
+
+test.describe('Piè di pagina', () => {
+  test('il profilo Instagram e raggiungibile e si apre in sicurezza', async ({ page }) => {
+    const link = page.locator('.app-footer a');
+    await expect(link).toHaveAttribute('href', 'https://instagram.com/ShakeMyMids');
+    await expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    await expect(link).toContainText('@ShakeMyMids');
+  });
+});
+
 test.describe('Lingua inglese', () => {
   // navigator.language decide la lingua iniziale: qui si simula un browser
   // non italiano, che deve ricevere l'inglese.
@@ -523,6 +675,19 @@ test.describe('Lingua inglese', () => {
     await expect(page.locator('#container-saved-presets')).toContainText('No presets saved locally');
     await expect(page.locator('[data-action="copySettings"]')).toHaveText('📋 Copy settings');
     await expect(page.locator('#val-wb')).toHaveText('Manual 5500K');
+  });
+
+  test('l handle Instagram non si traduce, l etichetta si', async ({ page }) => {
+    // @ShakeMyMids e' un nome proprio, come RockSteady o D-Log M.
+    await expect(page.locator('.app-footer')).toContainText('Made by');
+    await expect(page.locator('.app-footer a')).toContainText('@ShakeMyMids');
+  });
+
+  test('il confronto camere e il limite di ripresa parlano inglese', async ({ page }) => {
+    await page.locator('#tab-calc').click();
+    await expect(page.locator('#compare-reason')).toContainText('Ranked by bitrate');
+    await expect(page.locator('#limit-verdict')).toHaveText('Battery');
+    await expect(page.locator('#rigging-mount')).toContainText('Camera mount');
   });
 
   test('i termini tecnici dei costruttori restano invariati', async ({ page }) => {
