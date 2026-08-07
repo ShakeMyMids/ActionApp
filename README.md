@@ -64,18 +64,21 @@ alcuna dipendenza — è Node puro.
 ## Test
 
 ```bash
-npm install
+npm ci
 npx playwright install chromium    # solo la prima volta
 npm test
 ```
 
-56 test end-to-end, eseguiti su due profili — desktop e mobile (Pixel 7) — per un
-totale di 112 esecuzioni. Coprono inizializzazione, motore di calcolo, escaping e
-persistenza dei preset, export/import, condivisione via link, accessibilità
-(semantica tab, `aria-pressed`, tastiera), safe area del notch, autonomia della
-batteria, reattività del simulatore agli obiettivi di editing, traduzioni e scelta
-della lingua dal browser, comportamento PWA e service worker (aggiornamento dopo
-un deploy e fallback offline).
+63 test end-to-end, eseguiti su due profili — desktop e mobile (Pixel 7) — per un
+totale di 126 esecuzioni. Coprono inizializzazione, motore di calcolo, escaping e
+persistenza dei preset, export/import (compresi i file con valori fuori dominio),
+condivisione via link, accessibilità (semantica tab, `aria-pressed`, tastiera),
+safe area del notch, autonomia della batteria, reattività del simulatore agli
+obiettivi di editing, traduzioni e scelta della lingua dal browser, comportamento
+PWA e service worker (aggiornamento dopo un deploy e fallback offline).
+
+Il `package-lock.json` è versionato e la CI installa con `npm ci`, così una nuova
+release di Playwright non entra da sola in un'esecuzione.
 
 Per eseguire un solo profilo:
 

@@ -921,6 +921,20 @@
             eco: { factor: 0.50, label: 'Endurance' }
         };
 
+        // Domini ammessi per i valori di stato. Lo stato entra da due strade
+        // non fidate — il link condiviso e il file di preset importato — e
+        // devono scartare le stesse cose: un valore fuori dominio non ha un
+        // controllo corrispondente nell'interfaccia, quindi lascerebbe i
+        // risultati calcolati su qualcosa che l'utente non vede selezionato.
+        const MODE_VALUES = ['video', 'foto', 'timelapse'];
+        const LUCE_VALUES = ['sole', 'ombra', 'scarsa'];
+        const REGION_VALUES = ['pal', 'ntsc'];
+        const SUB_VALUES = ['fuori', 'sub'];
+
+        // Versione del formato di export dei preset. Segue la major dell'app,
+        // così un file salvato resta riconoscibile quando la forma cambia.
+        const PRESET_SCHEMA_VERSION = 12;
+
         // L'autonomia parte dal dato del modello e viene scalata dalla
         // temperatura, invece di essere un numero fisso uguale per tutte le cam.
         const BATTERY_TEMPS = {
@@ -982,6 +996,20 @@
                 document.body.removeChild(area);
                 return ok;
             } catch (e) { return false; }
+        }
+
+        // Tiene il valore solo se appartiene al dominio, altrimenti ripiega sul
+        // default. Un valore assente ricade sul default come un valore errato:
+        // i preset delle versioni precedenti non portano tutti i campi.
+        function pickAllowed(value, allowed, fallback) {
+            return allowed.includes(value) ? value : fallback;
+        }
+
+        // Scarta gli scenari sconosciuti: senza etichetta in SCENARIO_LABELS
+        // finirebbero nel riepilogo come "undefined".
+        function pickScenarios(list, fallback) {
+            const valid = Array.isArray(list) ? list.filter(s => SCENARIO_LABELS[s]) : [];
+            return valid.length ? valid : fallback;
         }
 
         function shutterFor(fps) { return `1/${fps * 2} s`; }
@@ -1683,6 +1711,28 @@
 
         function writePresets(presets) { storageSet(STORAGE_KEYS.presets, JSON.stringify(presets)); }
 
+        // Riporta un preset qualsiasi alla forma attesa. Brand e modello si
+        // copiano solo se esistono davvero: senza, il preset resta senza camera
+        // e al caricamento vale quella corrente, come prima.
+        function normalizePreset(preset) {
+            const clean = {
+                name: String(preset.name),
+                mode: pickAllowed(preset.mode, MODE_VALUES, 'video'),
+                scenarios: pickScenarios(preset.scenarios, ['reel']),
+                luce: pickAllowed(preset.luce, LUCE_VALUES, 'sole'),
+                region: pickAllowed(preset.region, REGION_VALUES, 'pal'),
+                sub: pickAllowed(preset.sub, SUB_VALUES, 'fuori'),
+                bitrateProf: BITRATE_PROFILES[preset.bitrateProf] ? preset.bitrateProf : 'high'
+            };
+            if (preset.brand && cameraModelsData[preset.brand]) {
+                clean.brand = preset.brand;
+                clean.modelKey = cameraModelsData[preset.brand][preset.modelKey]
+                    ? preset.modelKey
+                    : Object.keys(cameraModelsData[preset.brand])[0];
+            }
+            return clean;
+        }
+
         function currentPresetPayload(name) {
             return {
                 brand: currentBrand, modelKey: currentModelKey, name: name,
@@ -1705,12 +1755,15 @@
 
         function applyPreset(preset) {
             if (!preset) return;
-            selectedScenarios = Array.isArray(preset.scenarios) && preset.scenarios.length ? [...preset.scenarios] : ['reel'];
-            currentMode = preset.mode || 'video';
-            currentLuce = preset.luce || 'sole';
-            currentRegion = preset.region || 'pal';
-            currentSub = preset.sub || 'fuori';
-            currentBitrateProfile = preset.bitrateProf || 'high';
+            // Stessa convalida del link condiviso: un preset può arrivare da un
+            // file importato o da localStorage scritto da una versione
+            // precedente, quindi i valori vanno filtrati qui e non dati per buoni.
+            selectedScenarios = pickScenarios(preset.scenarios, ['reel']);
+            currentMode = pickAllowed(preset.mode, MODE_VALUES, 'video');
+            currentLuce = pickAllowed(preset.luce, LUCE_VALUES, 'sole');
+            currentRegion = pickAllowed(preset.region, REGION_VALUES, 'pal');
+            currentSub = pickAllowed(preset.sub, SUB_VALUES, 'fuori');
+            currentBitrateProfile = BITRATE_PROFILES[preset.bitrateProf] ? preset.bitrateProf : 'high';
             if (preset.brand && cameraModelsData[preset.brand]) {
                 currentBrand = preset.brand;
                 currentModelKey = cameraModelsData[preset.brand][preset.modelKey]
@@ -1753,7 +1806,7 @@
         function exportPresets() {
             const presets = readPresets();
             if (presets.length === 0) { showToast(t('Nessun preset da esportare')); return; }
-            const blob = new Blob([JSON.stringify({ app: 'action-cam-studio', version: 11, presets }, null, 2)], { type: 'application/json' });
+            const blob = new Blob([JSON.stringify({ app: 'action-cam-studio', version: PRESET_SCHEMA_VERSION, presets }, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
@@ -1779,8 +1832,12 @@
                     const incoming = Array.isArray(parsed) ? parsed : parsed.presets;
                     if (!Array.isArray(incoming)) throw new Error('formato non riconosciuto');
                     // Si tiene solo ciò che ha la forma attesa, per non
-                    // corrompere l'elenco con dati arbitrari.
-                    const valid = incoming.filter(p => p && typeof p.name === 'string' && Array.isArray(p.scenarios));
+                    // corrompere l'elenco con dati arbitrari, e si normalizza
+                    // il resto: così in localStorage non entrano valori fuori
+                    // dominio, nemmeno da un file scritto a mano.
+                    const valid = incoming
+                        .filter(p => p && typeof p.name === 'string' && Array.isArray(p.scenarios))
+                        .map(normalizePreset);
                     if (valid.length === 0) throw new Error('nessun preset valido');
                     writePresets(readPresets().concat(valid));
                     renderSavedPresets();
@@ -1819,12 +1876,11 @@
                 const model = params.get('m');
                 currentModelKey = (model && cameraModelsData[brand][model]) ? model : Object.keys(cameraModelsData[brand])[0];
             }
-            const scenarios = (params.get('s') || '').split(',').filter(s => SCENARIO_LABELS[s]);
-            if (scenarios.length) selectedScenarios = scenarios;
-            if (['video', 'foto', 'timelapse'].includes(params.get('mode'))) currentMode = params.get('mode');
-            if (['sole', 'ombra', 'scarsa'].includes(params.get('l'))) currentLuce = params.get('l');
-            if (['pal', 'ntsc'].includes(params.get('r'))) currentRegion = params.get('r');
-            if (['fuori', 'sub'].includes(params.get('sub'))) currentSub = params.get('sub');
+            selectedScenarios = pickScenarios((params.get('s') || '').split(','), selectedScenarios);
+            currentMode = pickAllowed(params.get('mode'), MODE_VALUES, currentMode);
+            currentLuce = pickAllowed(params.get('l'), LUCE_VALUES, currentLuce);
+            currentRegion = pickAllowed(params.get('r'), REGION_VALUES, currentRegion);
+            currentSub = pickAllowed(params.get('sub'), SUB_VALUES, currentSub);
             if (BITRATE_PROFILES[params.get('bp')]) currentBitrateProfile = params.get('bp');
 
             // Un link condiviso porta anche la lingua, ma una scelta esplicita
