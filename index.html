@@ -152,6 +152,25 @@
 
         /* Avviso sul tetto di framerate: e' un'informazione, non un errore,
            quindi ambra e non rosso come l'allarme della scheda. */
+        /* Modalità Pro */
+        .pro-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; margin-bottom: 16px; }
+        .pro-toggle { display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 12px; background: none; border: none; color: var(--text-primary); font-family: var(--font-display); font-weight: 700; font-size: 0.86rem; cursor: pointer; padding: 0; }
+        .pro-switch { position: relative; width: 40px; height: 22px; border-radius: 999px; background: var(--bg-primary); border: 1px solid var(--border); flex: none; transition: background 0.2s, border-color 0.2s; }
+        .pro-switch::after { content: ''; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--text-secondary); transition: transform 0.2s, background 0.2s; }
+        .pro-toggle[aria-pressed="true"] .pro-switch { background: var(--brand-color); border-color: var(--brand-color); }
+        .pro-toggle[aria-pressed="true"] .pro-switch::after { transform: translateX(18px); background: var(--brand-ink); }
+        .pro-panel { margin-top: 14px; }
+        .pro-panel[hidden] { display: none; }
+        .pro-intro { font-size: 0.76rem; line-height: 1.45; color: var(--text-secondary); margin-bottom: 14px; }
+        .pro-row { margin-bottom: 14px; }
+        .pro-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+        .pro-name { font-size: 0.78rem; font-weight: 600; }
+        .pro-value { font-family: var(--font-display); font-size: 0.86rem; font-weight: 700; color: var(--brand-color); font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .pro-range { width: 100%; margin: 0; accent-color: var(--brand-color); }
+        /* Il consiglio automatico resta scritto: e' il termine di paragone. */
+        .pro-auto { font-size: 0.7rem; color: var(--text-secondary); margin-top: 3px; }
+        .pro-reset { width: 100%; margin-top: 4px; }
+
         .conflict-note { font-size: 0.75rem; line-height: 1.45; color: var(--text-secondary); margin-top: 8px; }
         .alert-fps { background: rgba(245, 158, 11, 0.14); border: 1px solid var(--amber); color: var(--amber); padding: 10px 12px; border-radius: 8px; font-size: 0.78rem; margin-top: 12px; display: none; line-height: 1.4; font-weight: 600; }
         .alert-sd { background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: #ef4444; padding: 10px 12px; border-radius: 8px; font-size: 0.78rem; margin-top: 12px; display: none; line-height: 1.4; animation: slideUpFade 0.4s ease-out; font-weight: 600; }
@@ -702,6 +721,19 @@
                         </div>
                     </div>
 
+                    <!-- MODALITÀ PRO -->
+                    <div class="pro-card">
+                        <button type="button" class="pro-toggle" id="pro-toggle" data-action="toggleProMode" aria-pressed="false" aria-controls="pro-panel">
+                            <span><span data-i18n>🎚️ Modalità Pro</span></span>
+                            <span class="pro-switch" aria-hidden="true"></span>
+                        </button>
+                        <div id="pro-panel" class="pro-panel" hidden>
+                            <div class="pro-intro" data-i18n>Prendi in mano cinque parametri. Accanto a ciascuno resta il valore che l'app suggerirebbe per questa scena: se ti allontani, lo vedi.</div>
+                            <div id="pro-sliders"></div>
+                            <button type="button" class="btn-ghost pro-reset" data-action="resetProSettings" data-i18n>↺ Torna ai valori consigliati</button>
+                        </div>
+                    </div>
+
                     <!-- METRICHE & ALLARMI -->
                     <div class="metrics-card">
                         <div class="metric-item">
@@ -1032,7 +1064,9 @@
             // scheda: resta fuori dai preset e dal link condiviso.
             defaultCamera: 'camstudio_default_camera',
             // Ultima versione di cui l'utente ha visto le novità.
-            seenVersion: 'camstudio_seen_version'
+            seenVersion: 'camstudio_seen_version',
+            proMode: 'camstudio_pro_mode',
+            proSettings: 'camstudio_pro_settings'
         };
 
         // batteryMin: minuti indicativi di registrazione continua a 1080p/30 in
@@ -1141,6 +1175,18 @@
                 horizon: 'L\'orizzonte resta dritto anche inclinando la camera, cosa che in curva cambia il risultato. Costa un ritaglio maggiore e, su alcuni modelli, un limite su risoluzione o framerate.'
             }
         };
+
+        // Modalità Pro: i valori che l'utente può prendere in mano. Restano
+        // scale discrete e non continue perché sono quelle che le camere
+        // offrono davvero: uno shutter a 137° non esiste in nessun menu.
+        const SHUTTER_ANGLES = [45, 90, 120, 180, 270, 360];
+        const ISO_CEILINGS = [400, 800, 1600, 3200, 6400];
+        // Terzi di stop, come la ghiera di qualsiasi camera.
+        const EV_STEPS = [-2, -1.7, -1.3, -1, -0.7, -0.3, 0, 0.3, 0.7, 1, 1.3, 1.7, 2];
+        const WB_KELVIN = [2800, 3200, 3600, 4000, 4500, 5000, 5500, 6000, 6500, 7000, 7500, 8000];
+        const SHARPNESS_STEPS = [-2, -1, 0, 1, 2];
+
+        const PRO_DEFAULTS = { shutterAngle: 180, isoMax: 1600, ev: 0, wb: 5500, sharpness: -1 };
 
         // Tagli di MicroSD offerti dal calcolo del limite di ripresa.
         const CARD_SIZES = [64, 128, 256, 512];
@@ -1314,7 +1360,14 @@
             return valid.length ? valid : fallback;
         }
 
-        function shutterFor(fps) { return `1/${fps * 2} s`; }
+        // Il denominatore dell'otturatore secondo l'angolo. A 180° torna la
+        // regola classica (il doppio degli fps); gli altri angoli sono quelli
+        // che si usano per scegliere quanto mosso lasciare al movimento.
+        function shutterDenominator(fps, angle) {
+            return Math.round(fps * 360 / (angle || 180));
+        }
+
+        function shutterFor(fps, angle) { return `1/${shutterDenominator(fps, angle)} s`; }
 
         // maxRes descrive la modalità di punta e ci infila dentro il framerate
         // massimo a quella risoluzione: "5.3K @ 60fps (8:7)". Mostrarlo così
@@ -1347,9 +1400,12 @@
             return m ? Number(m[1]) : null;
         }
 
-        function ndFor(fps, light) {
-            const tier = fps <= 30 ? 0 : fps <= 60 ? 1 : 2;
-            return (ND_TABLE[light] || ND_TABLE.sole)[tier];
+        // Le fasce dipendono dal tempo di posa, non dagli fps: erano la stessa
+        // cosa finché l'angolo era fisso a 180°, non lo sono più. Un ND serve a
+        // tagliare luce, e la luce la decide l'otturatore.
+        function ndFor(shutterDenom, light) {
+            const tier = shutterDenom <= 60 ? 0 : shutterDenom <= 120 ? 1 : 2;
+            return (hasOwn(ND_TABLE, light) ? ND_TABLE[light] : ND_TABLE.sole)[tier];
         }
 
         // I modelli di un brand, dal più recente al più vecchio. L'ordine sta
@@ -1702,6 +1758,24 @@
             '📤 Condividi setup': '📤 Share setup',
             'Il mio setup per {model}': 'My setup for {model}',
             '<b>🔩 Attacco della camera:</b> {mount}': '<b>🔩 Camera mount:</b> {mount}',
+
+            // --- Modalità Pro ---
+            '🎚️ Modalità Pro': '🎚️ Pro mode',
+            'Prendi in mano cinque parametri. Accanto a ciascuno resta il valore che l\'app suggerirebbe per questa scena: se ti allontani, lo vedi.':
+                'Take five parameters into your own hands. Next to each one stays the value the app would suggest for this scene: if you drift away from it, you see it.',
+            '↺ Torna ai valori consigliati': '↺ Back to the suggested values',
+            'Valori Pro riportati ai consigliati': 'Pro values restored to the suggested ones',
+            'L\'app suggerirebbe: {auto}': 'The app would suggest: {auto}',
+            'Angolo di otturatore': 'Shutter angle',
+            'ISO massimo': 'Maximum ISO',
+            'Compensazione EV': 'EV compensation',
+            'Bilanciamento del bianco': 'White balance',
+            'Nitidezza': 'Sharpness',
+            '{shutter} · {angle}° · manuale': '{shutter} · {angle}° · manual',
+            'Min ISO 100 / Max {max} · manuale': 'Min ISO 100 / Max {max} · manual',
+            'Manuale {wb}K · manuale': 'Manual {wb}K · manual',
+            'Sharpness: {n} · manuale': 'Sharpness: {n} · manual',
+            '{ev} · manuale': '{ev} · manual',
 
             // --- Conseguenze dei compromessi ---
             'A framerate basso l\'otturatore resta lento e il sensore raccoglie il doppio della luce: meno rumore e ISO più bassi. In cambio il movimento veloce esce mosso, e in post non potrai rallentare.':
@@ -2116,6 +2190,14 @@
         // tramite defaultModelFor, e con let una lettura anticipata non vale
         // undefined, fa fallire l'intero script.
         let starredCamera = null;
+        // Modalità Pro: spenta, l'app decide tutto come prima. Accesa, questi
+        // cinque valori passano all'utente — ma il consiglio automatico resta
+        // visibile accanto a ogni cursore, altrimenti si perde il motivo per
+        // cui esiste l'app.
+        let proMode = false;
+        let proSettings = { ...PRO_DEFAULTS };
+        // Cosa avrebbe suggerito il motore, per il confronto nei cursori.
+        let autoValues = {};
         // Non un modello fisso: il predefinito è il più recente del brand, la
         // stessa regola che vale cambiando marchio. Scriverlo a mano qui
         // significherebbe che l'avvio smette di seguire l'elenco appena esce
@@ -2784,8 +2866,8 @@
                     b.setAttribute('aria-pressed', on ? 'true' : 'false');
                 });
             }
-            setText('calc-result-shutter', shutterFor(value));
-            setText('calc-result-nd', t('In sole diretto (EV15): {nd}', { nd: t(ndFor(value, 'sole')) }));
+            setText('calc-result-shutter', shutterFor(value, 180));
+            setText('calc-result-nd', t('In sole diretto (EV15): {nd}', { nd: t(ndFor(shutterDenominator(value, 180), 'sole')) }));
         }
 
         function calcBattery(temp, el) {
@@ -3032,6 +3114,11 @@
             setText('res-title', title);
         }
 
+        function formatEv(ev) {
+            const n = Number(ev) || 0;
+            return (n > 0 ? '+' : '') + n.toFixed(1);
+        }
+
         // Esposizione, GPS e audio non dipendono dalla modalità.
         function renderCommonSettings(ctx) {
             let evComp = t('0.0 (Matrix Metering)');
@@ -3039,7 +3126,8 @@
             if (ctx.isNight) evComp = t('-0.5 (Evita rumore)');
             if (currentLuce === 'scarsa' && !ctx.isNight) evComp = t('+0.3 (Schiarisci ombre)');
             if (ctx.isSub) evComp = t("+0.5 (Compensa l'assorbimento)");
-            setText('val-ev', evComp);
+            autoValues.ev = evComp;
+            setText('val-ev', proMode ? t('{ev} · manuale', { ev: formatEv(proSettings.ev) }) : evComp);
 
             let gps = t('OFF (Risparmio Batteria)');
             if (ctx.isEco || currentMode === 'timelapse') gps = t('OFF FORZATO (Risparmio energetico)');
@@ -3095,8 +3183,10 @@
         }
 
         function computeExposure(ctx, fps, hasFpsConflict) {
-            let shutter = shutterFor(fps);
-            let nd = t(ndFor(fps, currentLuce));
+            const angolo = proMode ? proSettings.shutterAngle : 180;
+            const denom = shutterDenominator(fps, angolo);
+            let shutter = shutterFor(fps, angolo);
+            let nd = t(ndFor(denom, currentLuce));
 
             if (ctx.isSub) {
                 nd = t('❌ RIMUOVERE ND');
@@ -3111,6 +3201,14 @@
             } else if ((ctx.isTravel || ctx.isCar) && !ctx.isReel && !ctx.isSport) {
                 shutter = t('AUTO (EV Regolato)');
                 nd = (currentLuce === 'sole') ? t('ND16 / Nessuno') : t('Nessuno');
+            }
+            // In modalità Pro l'otturatore è una scelta esplicita: le
+            // scorciatoie automatiche ("AUTO", "AUTO Max 1/50s") verrebbero a
+            // dire il contrario di quello che l'utente ha appena impostato.
+            // Il filtro ND resta calcolato sul tempo che ne risulta.
+            if (proMode) {
+                shutter = t('{shutter} · {angle}° · manuale', { shutter: shutterFor(fps, angolo), angle: angolo });
+                nd = ctx.isSub ? t('❌ RIMUOVERE ND') : t(ndFor(denom, currentLuce));
             }
             return { shutter, nd };
         }
@@ -3208,6 +3306,104 @@
             });
         }
 
+        /* ------------------------------------------------------------------
+           Modalità Pro
+           ------------------------------------------------------------------ */
+
+        // Ogni cursore lavora sull'indice di una scala discreta: sono i valori
+        // che le camere offrono davvero, e scorrere fra quelli evita di
+        // proporre numeri che poi nel menu non si trovano.
+        const PRO_SLIDERS = [
+            { key: 'shutterAngle', label: 'Angolo di otturatore', scale: SHUTTER_ANGLES,
+              format: v => `${v}°`, auto: () => autoValues.shutter },
+            { key: 'isoMax', label: 'ISO massimo', scale: ISO_CEILINGS,
+              format: v => `ISO ${v}`, auto: () => autoValues.iso },
+            { key: 'ev', label: 'Compensazione EV', scale: EV_STEPS,
+              format: v => `${formatEv(v)} EV`, auto: () => autoValues.ev },
+            { key: 'wb', label: 'Bilanciamento del bianco', scale: WB_KELVIN,
+              format: v => `${v}K`, auto: () => autoValues.wb },
+            { key: 'sharpness', label: 'Nitidezza', scale: SHARPNESS_STEPS,
+              format: v => (v > 0 ? `+${v}` : String(v)), auto: () => autoValues.sharp }
+        ];
+
+        function proSliderRow(def) {
+            const i = Math.max(0, def.scale.indexOf(proSettings[def.key]));
+            return `<div class="pro-row">`
+                + `<div class="pro-head"><label class="pro-name" for="pro-${def.key}">${escapeHtml(t(def.label))}</label>`
+                + `<span class="pro-value" id="pro-val-${def.key}">${escapeHtml(def.format(proSettings[def.key]))}</span></div>`
+                + `<input type="range" class="pro-range" id="pro-${def.key}" min="0" max="${def.scale.length - 1}"`
+                + ` step="1" value="${i}" data-action="setProSetting" data-key="${def.key}"`
+                + ` aria-describedby="pro-auto-${def.key}">`
+                + `<div class="pro-auto" id="pro-auto-${def.key}">${escapeHtml(t('L\'app suggerirebbe: {auto}', { auto: def.auto() || '—' }))}</div>`
+                + `</div>`;
+        }
+
+        function renderProPanel() {
+            const toggle = $('pro-toggle');
+            const panel = $('pro-panel');
+            const box = $('pro-sliders');
+            if (!toggle || !panel || !box) return;
+            toggle.setAttribute('aria-pressed', proMode ? 'true' : 'false');
+            panel.hidden = !proMode;
+            if (!proMode) return;
+
+            // I cursori si costruiscono una volta sola. Ridisegnarli a ogni
+            // movimento sostituirebbe l'elemento che l'utente sta trascinando,
+            // e il trascinamento si interromperebbe al primo pixel. Si
+            // ricostruiscono solo cambiando lingua, quando le etichette cambiano.
+            if (box.dataset.builtLang !== currentLang) {
+                box.innerHTML = PRO_SLIDERS.map(proSliderRow).join('');
+                box.dataset.builtLang = currentLang;
+                return;
+            }
+
+            // Aggiornamento in posto: valore scelto e consiglio dell'app, che
+            // cambia con la scena anche se il cursore resta fermo.
+            for (const def of PRO_SLIDERS) {
+                setText(`pro-val-${def.key}`, def.format(proSettings[def.key]));
+                setText(`pro-auto-${def.key}`, t('L\'app suggerirebbe: {auto}', { auto: def.auto() || '—' }));
+                const input = $(`pro-${def.key}`);
+                const i = Math.max(0, def.scale.indexOf(proSettings[def.key]));
+                if (input && Number(input.value) !== i) input.value = String(i);
+            }
+        }
+
+        function toggleProMode() {
+            proMode = !proMode;
+            storageSet(STORAGE_KEYS.proMode, proMode ? '1' : '');
+            updateResults();
+        }
+
+        function setProSetting(el) {
+            const def = PRO_SLIDERS.find(d => d.key === el.dataset.key);
+            if (!def) return;
+            const i = Math.min(def.scale.length - 1, Math.max(0, Number(el.value) || 0));
+            proSettings[def.key] = def.scale[i];
+            storageSet(STORAGE_KEYS.proSettings, JSON.stringify(proSettings));
+            updateResults();
+        }
+
+        function resetProSettings() {
+            proSettings = { ...PRO_DEFAULTS };
+            storageSet(STORAGE_KEYS.proSettings, JSON.stringify(proSettings));
+            updateResults();
+            showToast(t('Valori Pro riportati ai consigliati'));
+        }
+
+        // Scarta i valori che non stanno nelle scale: possono arrivare da un
+        // localStorage scritto a mano o da una versione con scale diverse.
+        function readProSettings() {
+            const out = { ...PRO_DEFAULTS };
+            try {
+                const parsed = JSON.parse(storageGet(STORAGE_KEYS.proSettings) || 'null');
+                if (!parsed) return out;
+                for (const def of PRO_SLIDERS) {
+                    if (def.scale.includes(parsed[def.key])) out[def.key] = parsed[def.key];
+                }
+            } catch (e) { /* si resta sui valori consigliati */ }
+            return out;
+        }
+
         function conflictBlock(label, key, options) {
             const buttons = options.map(opt =>
                 `<button type="button" class="btn-compromise ${compromiseChoices[key] === opt.value ? 'active' : ''}" data-action="setCompromise" data-key="${key}" data-value="${opt.value}" aria-pressed="${compromiseChoices[key] === opt.value}">${opt.label}</button>`
@@ -3281,9 +3477,23 @@
             setText('val-color', computeColorProfile(ctx, hasProfileConflict));
             setText('val-fov', computeFov(ctx));
             setText('val-stab', computeStabilization(ctx));
-            setText('val-sharp', computeSharpness(ctx));
-            setText('val-iso', t((ctx.isNight || ctx.isIndoor || ctx.isSub) ? 'Min ISO 100 / Max 1600' : 'Min ISO 100 / Max 800'));
-            setText('val-wb', t(ctx.isSub ? 'Manuale 6500K - 7500K' : ctx.isIndoor ? 'Manuale 3800K - 4200K' : ctx.isNight ? 'Auto WB' : 'Manuale 5500K'));
+            // Il valore automatico si calcola comunque: in modalità Pro resta
+            // accanto al cursore come termine di paragone, ed è la ragione per
+            // cui la Pro affianca l'app invece di spegnerla.
+            autoValues.sharp = computeSharpness(ctx);
+            autoValues.iso = t((ctx.isNight || ctx.isIndoor || ctx.isSub) ? 'Min ISO 100 / Max 1600' : 'Min ISO 100 / Max 800');
+            autoValues.wb = t(ctx.isSub ? 'Manuale 6500K - 7500K' : ctx.isIndoor ? 'Manuale 3800K - 4200K' : ctx.isNight ? 'Auto WB' : 'Manuale 5500K');
+            autoValues.shutter = shutterFor(fps, 180);
+
+            setText('val-sharp', proMode
+                ? t('Sharpness: {n} · manuale', { n: proSettings.sharpness > 0 ? '+' + proSettings.sharpness : String(proSettings.sharpness) })
+                : autoValues.sharp);
+            setText('val-iso', proMode
+                ? t('Min ISO 100 / Max {max} · manuale', { max: proSettings.isoMax })
+                : autoValues.iso);
+            setText('val-wb', proMode
+                ? t('Manuale {wb}K · manuale', { wb: proSettings.wb })
+                : autoValues.wb);
             setHtml('rigging-text', computeVideoRigging(ctx));
 
             renderStorageMetrics(ctx, fps);
@@ -3487,6 +3697,7 @@
             else if (currentMode === 'foto') renderPhotoMode(ctx);
             else if (currentMode === 'timelapse') renderTimelapseMode(ctx);
 
+            renderProPanel();
             renderSimulator(ctx, lastComputedFps);
             renderBattery();
             renderCameraCompare();
@@ -3519,6 +3730,9 @@
             calcBattery: el => calcBattery(el.dataset.value, el),
             setCardSize: el => setCardSize(el.dataset.value),
             pickCamera: el => pickCamera(el),
+            toggleProMode: () => toggleProMode(),
+            setProSetting: el => setProSetting(el),
+            resetProSettings: () => resetProSettings(),
             toggleStarredCamera: (el, event) => toggleStarredCamera(el, event),
             updateSimSlider: el => updateSimSlider(el),
             toggleTheme: el => toggleTheme(el),
@@ -3625,6 +3839,9 @@
             // La camera con la stellina è quella con cui l'app si apre. Va
             // letta prima dell'hash, così un link condiviso continua a vincere:
             // chi te lo manda vuole farti vedere il suo setup, non il tuo.
+            proMode = storageGet(STORAGE_KEYS.proMode) === '1';
+            proSettings = readProSettings();
+
             starredCamera = readStarredCamera();
             if (starredCamera) {
                 currentBrand = starredCamera.brand;

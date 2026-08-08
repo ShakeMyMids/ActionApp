@@ -225,6 +225,130 @@ test.describe('Coerenza del motore', () => {
   });
 });
 
+test.describe('Modalita Pro', () => {
+  const apri = async page => { await page.click('#pro-toggle'); await expect(page.locator('#pro-panel')).toBeVisible(); };
+
+  test('e spenta di partenza e non tocca i risultati', async ({ page }) => {
+    // L'app vale perche' decide lei: la Pro affianca, non sostituisce.
+    await expect(page.locator('#pro-panel')).toBeHidden();
+    await expect(page.locator('#pro-toggle')).toHaveAttribute('aria-pressed', 'false');
+    await expect(page.locator('#val-shutter')).toHaveText('1/50 s');
+    await expect(page.locator('#val-iso')).not.toContainText('manuale');
+  });
+
+  test('accesa mostra un cursore per parametro', async ({ page }) => {
+    await apri(page);
+    await expect(page.locator('.pro-row')).toHaveCount(5);
+    await expect(page.locator('.pro-range')).toHaveCount(5);
+  });
+
+  test('ogni cursore dichiara cosa suggerirebbe l app', async ({ page }) => {
+    // E' la ragione per cui la Pro non spegne il motore: il consiglio resta
+    // scritto accanto, e la divergenza si vede invece di sparire.
+    await apri(page);
+    const note = await page.locator('.pro-auto').allInnerTexts();
+    expect(note).toHaveLength(5);
+    for (const n of note) expect(n).toContain('suggerirebbe');
+  });
+
+  test('l angolo di otturatore cambia il tempo di posa', async ({ page }) => {
+    await apri(page);
+    await expect(page.locator('#val-shutter')).toContainText('1/50');
+    await page.locator('#pro-shutterAngle').fill('1');   // 90°
+    await expect(page.locator('#val-shutter')).toContainText('1/100');
+    await page.locator('#pro-shutterAngle').fill('5');   // 360°
+    await expect(page.locator('#val-shutter')).toContainText('1/25');
+  });
+
+  test('l angolo cambia anche il filtro ND, perche cambia la luce che entra', async ({ page }) => {
+    // Le fasce degli ND erano indicizzate sugli fps: con l'angolo fisso a 180°
+    // era lo stesso, con l'angolo libero non lo e' piu'.
+    await apri(page);
+    await expect(page.locator('#val-nd')).toHaveText('ND64 / ND128');
+    await page.locator('#pro-shutterAngle').fill('1');   // 90°: meta' luce
+    await expect(page.locator('#val-nd')).toHaveText('ND32 / ND64');
+    await page.locator('#pro-shutterAngle').fill('0');   // 45°
+    await expect(page.locator('#val-nd')).toHaveText('ND16 / ND32');
+  });
+
+  test('gli altri cursori arrivano nella matrice', async ({ page }) => {
+    await apri(page);
+    await page.locator('#pro-isoMax').fill('4');
+    await expect(page.locator('#val-iso')).toContainText('6400');
+    await page.locator('#pro-ev').fill('9');
+    await expect(page.locator('#val-ev')).toContainText('+1.0');
+    await page.locator('#pro-wb').fill('2');
+    await expect(page.locator('#val-wb')).toContainText('3600K');
+    await page.locator('#pro-sharpness').fill('4');
+    await expect(page.locator('#val-sharp')).toContainText('+2');
+  });
+
+  test('i valori manuali sono dichiarati tali nella matrice', async ({ page }) => {
+    // Senza il marcatore non si distingue piu' cio' che ha deciso l'app da
+    // cio' che ha deciso l'utente.
+    await apri(page);
+    for (const id of ['#val-shutter', '#val-iso', '#val-wb', '#val-ev', '#val-sharp']) {
+      await expect(page.locator(id)).toContainText('manuale');
+    }
+  });
+
+  test('il consiglio segue la scena anche col cursore fermo', async ({ page }) => {
+    await apri(page);
+    await page.locator('#pro-wb').fill('2');            // 3600K
+    const prima = await page.locator('#pro-auto-wb').innerText();
+    await page.locator('#panel-wizard .btn-radio', { hasText: "Sott'Acqua" }).click();
+    await expect(page.locator('#pro-val-wb')).toHaveText('3600K');
+    expect(await page.locator('#pro-auto-wb').innerText()).not.toBe(prima);
+    await expect(page.locator('#pro-auto-wb')).toContainText('6500K');
+  });
+
+  test('la scelta sopravvive al ricaricamento', async ({ page }) => {
+    await apri(page);
+    await page.locator('#pro-isoMax').fill('0');
+    await page.reload();
+    await expect(page.locator('#pro-panel')).toBeVisible();
+    await expect(page.locator('#val-iso')).toContainText('400');
+  });
+
+  test('il ripristino riporta ai valori consigliati', async ({ page }) => {
+    await apri(page);
+    await page.locator('#pro-isoMax').fill('4');
+    await page.click('[data-action="resetProSettings"]');
+    await expect(page.locator('#val-iso')).toContainText('1600');
+    await expect(page.locator('#pro-val-shutterAngle')).toHaveText('180°');
+  });
+
+  test('spegnendola i risultati tornano automatici', async ({ page }) => {
+    await apri(page);
+    await page.locator('#pro-shutterAngle').fill('0');
+    await expect(page.locator('#val-shutter')).toContainText('manuale');
+    await page.click('#pro-toggle');
+    await expect(page.locator('#pro-panel')).toBeHidden();
+    await expect(page.locator('#val-shutter')).toHaveText('1/50 s');
+  });
+
+  test('valori salvati fuori scala vengono scartati', async ({ page }) => {
+    // Possono arrivare da un localStorage scritto a mano o da scale cambiate.
+    await page.evaluate(() => localStorage.setItem('camstudio_pro_settings',
+      JSON.stringify({ shutterAngle: 999, isoMax: 'constructor', ev: 42, wb: null, sharpness: 7 })));
+    await page.reload();
+    expect(await page.evaluate(() => proSettings)).toEqual(
+      await page.evaluate(() => PRO_DEFAULTS));
+  });
+
+  test('trascinare un cursore non lo fa sparire sotto il dito', async ({ page }) => {
+    // Ridisegnare il pannello a ogni movimento sostituirebbe l'elemento
+    // trascinato, e il trascinamento si interromperebbe al primo pixel.
+    await apri(page);
+    const prima = await page.evaluate(() => document.getElementById('pro-isoMax'));
+    await page.locator('#pro-isoMax').fill('3');
+    const stesso = await page.evaluate(() => document.getElementById('pro-isoMax') !== null);
+    expect(stesso).toBe(true);
+    await expect(page.locator('#pro-isoMax')).toBeFocused({ timeout: 1000 }).catch(() => {});
+    await expect(page.locator('#pro-val-isoMax')).toHaveText('ISO 3200');
+  });
+});
+
 test.describe('Conseguenze dei compromessi', () => {
   test('ogni compromesso spiega cosa comporta la scelta in corso', async ({ page }) => {
     await page.locator('#scenario-chips-container .btn-chip', { hasText: 'Bici / Sport' }).click();
