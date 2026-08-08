@@ -16,7 +16,7 @@
          molto più debole di quella di script.
          frame-ancestors non è qui perché nel meta viene ignorato: richiede
          un'intestazione HTTP, e GitHub Pages non permette di impostarne. -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; script-src 'sha256-d70PUmkfJNzo02s9gLfOWpEAzc1Fg4iy8ZVIWabYYeM='; worker-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src data:; connect-src 'self'; manifest-src 'self'; form-action 'none'">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; script-src 'sha256-C5piSyoo1SgZ3VgbAfhPhrjK338VdJhd9o9Pi/btFQM='; worker-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src data:; connect-src 'self'; manifest-src 'self'; form-action 'none'">
     <!-- PWA Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1117,7 +1117,7 @@
             insta360: {
                 'acepro2': { released: '2024-11', name: 'Insta360 Ace Pro 2', shortName: 'Ace Pro 2', maxRes: '8K @ 30fps (Leica 1/1.3")', logProfile: '10-bit I-Log', waterproof: 12, mount: 'Sgancio Mag. Dual-Latch', audio: 'BT Mic / Cardo / Sena.', bitrate: 120, photoRes: '48 MP RAW', batteryMin: 120 },
                 'x4': { released: '2024-04', name: 'Insta360 X4 (360°)', shortName: 'X4 360°', maxRes: '8K @ 30fps 360°', logProfile: '10-bit I-Log / Flat 360°', waterproof: 10, mount: 'Filetto Standard 1/4"', audio: 'Vento 360° + Adattatore Mic.', bitrate: 130, photoRes: '72 MP RAW', batteryMin: 100 },
-                'goultra': { released: '2025-08', name: 'Insta360 GO Ultra', shortName: 'GO Ultra', maxRes: '4K @ 60fps', logProfile: '10-bit Flat', waterproof: 10, mount: 'Action Mount Mag.', audio: 'Mic stereo anti-vento.', bitrate: 100, photoRes: '12 MP RAW', batteryMin: 70 },
+                'goultra': { released: '2025-08', name: 'Insta360 GO Ultra', shortName: 'GO Ultra', maxRes: '4K @ 60fps', logProfile: '10-bit Flat', waterproof: 10, mount: 'Action Mount Mag.', audio: 'Mic stereo anti-vento.', bitrate: 100, photoRes: '50 MP RAW', batteryMin: 70 },
                 // I-Log qui è 8-bit e solo in 5.7K: dirlo evita di consigliare
                 // un flusso di lavoro log che la camera non regge davvero.
                 'x5': { released: '2025-04', name: 'Insta360 X5 (360°)', shortName: 'X5 360°', maxRes: '8K @ 30fps 360°', logProfile: 'I-Log 8-bit (solo 5.7K)', waterproof: 15, mount: 'Filetto Standard 1/4"', audio: 'Wind Guard + Adattatore Mic.', bitrate: 180, photoRes: '72 MP', batteryMin: 130 }
@@ -1163,6 +1163,29 @@
         const LUCE_VALUES = ['sole', 'ombra', 'scarsa'];
         const REGION_VALUES = ['pal', 'ntsc'];
         const SUB_VALUES = ['fuori', 'sub'];
+
+        // Le scelte fatte davanti a un conflitto (luce contro fluidità, profilo
+        // colore, FOV, stabilizzazione, autonomia) hanno un dominio chiuso per
+        // la stessa ragione dei valori Pro: viaggiano nei preset e nel link
+        // condiviso, quindi possono arrivare da fuori.
+        const COMPROMISE_VALUES = {
+            fpsPriority: ['light', 'action'],
+            profilePriority: ['dlog', 'normal'],
+            fovPriority: ['dewarp', 'wide'],
+            stabPriority: ['rocksteady', 'horizon'],
+            endurancePriority: ['autonomia', 'fluidita']
+        };
+        const COMPROMISE_DEFAULTS = {
+            fpsPriority: 'light', profilePriority: 'dlog', fovPriority: 'dewarp',
+            stabPriority: 'rocksteady', endurancePriority: 'autonomia'
+        };
+        // Le chiavi corte per il link condiviso. Un URL lo si incolla in chat e
+        // in descrizioni: ogni carattere risparmiato è un carattere in meno da
+        // troncare.
+        const COMPROMISE_PARAMS = {
+            fpsPriority: 'fp', profilePriority: 'pp', fovPriority: 'fv',
+            stabPriority: 'sp', endurancePriority: 'ep'
+        };
 
         // Cosa comporta ogni scelta. Il pannello diceva che un compromesso
         // c'era, non che cosa costasse: chi non conosce la regola dei 180° non
@@ -1227,7 +1250,7 @@
         // Versione dell'app, tenuta uguale a quella di sw.js e package.json.
         // Serve a due cose: capire se l'utente arriva da una versione diversa,
         // e intestare l'elenco delle novità.
-        const APP_VERSION = '13.5.0';
+        const APP_VERSION = '13.6.0';
 
         // Testi della Guida. Come per il changelog stanno qui e non in un file
         // a parte, perché la scheda deve restare leggibile offline.
@@ -1268,6 +1291,16 @@
         // perché l'app deve poterlo mostrare anche offline, che è la condizione
         // in cui la si usa davvero.
         const CHANGELOG = [
+            {
+                version: '13.6.0',
+                changes: [
+                    'La priorità di stabilizzazione ora vale anche su GoPro e Insta360: prima quei due bottoni cambiavano l\'aspetto senza toccare il risultato.',
+                    'La modalità Pro non rimette più un filtro ND che il motore aveva appena tolto.',
+                    'Con slow-motion al buio ricompare l\'avviso di sottoesposizione, come già accadeva con sport al buio.',
+                    'Le scelte fatte nei conflitti viaggiano con i preset e con il link condiviso, come già facevano le impostazioni Pro.',
+                    'Insta360 GO Ultra: risoluzione foto corretta a 50 MP, come da manuale ufficiale.'
+                ]
+            },
             {
                 version: '13.5.0',
                 changes: [
@@ -1805,6 +1838,16 @@
 
             'Col tuo angolo Pro ({angle}°): {shutter} · ND {nd}': 'At your Pro angle ({angle}°): {shutter} · ND {nd}',
 
+            'La priorità di stabilizzazione ora vale anche su GoPro e Insta360: prima quei due bottoni cambiavano l\'aspetto senza toccare il risultato.':
+                'The stabilization priority now applies on GoPro and Insta360 too: those two buttons used to change how things looked without touching the result.',
+            'La modalità Pro non rimette più un filtro ND che il motore aveva appena tolto.':
+                'Pro mode no longer puts back an ND filter the engine had just removed.',
+            'Con slow-motion al buio ricompare l\'avviso di sottoesposizione, come già accadeva con sport al buio.':
+                'Slow-motion in the dark shows the underexposure warning again, as sport in the dark already did.',
+            'Le scelte fatte nei conflitti viaggiano con i preset e con il link condiviso, come già facevano le impostazioni Pro.':
+                'The choices you make in a conflict now travel with presets and with the shared link, as Pro settings already did.',
+            'Insta360 GO Ultra: risoluzione foto corretta a 50 MP, come da manuale ufficiale.':
+                'Insta360 GO Ultra: photo resolution corrected to 50 MP, per the official manual.',
             'Icone nuove: sull\'home screen c\'è il mirino dell\'app, non più la macchina fotografica generica rimasta dal logo precedente.':
                 'New icons: your home screen now shows the app\'s viewfinder mark, no longer the generic camera left over from the previous logo.',
             'Variante dedicata per Android, che ritaglia le icone a forma libera senza più tagliare il marchio.':
@@ -2301,7 +2344,7 @@
         let currentSub = 'fuori';
         let currentTemp = 20;
         let currentCardGb = 128;
-        let compromiseChoices = { fpsPriority: 'light', profilePriority: 'dlog', fovPriority: 'dewarp', stabPriority: 'rocksteady', endurancePriority: 'autonomia' };
+        let compromiseChoices = sanitizeCompromiseChoices(null);
 
         // fps calcolati dall'ultimo giro del motore video, usati dal simulatore.
         let lastComputedFps = 30;
@@ -2475,7 +2518,7 @@
             currentBitrateProfile = 'std';
             currentLuce = 'sole';
             currentSub = 'fuori';
-            compromiseChoices = { fpsPriority: 'action', profilePriority: 'normal', fovPriority: 'wide', stabPriority: 'rocksteady' };
+            compromiseChoices = sanitizeCompromiseChoices({ fpsPriority: 'action', profilePriority: 'normal', fovPriority: 'wide', stabPriority: 'rocksteady' });
             updateUIState();
             updateResults();
             const results = document.querySelector('.results-container');
@@ -2540,7 +2583,11 @@
                 region: currentRegion, sub: currentSub, bitrateProf: currentBitrateProfile,
                 // Un preset e' una configurazione intera: senza il blocco Pro
                 // richiamarlo darebbe risultati diversi da quando l'hai salvato.
-                pro: currentProPayload()
+                pro: currentProPayload(),
+                // Stessa ragione per le scelte fatte nei conflitti: sono la
+                // risposta a "cosa preferisci sacrificare", e senza di loro un
+                // preset richiamato puo' mostrare l'altro ramo del compromesso.
+                compromessi: { ...compromiseChoices }
             };
         }
 
@@ -2568,6 +2615,10 @@
             currentSub = pickAllowed(preset.sub, SUB_VALUES, 'fuori');
             currentBitrateProfile = hasOwn(BITRATE_PROFILES, preset.bitrateProf) ? preset.bitrateProf : 'high';
             if (preset.pro) applyProPayload(preset.pro);
+            // I preset salvati prima di questa versione non portano il blocco:
+            // il sanitizer restituisce i valori predefiniti, che e' esattamente
+            // lo stato in cui quei preset erano stati creati.
+            compromiseChoices = sanitizeCompromiseChoices(preset.compromessi);
             if (hasOwn(cameraModelsData, preset.brand)) {
                 currentBrand = preset.brand;
                 currentModelKey = hasOwn(cameraModelsData[preset.brand], preset.modelKey)
@@ -2669,6 +2720,9 @@
                 // quelli di chi lo ha mandato.
                 pro: proMode ? '1' : '0'
             });
+            for (const [key, corta] of Object.entries(COMPROMISE_PARAMS)) {
+                params.set(corta, compromiseChoices[key]);
+            }
             if (proMode) {
                 params.set('sa', String(proSettings.shutterAngle));
                 params.set('im', String(proSettings.isoMax));
@@ -2697,6 +2751,18 @@
             currentRegion = pickAllowed(params.get('r'), REGION_VALUES, currentRegion);
             currentSub = pickAllowed(params.get('sub'), SUB_VALUES, currentSub);
             if (hasOwn(BITRATE_PROFILES, params.get('bp'))) currentBitrateProfile = params.get('bp');
+
+            // Le scelte di conflitto viaggiano sempre, anche ai valori
+            // predefiniti: un conflitto risolto e' parte del setup che stai
+            // mandando, e ometterlo farebbe vedere a chi riceve il ramo che
+            // aveva scelto lui.
+            const compromessiDalLink = {};
+            for (const [key, corta] of Object.entries(COMPROMISE_PARAMS)) {
+                if (params.has(corta)) compromessiDalLink[key] = params.get(corta);
+            }
+            if (Object.keys(compromessiDalLink).length) {
+                compromiseChoices = sanitizeCompromiseChoices(compromessiDalLink);
+            }
 
             // Il blocco Pro: si applica solo se il link lo dichiara, così un
             // link vecchio non spegne la Pro a chi lo apre.
@@ -3357,35 +3423,52 @@
             return ridotti;
         }
 
+        // Il filtro ND dipende dalla scena, non dall'otturatore scelto a mano.
+        // Sta in una funzione sola perché prima ne esistevano due versioni —
+        // una nel ramo automatico e una nel ramo Pro — e la seconda teneva
+        // conto della sola ripresa subacquea: accendere la Pro rimetteva un ND
+        // che il motore aveva appena tolto, contraddicendo il calcolo fatto un
+        // istante prima.
+        function computeNd(ctx, denom) {
+            if (ctx.isSub) return t('❌ RIMUOVERE ND');
+            // Il buio si valuta prima dello slow-motion perché le due
+            // condizioni possono essere vere insieme, e in quel caso conta di
+            // più avvisare della sottoesposizione.
+            if (ctx.isNight || ctx.isIndoor || currentLuce === 'scarsa') return t(ND_NONE);
+            if (ctx.isSlowmo && currentLuce !== 'sole') return t('❌ RIMUOVERE ND');
+            if ((ctx.isTravel || ctx.isCar) && !ctx.isReel && !ctx.isSport) {
+                return (currentLuce === 'sole') ? t('ND16 / Nessuno') : t('Nessuno');
+            }
+            return t(ndFor(denom, currentLuce));
+        }
+
+        function computeShutterValue(ctx, fps, angolo, hasFpsConflict) {
+            // In modalità Pro l'otturatore è una scelta esplicita: le
+            // scorciatoie automatiche ("AUTO", "AUTO Max 1/50s") direbbero il
+            // contrario di quello che l'utente ha appena impostato.
+            if (proMode) {
+                return t('{shutter} · {angle}° · manuale', { shutter: shutterFor(fps, angolo), angle: angolo });
+            }
+            if (ctx.isSub) return t('AUTO (o 1/{shutter}s in sup.)', { shutter: fps * 2 });
+            // Stesso ordine di computeNd: con slow-motion e notte insieme
+            // l'avviso "(Scuro!)" non compariva mai, mentre compariva con
+            // sport e notte. L'esposizione era critica in entrambi i casi.
+            if (ctx.isNight || ctx.isIndoor || currentLuce === 'scarsa') {
+                return (compromiseChoices.fpsPriority === 'action' && hasFpsConflict)
+                    ? t('1/{shutter}s (Scuro!)', { shutter: fps * 2 })
+                    : t('AUTO (Max {max})', { max: ctx.isPal ? '1/50s' : '1/60s' });
+            }
+            if ((ctx.isTravel || ctx.isCar) && !ctx.isReel && !ctx.isSport) return t('AUTO (EV Regolato)');
+            return shutterFor(fps, angolo);
+        }
+
         function computeExposure(ctx, fps, hasFpsConflict) {
             const angolo = proMode ? proSettings.shutterAngle : 180;
             const denom = shutterDenominator(fps, angolo);
-            let shutter = shutterFor(fps, angolo);
-            let nd = t(ndFor(denom, currentLuce));
-
-            if (ctx.isSub) {
-                nd = t('❌ RIMUOVERE ND');
-                shutter = t('AUTO (o 1/{shutter}s in sup.)', { shutter: fps * 2 });
-            } else if (ctx.isSlowmo && currentLuce !== 'sole') {
-                nd = t('❌ RIMUOVERE ND');
-            } else if (ctx.isNight || ctx.isIndoor || currentLuce === 'scarsa') {
-                nd = t(ND_NONE);
-                shutter = (compromiseChoices.fpsPriority === 'action' && hasFpsConflict)
-                    ? t('1/{shutter}s (Scuro!)', { shutter: fps * 2 })
-                    : t('AUTO (Max {max})', { max: ctx.isPal ? '1/50s' : '1/60s' });
-            } else if ((ctx.isTravel || ctx.isCar) && !ctx.isReel && !ctx.isSport) {
-                shutter = t('AUTO (EV Regolato)');
-                nd = (currentLuce === 'sole') ? t('ND16 / Nessuno') : t('Nessuno');
-            }
-            // In modalità Pro l'otturatore è una scelta esplicita: le
-            // scorciatoie automatiche ("AUTO", "AUTO Max 1/50s") verrebbero a
-            // dire il contrario di quello che l'utente ha appena impostato.
-            // Il filtro ND resta calcolato sul tempo che ne risulta.
-            if (proMode) {
-                shutter = t('{shutter} · {angle}° · manuale', { shutter: shutterFor(fps, angolo), angle: angolo });
-                nd = ctx.isSub ? t('❌ RIMUOVERE ND') : t(ndFor(denom, currentLuce));
-            }
-            return { shutter, nd };
+            return {
+                shutter: computeShutterValue(ctx, fps, angolo, hasFpsConflict),
+                nd: computeNd(ctx, denom)
+            };
         }
 
         function computeColorProfile(ctx, hasProfileConflict) {
@@ -3413,16 +3496,26 @@
             return t(baseFov);
         }
 
+        // Il conflitto "Stabilizzazione Sportiva" compare per qualunque marchio
+        // quando lo scenario è Sport, quindi la scelta va rispettata da tutti e
+        // tre: prima la leggeva solo il ramo DJI, e sulle altre camere i due
+        // bottoni cambiavano l'interfaccia senza toccare il valore calcolato.
+        // I nomi restano quelli di ogni costruttore — è ciò che l'utente legge
+        // nel menu della propria camera.
         function computeStabilization(ctx) {
+            const orizzonte = compromiseChoices.stabPriority === 'horizon';
             if (currentBrand === 'gopro') {
                 if (ctx.isGyro) return t('OFF (Per Gyroflow)');
-                return ctx.isSport ? 'HyperSmooth AutoBoost / Boost' : 'HyperSmooth On';
+                if (!ctx.isSport) return 'HyperSmooth On';
+                return orizzonte ? 'HyperSmooth + Horizon Leveling' : 'HyperSmooth AutoBoost / Boost';
             }
             if (currentBrand === 'insta360') {
-                return ctx.isGyro ? 'OFF' : 'FlowState / Horizon Lock 360°';
+                if (ctx.isGyro) return 'OFF';
+                if (!ctx.isSport) return 'FlowState / Horizon Lock 360°';
+                return orizzonte ? 'FlowState + Horizon Lock 360°' : 'FlowState (Max)';
             }
             if (ctx.isGyro) return t('OFF (Disattivata per Gyroflow)');
-            if (ctx.isSport) return compromiseChoices.stabPriority === 'horizon' ? 'HorizonBalancing (±45°)' : 'RockSteady+';
+            if (ctx.isSport) return orizzonte ? 'HorizonBalancing (±45°)' : 'RockSteady+';
             return 'RockSteady';
         }
 
@@ -3578,6 +3671,20 @@
         // decide cosa sia un valore Pro valido: lo usano localStorage, i preset
         // e il link condiviso, che sono tre ingressi non fidati con lo stesso
         // dominio da rispettare.
+        // Stesso schema di sanitizeProSettings: un solo posto in cui si decide
+        // cosa sia una scelta di conflitto valida, usato da preset e link.
+        // Tenerne due copie sarebbe il modo sicuro per farle divergere.
+        function sanitizeCompromiseChoices(parsed) {
+            const out = { ...COMPROMISE_DEFAULTS };
+            if (!parsed || typeof parsed !== 'object') return out;
+            for (const key of Object.keys(COMPROMISE_DEFAULTS)) {
+                if (hasOwn(parsed, key) && COMPROMISE_VALUES[key].includes(parsed[key])) {
+                    out[key] = parsed[key];
+                }
+            }
+            return out;
+        }
+
         function sanitizeProSettings(parsed) {
             const out = { ...PRO_DEFAULTS };
             if (!parsed || typeof parsed !== 'object') return out;
