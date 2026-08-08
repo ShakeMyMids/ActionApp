@@ -27,11 +27,22 @@ const MIME = {
 // meta e non nel <title>, che l'app riscrive secondo la lingua scelta.
 let deployMarker = '';
 
+// Il browser cerca aggiornamenti confrontando i byte di sw.js. Per provare il
+// flusso di aggiornamento serve poterlo cambiare senza toccare il file: questo
+// marcatore viene appeso in coda al worker.
+let swBump = '';
+
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
 
   if (url.pathname === '/__test/marker') {
     deployMarker = url.searchParams.get('value') || '';
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    return res.end('ok');
+  }
+
+  if (url.pathname === '/__test/sw-bump') {
+    swBump = url.searchParams.get('value') || '';
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     return res.end('ok');
   }
@@ -54,6 +65,9 @@ const server = http.createServer((req, res) => {
   if (ext === '.html' && deployMarker) {
     body = Buffer.from(body.toString('utf8').replace(
       '</head>', `<meta name="x-deploy-marker" content="${deployMarker}"></head>`));
+  }
+  if (rel.endsWith('sw.js') && swBump) {
+    body = Buffer.from(body.toString('utf8') + `\n// versione di prova: ${swBump}\n`);
   }
 
   res.writeHead(200, {

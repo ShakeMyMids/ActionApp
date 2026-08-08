@@ -115,8 +115,8 @@ npx playwright install chromium    # solo la prima volta
 npm test
 ```
 
-96 test end-to-end, eseguiti su due profili — desktop e mobile (Pixel 7) — per un
-totale di 192 esecuzioni. Coprono inizializzazione, motore di calcolo, escaping e
+110 test end-to-end, eseguiti su due profili — desktop e mobile (Pixel 7) — per un
+totale di 220 esecuzioni. Coprono inizializzazione, motore di calcolo, escaping e
 persistenza dei preset, export/import (compresi i file con valori fuori dominio),
 limite di ripresa, confronto fra camere, condivisione via link, accessibilità
 (semantica tab, `aria-pressed`, tastiera), safe area del notch, autonomia della
@@ -147,8 +147,37 @@ pubblica, senza altri passaggi.
 Il service worker usa una strategia **network-first sull'HTML**, quindi gli
 aggiornamenti arrivano al primo caricamento utile invece di restare bloccati
 dietro la cache. Gli asset statici usano cache-first con aggiornamento in
-background. Cambiando `CACHE_NAME` in `sw.js` si forza lo svuotamento delle
-cache vecchie.
+background.
+
+La versione sta in `sw.js` oltre che in `package.json` e in `index.html`, e i tre
+valori devono coincidere — c'è un test che lo verifica. Non è una ripetizione
+inutile: il browser cerca aggiornamenti confrontando i byte di `sw.js`, quindi se
+cambiasse solo `index.html` l'aggiornamento non verrebbe mai annunciato. Il nome
+della cache deriva dalla versione, così ogni rilascio svuota da sé le cache
+vecchie.
+
+Il worker nuovo **non prende il posto da solo**: resta in attesa e l'app mostra
+il pulsante «Aggiorna». Sostituirlo sotto i piedi dell'utente vorrebbe dire
+ricaricare la pagina mentre sta leggendo le impostazioni davanti alla camera.
+
+**Rilasciando una versione** aggiorna i tre numeri e aggiungi una voce a
+`CHANGELOG` in `index.html`: è quello che l'utente vede aprendo le novità, e un
+test fallisce se la prima voce non è la versione in corso.
+
+## Installazione e aggiornamenti
+
+Il pulsante **Installa** nell'intestazione compare solo quando c'è davvero
+qualcosa da installare: non ad app già installata, e non dove il browser non lo
+permette. Su Chrome, Edge e Android usa `beforeinstallprompt` e installa in un
+tocco; su Safari per iPhone quell'evento non esiste e l'installazione resta un
+gesto manuale, quindi lì il pulsante apre le istruzioni invece di fingere di
+fare qualcosa.
+
+Quando un rilascio è pronto compare **Aggiorna**. Toccandolo il worker in attesa
+prende il posto del vecchio e la pagina si ricarica; subito dopo si apre
+l'elenco delle novità, che vive in `CHANGELOG` dentro `index.html` per restare
+leggibile anche offline. Le novità si mostrano solo a chi arriva da una versione
+precedente: alla prima visita non è cambiato niente.
 
 ## Lingue
 

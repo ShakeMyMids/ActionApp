@@ -162,6 +162,26 @@
         .app-footer a:hover, .app-footer a:focus-visible { background: var(--bg-card); text-decoration: underline; }
         .app-footer svg { width: 16px; height: 16px; fill: currentColor; }
 
+        /* Pillole dell'intestazione: installazione e aggiornamento. */
+        .header-pill { font-family: var(--font-display); background: var(--bg-card); border: 1px solid var(--border); color: var(--text-primary); padding: 5px 11px; border-radius: 999px; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.3px; cursor: pointer; white-space: nowrap; }
+        .header-pill:hover, .header-pill:focus-visible { border-color: var(--brand-color); }
+        /* L'aggiornamento è l'unica pillola che si fa notare: è l'unica che
+           scade, mentre installare può aspettare quanto vuoi. */
+        .header-pill.is-update { background: var(--green); border-color: var(--green); color: #06210f; }
+
+        /* Finestra delle novità */
+        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 200; }
+        .overlay[hidden] { display: none; }
+        .overlay-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 18px; max-width: 460px; width: 100%; max-height: 80vh; overflow-y: auto; box-shadow: 0 18px 40px rgba(0,0,0,0.45); }
+        .overlay-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+        .overlay-title { font-family: var(--font-display); font-size: 1rem; font-weight: 700; }
+        .overlay-close { background: none; border: none; color: var(--text-secondary); font-size: 1.1rem; cursor: pointer; padding: 4px 8px; border-radius: 8px; }
+        .overlay-close:hover, .overlay-close:focus-visible { color: var(--text-primary); background: var(--bg-primary); }
+        .changelog-version { font-family: var(--font-display); font-size: 0.74rem; text-transform: uppercase; letter-spacing: 1px; color: var(--brand-color); font-weight: 700; margin: 14px 0 6px; }
+        .changelog-version:first-child { margin-top: 0; }
+        .changelog-list { margin: 0 0 4px 18px; padding: 0; font-size: 0.85rem; line-height: 1.5; }
+        .changelog-list li { margin-bottom: 5px; }
+
         /* Nav Tabs */
         .tab-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-nav); backdrop-filter: blur(16px); border-top: 1px solid var(--border); display: flex; justify-content: space-around; padding: 8px calc(4px + var(--safe-right)) calc(24px + var(--safe-bottom)) calc(4px + var(--safe-left)); z-index: 100; }
         .tab-btn { font-family: var(--font-display); background: none; border: none; color: var(--text-secondary); display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 0.66rem; font-weight: 600; letter-spacing: 0.1px; cursor: pointer; width: 25%; transition: color 0.2s, transform 0.2s; }
@@ -400,6 +420,15 @@
             🎥 ReadyClickShot <span id="app-brand-badge" class="badge">DJI</span>
         </div>
         <div style="display:flex; align-items:center; gap: 12px;">
+            <!-- Installazione e aggiornamento stanno qui perché valgono per
+                 tutta l'app, non per la scheda che stai guardando. Entrambi
+                 nascosti finché non c'è davvero qualcosa da fare. -->
+            <button type="button" id="btn-update" class="header-pill is-update" data-action="applyUpdate" hidden>
+                <span data-i18n>Aggiorna</span>
+            </button>
+            <button type="button" id="btn-install" class="header-pill" data-action="installApp" hidden>
+                <span data-i18n>Installa</span>
+            </button>
             <button type="button" id="lang-switch" class="lang-switch" data-action="toggleLanguage"><span id="lang-label">EN</span></button>
             <label class="theme-switch" title="Cambia Tema">
                 <input type="checkbox" id="theme-toggle" data-action="toggleTheme">
@@ -557,9 +586,6 @@
                                 <!-- Miglioramento progressivo: compare solo dove
                                      il sistema offre un foglio di condivisione. -->
                                 <button type="button" class="btn-ghost" id="btn-share" data-action="shareSetup" hidden data-i18n>📤 Condividi setup</button>
-                                <!-- Compare solo quando il browser propone
-                                     davvero l'installazione della PWA. -->
-                                <button type="button" class="btn-ghost" id="btn-install" data-action="installApp" hidden data-i18n>⬇️ Installa app</button>
                             </div>
                         </div>
 
@@ -914,6 +940,18 @@
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41-.56-.22-.96-.48-1.38-.9-.42-.42-.68-.82-.9-1.38-.16-.42-.36-1.06-.41-2.23-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41 1.27-.06 1.65-.07 4.85-.07M12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63c-.79.3-1.46.72-2.13 1.38C1.35 2.68.93 3.35.63 4.14.33 4.9.13 5.78.07 7.05.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.06 1.27.26 2.15.56 2.91.3.79.72 1.46 1.38 2.13.67.66 1.34 1.08 2.13 1.38.76.3 1.64.5 2.91.56C8.33 23.99 8.74 24 12 24s3.67-.01 4.95-.07c1.27-.06 2.15-.26 2.91-.56.79-.3 1.46-.72 2.13-1.38.66-.67 1.08-1.34 1.38-2.13.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.27-.26-2.15-.56-2.91-.3-.79-.72-1.46-1.38-2.13C21.32 1.35 20.65.93 19.86.63c-.76-.3-1.64-.5-2.91-.56C15.67.01 15.26 0 12 0z"/><path d="M12 5.84a6.16 6.16 0 1 0 0 12.32 6.16 6.16 0 0 0 0-12.32zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8z"/><circle cx="18.41" cy="5.59" r="1.44"/></svg>@shakemymids__</a>
     </footer>
 
+    <!-- Novità della versione. Il contenuto arriva da CHANGELOG, così resta
+         leggibile anche offline. -->
+    <div id="changelog-overlay" class="overlay" hidden>
+        <div class="overlay-card" role="dialog" aria-modal="true" aria-labelledby="changelog-title">
+            <div class="overlay-head">
+                <span id="changelog-title" class="overlay-title"></span>
+                <button type="button" class="overlay-close" data-action="closeChangelog" aria-label="Chiudi" data-i18n-aria-label="Chiudi">✕</button>
+            </div>
+            <div id="changelog-body"></div>
+        </div>
+    </div>
+
     <!-- Conferme effimere (copia, export, import). aria-live le annuncia
          anche ai lettori di schermo. -->
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
@@ -941,7 +979,9 @@
             cardGb: 'camstudio_card_gb',
             // La camera preferita e' un dato di questo dispositivo, come la
             // scheda: resta fuori dai preset e dal link condiviso.
-            defaultCamera: 'camstudio_default_camera'
+            defaultCamera: 'camstudio_default_camera',
+            // Ultima versione di cui l'utente ha visto le novità.
+            seenVersion: 'camstudio_seen_version'
         };
 
         // batteryMin: minuti indicativi di registrazione continua a 1080p/30 in
@@ -1044,6 +1084,40 @@
         // Versione del formato di export dei preset. Segue la major dell'app,
         // così un file salvato resta riconoscibile quando la forma cambia.
         const PRESET_SCHEMA_VERSION = 13;
+
+        // Versione dell'app, tenuta uguale a quella di sw.js e package.json.
+        // Serve a due cose: capire se l'utente arriva da una versione diversa,
+        // e intestare l'elenco delle novità.
+        const APP_VERSION = '13.2.0';
+
+        // Cosa è cambiato, dalla più recente. Sta qui e non in un file a parte
+        // perché l'app deve poterlo mostrare anche offline, che è la condizione
+        // in cui la si usa davvero.
+        const CHANGELOG = [
+            {
+                version: '13.2.0',
+                changes: [
+                    'I modelli sono in ordine di uscita, dal più recente.',
+                    'La stellina sul modello sceglie la camera predefinita: l\'app si riapre su quella.',
+                    'Installazione e aggiornamento dall\'intestazione, con questo elenco delle novità.'
+                ]
+            },
+            {
+                version: '13.1.0',
+                changes: [
+                    'Catalogo ampliato a 15 modelli: Osmo Action 6 e Osmo Nano, MISSION 1 PRO e MAX2, Insta360 X5.'
+                ]
+            },
+            {
+                version: '13.0.0',
+                changes: [
+                    'Limite di ripresa: dice se a fermarti sarà prima la scheda o la batteria.',
+                    'Confronto fra camere, ordinato sul criterio che conta per la ripresa in corso.',
+                    'L\'attacco della camera compare nei consigli di rigging.',
+                    'Condivisione col foglio di sistema e scorciatoie del manifest.'
+                ]
+            }
+        ];
 
         // L'autonomia parte dal dato del modello e viene scalata dalla
         // temperatura, invece di essere un numero fisso uguale per tutte le cam.
@@ -1469,9 +1543,27 @@
 
             // --- Condivisione nativa, installazione, attacco ---
             '📤 Condividi setup': '📤 Share setup',
-            '⬇️ Installa app': '⬇️ Install app',
             'Il mio setup per {model}': 'My setup for {model}',
             '<b>🔩 Attacco della camera:</b> {mount}': '<b>🔩 Camera mount:</b> {mount}',
+
+            // --- Installazione, aggiornamento e novità ---
+            'Aggiorna': 'Update',
+            'Installa': 'Install',
+            'Chiudi': 'Close',
+            'Novità della versione {version}': "What's new in {version}",
+            'Installare su iPhone': 'Installing on iPhone',
+            'Apri questa pagina in Safari.': 'Open this page in Safari.',
+            'Tocca il pulsante Condividi, quello con la freccia verso l\'alto.': 'Tap the Share button, the one with the upward arrow.',
+            '«Aggiungi a Home».': 'Choose "Add to Home Screen".',
+            'Scegli «Aggiungi a Home».': 'Choose "Add to Home Screen".',
+            'I modelli sono in ordine di uscita, dal più recente.': 'Models are listed by release date, newest first.',
+            'La stellina sul modello sceglie la camera predefinita: l\'app si riapre su quella.': 'The star on a model picks your default camera: the app reopens on it.',
+            'Installazione e aggiornamento dall\'intestazione, con questo elenco delle novità.': 'Install and update from the header, with this list of changes.',
+            'Catalogo ampliato a 15 modelli: Osmo Action 6 e Osmo Nano, MISSION 1 PRO e MAX2, Insta360 X5.': 'Catalogue expanded to 15 models: Osmo Action 6 and Osmo Nano, MISSION 1 PRO and MAX2, Insta360 X5.',
+            'Limite di ripresa: dice se a fermarti sarà prima la scheda o la batteria.': 'Recording limit: tells you whether the card or the battery stops you first.',
+            'Confronto fra camere, ordinato sul criterio che conta per la ripresa in corso.': 'Camera comparison, ranked by what matters for the shot at hand.',
+            'L\'attacco della camera compare nei consigli di rigging.': 'The camera mount now appears in the rigging tips.',
+            'Condivisione col foglio di sistema e scorciatoie del manifest.': 'Native share sheet and manifest shortcuts.',
 
             // --- Camera predefinita (stellina) ---
             'Imposta {model} come predefinita': 'Set {model} as default',
@@ -2152,17 +2244,141 @@
             }
         }
 
+        /* ==================================================================
+           INSTALLAZIONE E AGGIORNAMENTO
+           ================================================================== */
+
         // L'app serve offline in mezzo al nulla, quindi vale la pena invitare
         // a installarla — ma solo quando è il browser a dire che si può.
         let installPrompt = null;
+        let waitingWorker = null;
+        // Distinti di proposito: il primo dice che l'utente ha chiesto
+        // l'aggiornamento, il secondo che la ricarica è già partita.
+        let updateRequested = false;
+        let reloadingForUpdate = false;
+
+        // Installata significa: aperta come app e non dentro una scheda del
+        // browser. display-mode copre Android e desktop, navigator.standalone
+        // è la variante di Safari su iPhone.
+        function isInstalled() {
+            return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
+                || window.navigator.standalone === true;
+        }
+
+        // Safari su iPhone non offre beforeinstallprompt: lì l'installazione è
+        // un gesto manuale. Mostrare un pulsante che non fa nulla sarebbe
+        // peggio che spiegare come si fa.
+        function isIosSafari() {
+            const ua = navigator.userAgent || '';
+            const iOS = /iPad|iPhone|iPod/.test(ua)
+                || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            return iOS && /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS/.test(ua);
+        }
+
+        function showEl(id, visible) {
+            const el = $(id);
+            if (el) el.hidden = !visible;
+        }
+
+        // Il pulsante di installazione compare solo se c'è qualcosa da
+        // installare: né ad app già installata, né dove il browser non lo
+        // permette. Su iPhone resta, ma apre le istruzioni.
+        function refreshInstallButton() {
+            showEl('btn-install', !isInstalled() && (!!installPrompt || isIosSafari()));
+        }
 
         async function installApp() {
+            if (isIosSafari() && !installPrompt) {
+                openChangelog('ios');
+                return;
+            }
             if (!installPrompt) return;
             installPrompt.prompt();
             await installPrompt.userChoice;
+            // Il prompt è a colpo singolo: dopo l'uso non è più riutilizzabile,
+            // a prescindere da cosa ha risposto l'utente.
             installPrompt = null;
-            const btn = $('btn-install');
-            if (btn) btn.hidden = true;
+            refreshInstallButton();
+        }
+
+        // Passa alla versione in attesa. Il ricaricamento avviene su
+        // controllerchange, quando il worker nuovo ha davvero preso il posto.
+        function applyUpdate() {
+            if (!waitingWorker) return;
+            updateRequested = true;
+            waitingWorker.postMessage({ type: 'SKIP_WAITING' });
+            showEl('btn-update', false);
+        }
+
+        function announceUpdate(worker) {
+            waitingWorker = worker;
+            showEl('btn-update', true);
+        }
+
+        // Un worker in attesa significa che una versione nuova è pronta ma non
+        // ha ancora preso il controllo.
+        function watchForUpdates(registration) {
+            if (registration.waiting && navigator.serviceWorker.controller) {
+                announceUpdate(registration.waiting);
+            }
+            registration.addEventListener('updatefound', () => {
+                const arrivo = registration.installing;
+                if (!arrivo) return;
+                arrivo.addEventListener('statechange', () => {
+                    // Senza controller è la prima installazione, non un
+                    // aggiornamento: non c'è niente da annunciare.
+                    if (arrivo.state === 'installed' && navigator.serviceWorker.controller) {
+                        announceUpdate(arrivo);
+                    }
+                });
+            });
+        }
+
+        /* ------------------------------------------------------------------
+           Novità della versione
+           ------------------------------------------------------------------ */
+
+        const IOS_STEPS = [
+            'Apri questa pagina in Safari.',
+            'Tocca il pulsante Condividi, quello con la freccia verso l\'alto.',
+            'Scegli «Aggiungi a Home».'
+        ];
+
+        function changelogHtml() {
+            return CHANGELOG.map(entry =>
+                `<div class="changelog-version">${escapeHtml(entry.version)}</div>`
+                + `<ul class="changelog-list">`
+                + entry.changes.map(c => `<li>${escapeHtml(t(c))}</li>`).join('')
+                + `</ul>`
+            ).join('');
+        }
+
+        function openChangelog(mode) {
+            const overlay = $('changelog-overlay');
+            if (!overlay) return;
+            const iosMode = mode === 'ios';
+            setText('changelog-title', iosMode
+                ? t('Installare su iPhone')
+                : t('Novità della versione {version}', { version: APP_VERSION }));
+            setHtml('changelog-body', iosMode
+                ? `<ul class="changelog-list">${IOS_STEPS.map(p => `<li>${escapeHtml(t(p))}</li>`).join('')}</ul>`
+                : changelogHtml());
+            overlay.hidden = false;
+        }
+
+        function closeChangelog() {
+            const overlay = $('changelog-overlay');
+            if (overlay) overlay.hidden = true;
+            // Da qui in poi queste novità sono viste.
+            storageSet(STORAGE_KEYS.seenVersion, APP_VERSION);
+        }
+
+        // Le novità si mostrano a chi arriva da una versione precedente. Alla
+        // primissima visita no: non è cambiato niente, si è appena arrivati.
+        function maybeShowChangelog() {
+            const vista = storageGet(STORAGE_KEYS.seenVersion);
+            if (!vista) { storageSet(STORAGE_KEYS.seenVersion, APP_VERSION); return; }
+            if (vista !== APP_VERSION) openChangelog();
         }
 
         // Riepilogo testuale, da incollare nelle note del telefono davanti
@@ -2897,7 +3113,9 @@
             copySettings: () => copySettings(),
             copyShareLink: () => copyShareLink(),
             shareSetup: () => shareSetup(),
-            installApp: () => installApp()
+            installApp: () => installApp(),
+            applyUpdate: () => applyUpdate(),
+            closeChangelog: () => closeChangelog()
         };
 
         function dispatch(event) {
@@ -2921,7 +3139,7 @@
             // Gli elementi con role="button" che non sono <button> hanno
             // bisogno dell'attivazione da tastiera.
             document.addEventListener('keydown', event => {
-                if (event.key === 'Escape') { closeAllTooltips(); return; }
+                if (event.key === 'Escape') { closeChangelog(); closeAllTooltips(); return; }
                 if (event.key !== 'Enter' && event.key !== ' ') return;
                 const el = event.target.closest('[data-action][role="button"]');
                 if (!el) return;
@@ -2946,9 +3164,22 @@
             window.addEventListener('beforeinstallprompt', event => {
                 event.preventDefault();
                 installPrompt = event;
-                const installBtn = $('btn-install');
-                if (installBtn) installBtn.hidden = false;
+                refreshInstallButton();
             });
+            // A installazione avvenuta il pulsante non ha più senso.
+            window.addEventListener('appinstalled', () => {
+                installPrompt = null;
+                refreshInstallButton();
+            });
+
+            // La finestra delle novità si chiude con Esc e cliccando fuori,
+            // come i tooltip già presenti.
+            const overlay = $('changelog-overlay');
+            if (overlay) {
+                overlay.addEventListener('click', event => {
+                    if (event.target === overlay) closeChangelog();
+                });
+            }
 
             // Un link condiviso aperto mentre l'app è già caricata cambia
             // solo l'hash: va comunque applicato.
@@ -2995,8 +3226,26 @@
             // scheda: va fatto dopo renderAll, quando i pannelli esistono.
             applyTabFromHash();
 
+            refreshInstallButton();
+            maybeShowChangelog();
+
             if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('./sw.js').catch(() => {});
+                navigator.serviceWorker.register('./sw.js')
+                    .then(watchForUpdates)
+                    .catch(() => {});
+                // Il worker nuovo ha preso il controllo: si ricarica per far
+                // girare davvero la versione aggiornata. La guardia evita il
+                // ciclo di ricariche se l'evento arriva più di una volta.
+                // Solo se l'aggiornamento è stato chiesto: alla prima visita
+                // questo evento scatta comunque, perché il worker appena
+                // installato prende il controllo con clients.claim(), e
+                // ricaricare lì significherebbe far sfarfallare l'app a ogni
+                // primo avvio.
+                navigator.serviceWorker.addEventListener('controllerchange', () => {
+                    if (!updateRequested || reloadingForUpdate) return;
+                    reloadingForUpdate = true;
+                    window.location.reload();
+                });
             }
         }
 
