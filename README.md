@@ -129,6 +129,7 @@ manifest.json       manifest PWA
 icons/              icone 192 e 512, incluse le varianti maskable
 scripts/serve.js    server statico senza dipendenze, per lo sviluppo e i test
 tests/              suite Playwright
+docs/               mandato della revisione settimanale automatica
 .github/workflows/  CI: la suite gira a ogni push e su ogni pull request
 ```
 
@@ -398,6 +399,18 @@ modificano ciò che il server restituisce e non hanno autenticazione: in ascolto
 su tutte le interfacce, chiunque fosse sulla stessa rete potrebbe usarli mentre
 sviluppi. Per aprire l'app dal telefono si passa `HOST=0.0.0.0`, ma è una scelta
 esplicita.
+
+## Revisione settimanale
+
+Una sessione automatica passa il progetto una volta a settimana: cerca falle,
+verifica che i calcoli restino coerenti, controlla se sono uscite camere nuove e
+propone migliorie. Apre una pull request solo quando c'è qualcosa da cambiare, e
+non unisce mai niente da sola.
+
+Il mandato che segue — priorità, metodo, convenzioni — sta in
+[`docs/revisione-settimanale.md`](docs/revisione-settimanale.md). Ogni esecuzione
+parte senza memoria di quelle precedenti e legge quel file: è lì che si cambia il
+modo di lavorare, non nella configurazione della pianificazione.
 
 ## Licenza
 
