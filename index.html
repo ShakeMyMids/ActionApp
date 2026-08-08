@@ -6,6 +6,17 @@
          bisogno di ingrandire. viewport-fit=cover estende il contenuto sotto il
          notch, e il CSS lo compensa con env(safe-area-inset-*). -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <!-- Politica di sicurezza dei contenuti. L'hash è quello dell'unico blocco
+         di script inline in fondo al file: qualunque altro script, incluso uno
+         iniettato a runtime, non viene eseguito. Lo calcola `npm run csp`, e il
+         test "l hash dichiarato copre lo script della pagina" fallisce se
+         qualcuno modifica lo script senza rigenerarlo.
+         style-src tiene 'unsafe-inline' perché la pagina usa attributi style=
+         e gli hash non coprono gli attributi; l'iniezione di CSS è un vettore
+         molto più debole di quella di script.
+         frame-ancestors non è qui perché nel meta viene ignorato: richiede
+         un'intestazione HTTP, e GitHub Pages non permette di impostarne. -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'none'; object-src 'none'; script-src 'sha256-d70PUmkfJNzo02s9gLfOWpEAzc1Fg4iy8ZVIWabYYeM='; worker-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src data:; connect-src 'self'; manifest-src 'self'; form-action 'none'">
     <!-- PWA Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
@@ -1216,7 +1227,7 @@
         // Versione dell'app, tenuta uguale a quella di sw.js e package.json.
         // Serve a due cose: capire se l'utente arriva da una versione diversa,
         // e intestare l'elenco delle novità.
-        const APP_VERSION = '13.4.0';
+        const APP_VERSION = '13.5.0';
 
         // Testi della Guida. Come per il changelog stanno qui e non in un file
         // a parte, perché la scheda deve restare leggibile offline.
@@ -1257,6 +1268,14 @@
         // perché l'app deve poterlo mostrare anche offline, che è la condizione
         // in cui la si usa davvero.
         const CHANGELOG = [
+            {
+                version: '13.5.0',
+                changes: [
+                    'Icone nuove: sull\'home screen c\'è il mirino dell\'app, non più la macchina fotografica generica rimasta dal logo precedente.',
+                    'Variante dedicata per Android, che ritaglia le icone a forma libera senza più tagliare il marchio.',
+                    'La pagina dichiara una politica di sicurezza dei contenuti: nessuno script diverso da quello dell\'app può essere eseguito.'
+                ]
+            },
             {
                 version: '13.4.0',
                 changes: [
@@ -1786,6 +1805,12 @@
 
             'Col tuo angolo Pro ({angle}°): {shutter} · ND {nd}': 'At your Pro angle ({angle}°): {shutter} · ND {nd}',
 
+            'Icone nuove: sull\'home screen c\'è il mirino dell\'app, non più la macchina fotografica generica rimasta dal logo precedente.':
+                'New icons: your home screen now shows the app\'s viewfinder mark, no longer the generic camera left over from the previous logo.',
+            'Variante dedicata per Android, che ritaglia le icone a forma libera senza più tagliare il marchio.':
+                'A dedicated variant for Android, which crops icons to arbitrary shapes, so the mark no longer gets clipped.',
+            'La pagina dichiara una politica di sicurezza dei contenuti: nessuno script diverso da quello dell\'app può essere eseguito.':
+                'The page now declares a content security policy: no script other than the app\'s own can run.',
             'Le schede hanno nomi italiani e per esteso: Ripresa, Preparazione, Montaggio, Riferimento, Guida.':
                 'The tabs now have full, translated names: Shoot, Preparation, Editing, Reference, Guide.',
             'Le impostazioni Pro viaggiano con i preset e con il link condiviso: chi apre un link vede lo stesso setup, cursori compresi.':

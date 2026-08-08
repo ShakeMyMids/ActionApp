@@ -1,10 +1,12 @@
 {
   "name": "readyclickshot",
-  "version": "13.4.0",
+  "version": "13.5.0",
   "description": "PWA che calcola le impostazioni ottimali per action cam DJI, GoPro e Insta360.",
   "private": true,
   "scripts": {
     "start": "node scripts/serve.js",
+    "icone": "node scripts/genera-icone.js",
+    "csp": "node scripts/csp.js",
     "test": "playwright test",
     "test:headed": "playwright test --headed",
     "test:report": "playwright show-report"

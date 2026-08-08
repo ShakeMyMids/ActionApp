@@ -2062,3 +2062,147 @@ test.describe('Coerenza visiva', () => {
   });
 });
 
+
+test.describe('Politica di sicurezza dei contenuti', () => {
+  // L'app e' un file solo con la logica in un <script> inline. Dichiararne
+  // l'hash invece di aprire a 'unsafe-inline' e' cio' che rende la policy
+  // qualcosa di piu' di una dichiarazione d'intenti, ma lega la policy al
+  // contenuto dello script: se divergono, l'app muore in produzione e passa
+  // tutti i test che non guardano proprio questo.
+  const { hashAtteso } = require('../scripts/csp.js');
+
+  function policyDelFile() {
+    const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    const trovato = html.match(/<meta http-equiv="Content-Security-Policy" content="([^"]*)">/);
+    expect(trovato, 'index.html deve dichiarare una CSP').not.toBeNull();
+    return { html, policy: trovato[1] };
+  }
+
+  test('l hash dichiarato copre lo script della pagina', async () => {
+    const { html, policy } = policyDelFile();
+    expect(policy).toContain(hashAtteso(html));
+  });
+
+  test('script-src non concede unsafe-inline ne unsafe-eval', async () => {
+    // Con 'unsafe-inline' passerebbe anche un handler onclick= iniettato, che
+    // e' il vettore realistico: innerHTML non esegue i tag <script>, ma esegue
+    // eccome un <img onerror=...>.
+    const { policy } = policyDelFile();
+    const scriptSrc = policy.split(';').map(d => d.trim()).find(d => d.startsWith('script-src'));
+    expect(scriptSrc).toBeTruthy();
+    expect(scriptSrc).not.toContain('unsafe-inline');
+    expect(scriptSrc).not.toContain('unsafe-eval');
+  });
+
+  test('le direttive di base sono chiuse', async () => {
+    const { policy } = policyDelFile();
+    for (const direttiva of ["default-src 'self'", "object-src 'none'", "base-uri 'none'", "worker-src 'self'"]) {
+      expect(policy).toContain(direttiva);
+    }
+  });
+
+  test('uno script iniettato non viene eseguito', async ({ page }) => {
+    const eseguito = await page.evaluate(() => {
+      const s = document.createElement('script');
+      s.textContent = 'window.__iniettato = true;';
+      document.body.appendChild(s);
+      return !!window.__iniettato;
+    });
+    expect(eseguito).toBe(false);
+  });
+
+  test('un handler inline iniettato non viene eseguito', async ({ page }) => {
+    const eseguito = await page.evaluate(() => {
+      const div = document.createElement('div');
+      div.setAttribute('onclick', 'window.__handler = true');
+      document.body.appendChild(div);
+      div.click();
+      return !!window.__handler;
+    });
+    expect(eseguito).toBe(false);
+  });
+
+  test('il service worker si registra lo stesso', async ({ page }) => {
+    // worker-src deve essere esplicito: senza, ricadrebbe su script-src, che
+    // qui contiene solo un hash, e la registrazione verrebbe rifiutata.
+    await page.evaluate(() => navigator.serviceWorker.ready);
+    expect(await page.evaluate(() =>
+      navigator.serviceWorker.getRegistrations().then(r => r.length))).toBeGreaterThan(0);
+  });
+
+  test('la pagina carica senza violazioni della policy', async ({ page }) => {
+    const violazioni = [];
+    page.on('console', m => {
+      if (m.type() === 'error' && /Content Security Policy/i.test(m.text())) violazioni.push(m.text());
+    });
+    await page.goto('/index.html');
+    await expect(page.locator('#val-res')).not.toBeEmpty();
+    expect(violazioni).toEqual([]);
+  });
+});
+
+test.describe('Icone', () => {
+  // Le icone precedenti erano una macchina fotografica generica rimasta dopo
+  // il cambio di logo: nessuno se n'era accorto perche' niente le confrontava
+  // con il marchio. Questi test sono quel confronto.
+
+  // Larghezza e altezza stanno nell'header IHDR, subito dopo la firma del PNG.
+  function dimensioniPng(file) {
+    const b = fs.readFileSync(path.join(ROOT, file));
+    expect(b.slice(1, 4).toString('ascii'), `${file} deve essere un PNG`).toBe('PNG');
+    return { larghezza: b.readUInt32BE(16), altezza: b.readUInt32BE(20) };
+  }
+
+  // Tracciati e raggi: bastano a dire se due disegni sono lo stesso disegno.
+  function formeDi(testo) {
+    return {
+      tracciati: [...testo.matchAll(/\bd="([^"]+)"/g)].map(m => m[1].replace(/\s+/g, ' ').trim()),
+      raggi: [...testo.matchAll(/\br="([^"]+)"/g)].map(m => m[1])
+    };
+  }
+
+  test('ogni icona del manifest ha le dimensioni che dichiara', async ({ page }) => {
+    const manifest = await page.evaluate(async () => (await fetch('./manifest.json')).json());
+    for (const icona of manifest.icons) {
+      const [larghezza, altezza] = icona.sizes.split('x').map(Number);
+      expect(dimensioniPng(icona.src.replace(/^\.\//, '')), `${icona.src} (${icona.purpose})`)
+        .toEqual({ larghezza, altezza });
+    }
+  });
+
+  test('la variante maskable e un file a se', async ({ page }) => {
+    // Android ritaglia le maskable a forma libera e garantisce solo il cerchio
+    // centrale dell'80%. Servendo lo stesso file usato per "any", il marchio
+    // sui launcher che ritagliano stretto viene tagliato.
+    const manifest = await page.evaluate(async () => (await fetch('./manifest.json')).json());
+    const maskable = manifest.icons.filter(i => (i.purpose || '').includes('maskable'));
+    const any = manifest.icons.filter(i => (i.purpose || 'any').includes('any'));
+    expect(maskable.length).toBeGreaterThan(0);
+    for (const m of maskable) {
+      expect(any.map(a => a.src)).not.toContain(m.src);
+    }
+  });
+
+  test('il marchio delle icone e quello dell intestazione', async () => {
+    // Il generatore tiene una copia dei tracciati: se il logo cambia e le
+    // icone no, e' qui che si vede, invece che fra sei mesi guardando il
+    // telefono di qualcun altro.
+    const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    const generatore = fs.readFileSync(path.join(ROOT, 'scripts', 'genera-icone.js'), 'utf8');
+    const logo = html.match(/<svg class="app-logo"[\s\S]*?<\/svg>/);
+    expect(logo, 'il marchio deve stare in un svg.app-logo').not.toBeNull();
+    const mirino = generatore.match(/const MIRINO = `([\s\S]*?)`;/);
+    expect(mirino, 'il generatore deve definire MIRINO').not.toBeNull();
+    expect(formeDi(mirino[1])).toEqual(formeDi(logo[0]));
+  });
+
+  test('il worker precarica tutte le icone del manifest', async ({ page }) => {
+    // Un'icona non precaricata sparisce dalla schermata di installazione
+    // quando l'utente e' offline, che e' esattamente quando serve.
+    const manifest = await page.evaluate(async () => (await fetch('./manifest.json')).json());
+    const sw = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
+    for (const icona of manifest.icons) {
+      expect(sw, `${icona.src} manca da PRECACHE_URLS`).toContain(`'${icona.src}'`);
+    }
+  });
+});
