@@ -1216,7 +1216,7 @@
         // Versione dell'app, tenuta uguale a quella di sw.js e package.json.
         // Serve a due cose: capire se l'utente arriva da una versione diversa,
         // e intestare l'elenco delle novità.
-        const APP_VERSION = '13.3.0';
+        const APP_VERSION = '13.4.0';
 
         // Testi della Guida. Come per il changelog stanno qui e non in un file
         // a parte, perché la scheda deve restare leggibile offline.
@@ -1247,6 +1247,7 @@
             ['L\'app si apre su una camera che non è la mia.', 'Senza indicazioni propone la più recente del marchio, che non è quella che possiedi. Tocca la stellina accanto al tuo modello: da lì in poi l\'app si aprirà su quello.'],
             ['I miei preset finiscono su un server?', 'No. Restano nel browser di questo dispositivo e non vengono inviati da nessuna parte; puoi esportarli in JSON per portarli altrove. Anche il link condiviso non passa da un server: la configurazione viaggia dentro l\'indirizzo stesso.'],
             ['Su iPhone il pulsante non installa niente.', 'Safari non permette ai siti di avviare l\'installazione, quindi lì il pulsante apre le istruzioni: Condividi, poi «Aggiungi a Home». Su Chrome, Edge e Android l\'installazione avviene invece con un tocco.'],
+            ['Le impostazioni Pro restano sul mio dispositivo?', 'I cursori vivono nel browser, ma da ora seguono anche i preset e il link condiviso: salvando un preset con la Pro accesa lo ritrovi com\'era, e chi apre il tuo link vede lo stesso setup, cursori compresi. Un link condiviso a Pro spenta la spegne anche a chi lo riceve, ma non gli cancella le posizioni dei suoi cursori — a Pro spenta non cambiano nulla.'],
             ['Ho spostato un cursore Pro ma il consiglio dell\'app resta un altro numero.', 'È voluto. Il cursore è la tua scelta, la riga sotto è cosa suggerirebbe l\'app per quella scena: restano visibili insieme proprio perché tu sappia quanto te ne stai allontanando. Se vuoi tornare indietro, il pulsante in fondo al pannello riporta tutto ai valori consigliati.'],
             ['L\'angolo di otturatore cambia davvero qualcosa?', 'Sì, e non solo il tempo di posa: cambia anche il filtro ND consigliato. A 90° entra metà della luce rispetto a 180°, quindi serve un ND meno denso. È il motivo per cui l\'angolo compare fra i parametri Pro invece che come nota informativa.'],
             ['Come faccio a sapere se è uscita una versione nuova?', 'Quando è pronta compare «Aggiorna» nell\'intestazione. Toccandolo l\'app passa alla versione nuova e apre l\'elenco di cosa è cambiato.']
@@ -1256,6 +1257,12 @@
         // perché l'app deve poterlo mostrare anche offline, che è la condizione
         // in cui la si usa davvero.
         const CHANGELOG = [
+            {
+                version: '13.4.0',
+                changes: [
+                    'Le impostazioni Pro viaggiano con i preset e con il link condiviso: chi apre un link vede lo stesso setup, cursori compresi.'
+                ]
+            },
             {
                 version: '13.3.0',
                 changes: [
@@ -1777,6 +1784,12 @@
             '<b>🔩 Attacco della camera:</b> {mount}': '<b>🔩 Camera mount:</b> {mount}',
 
             'Col tuo angolo Pro ({angle}°): {shutter} · ND {nd}': 'At your Pro angle ({angle}°): {shutter} · ND {nd}',
+
+            'Le impostazioni Pro viaggiano con i preset e con il link condiviso: chi apre un link vede lo stesso setup, cursori compresi.':
+                'Pro settings travel with presets and with the shared link: whoever opens a link sees the same setup, sliders included.',
+            'Le impostazioni Pro restano sul mio dispositivo?': 'Do Pro settings stay on my device?',
+            'I cursori vivono nel browser, ma da ora seguono anche i preset e il link condiviso: salvando un preset con la Pro accesa lo ritrovi com\'era, e chi apre il tuo link vede lo stesso setup, cursori compresi. Un link condiviso a Pro spenta la spegne anche a chi lo riceve, ma non gli cancella le posizioni dei suoi cursori — a Pro spenta non cambiano nulla.':
+                'The sliders live in the browser, but from now on they also follow presets and the shared link: save a preset with Pro on and you get it back as it was, and whoever opens your link sees the same setup, sliders included. A link shared with Pro off turns it off for the recipient too, but does not wipe their own slider positions — with Pro off they change nothing.',
 
             // --- Guida e changelog: voci della 13.3.0 ---
             'Modalità Pro: cinque parametri a cursore — otturatore, ISO, EV, bianco e nitidezza — con accanto il valore che l\'app suggerirebbe.':
@@ -2475,6 +2488,14 @@
                 sub: pickAllowed(preset.sub, SUB_VALUES, 'fuori'),
                 bitrateProf: hasOwn(BITRATE_PROFILES, preset.bitrateProf) ? preset.bitrateProf : 'high'
             };
+            // I preset salvati prima della Modalita' Pro non hanno il blocco:
+            // in quel caso non dicono niente sulla Pro, e lasciarla com'e' e'
+            // piu' onesto che spegnerla di autorita'.
+            if (preset.pro && typeof preset.pro === 'object') {
+                clean.pro = preset.pro.mode === true
+                    ? { mode: true, ...sanitizeProSettings(preset.pro) }
+                    : { mode: false };
+            }
             if (hasOwn(cameraModelsData, preset.brand)) {
                 clean.brand = preset.brand;
                 clean.modelKey = hasOwn(cameraModelsData[preset.brand], preset.modelKey)
@@ -2488,7 +2509,10 @@
             return {
                 brand: currentBrand, modelKey: currentModelKey, name: name,
                 mode: currentMode, scenarios: [...selectedScenarios], luce: currentLuce,
-                region: currentRegion, sub: currentSub, bitrateProf: currentBitrateProfile
+                region: currentRegion, sub: currentSub, bitrateProf: currentBitrateProfile,
+                // Un preset e' una configurazione intera: senza il blocco Pro
+                // richiamarlo darebbe risultati diversi da quando l'hai salvato.
+                pro: currentProPayload()
             };
         }
 
@@ -2515,6 +2539,7 @@
             currentRegion = pickAllowed(preset.region, REGION_VALUES, 'pal');
             currentSub = pickAllowed(preset.sub, SUB_VALUES, 'fuori');
             currentBitrateProfile = hasOwn(BITRATE_PROFILES, preset.bitrateProf) ? preset.bitrateProf : 'high';
+            if (preset.pro) applyProPayload(preset.pro);
             if (hasOwn(cameraModelsData, preset.brand)) {
                 currentBrand = preset.brand;
                 currentModelKey = hasOwn(cameraModelsData[preset.brand], preset.modelKey)
@@ -2610,8 +2635,19 @@
             const params = new URLSearchParams({
                 b: currentBrand, m: currentModelKey, mode: currentMode,
                 s: selectedScenarios.join(','), l: currentLuce,
-                r: currentRegion, sub: currentSub, bp: currentBitrateProfile, lang: currentLang
+                r: currentRegion, sub: currentSub, bp: currentBitrateProfile, lang: currentLang,
+                // Sempre presente, anche spenta: se mancasse, chi riceve il
+                // link con la Pro accesa vedrebbe i propri valori al posto di
+                // quelli di chi lo ha mandato.
+                pro: proMode ? '1' : '0'
             });
+            if (proMode) {
+                params.set('sa', String(proSettings.shutterAngle));
+                params.set('im', String(proSettings.isoMax));
+                params.set('ev', String(proSettings.ev));
+                params.set('wb', String(proSettings.wb));
+                params.set('sh', String(proSettings.sharpness));
+            }
             return `${location.origin}${location.pathname}#${params.toString()}`;
         }
 
@@ -2633,6 +2669,16 @@
             currentRegion = pickAllowed(params.get('r'), REGION_VALUES, currentRegion);
             currentSub = pickAllowed(params.get('sub'), SUB_VALUES, currentSub);
             if (hasOwn(BITRATE_PROFILES, params.get('bp'))) currentBitrateProfile = params.get('bp');
+
+            // Il blocco Pro: si applica solo se il link lo dichiara, così un
+            // link vecchio non spegne la Pro a chi lo apre.
+            if (params.has('pro')) {
+                applyProPayload({
+                    mode: params.get('pro') === '1',
+                    shutterAngle: params.get('sa'), isoMax: params.get('im'),
+                    ev: params.get('ev'), wb: params.get('wb'), sharpness: params.get('sh')
+                });
+            }
 
             // Un link condiviso porta anche la lingua, ma una scelta esplicita
             // gia' memorizzata dall'utente ha la precedenza.
@@ -3500,18 +3546,46 @@
             showToast(t('Valori Pro riportati ai consigliati'));
         }
 
-        // Scarta i valori che non stanno nelle scale: possono arrivare da un
-        // localStorage scritto a mano o da una versione con scale diverse.
-        function readProSettings() {
+        // Scarta i valori che non stanno nelle scale. Un solo posto in cui si
+        // decide cosa sia un valore Pro valido: lo usano localStorage, i preset
+        // e il link condiviso, che sono tre ingressi non fidati con lo stesso
+        // dominio da rispettare.
+        function sanitizeProSettings(parsed) {
             const out = { ...PRO_DEFAULTS };
-            try {
-                const parsed = JSON.parse(storageGet(STORAGE_KEYS.proSettings) || 'null');
-                if (!parsed) return out;
-                for (const def of PRO_SLIDERS) {
-                    if (def.scale.includes(parsed[def.key])) out[def.key] = parsed[def.key];
-                }
-            } catch (e) { /* si resta sui valori consigliati */ }
+            if (!parsed || typeof parsed !== 'object') return out;
+            for (const def of PRO_SLIDERS) {
+                // Number(): dal link i valori arrivano come stringhe.
+                const valore = Number(parsed[def.key]);
+                if (def.scale.includes(valore)) out[def.key] = valore;
+            }
             return out;
+        }
+
+        function readProSettings() {
+            try {
+                return sanitizeProSettings(JSON.parse(storageGet(STORAGE_KEYS.proSettings) || 'null'));
+            } catch (e) {
+                return { ...PRO_DEFAULTS };
+            }
+        }
+
+        // Il blocco Pro come finisce in un preset o in un link: la modalità
+        // acceso/spento va portata con sé, altrimenti chi riceve vede i propri
+        // valori al posto di quelli di chi ha condiviso.
+        // I valori viaggiano solo a Pro accesa: da spenta non influenzano
+        // nulla, e portarli con sé cancellerebbe le posizioni dei cursori di
+        // chi riceve senza cambiargli il risultato di una virgola.
+        function currentProPayload() {
+            return proMode ? { mode: true, ...proSettings } : { mode: false };
+        }
+
+        function applyProPayload(payload) {
+            if (!payload || typeof payload !== 'object') return;
+            proMode = payload.mode === true || payload.mode === '1' || payload.mode === 1;
+            const portaValori = PRO_SLIDERS.some(d => payload[d.key] !== undefined && payload[d.key] !== null);
+            if (portaValori) proSettings = sanitizeProSettings(payload);
+            storageSet(STORAGE_KEYS.proMode, proMode ? '1' : '');
+            storageSet(STORAGE_KEYS.proSettings, JSON.stringify(proSettings));
         }
 
         function conflictBlock(label, key, options) {

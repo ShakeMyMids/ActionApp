@@ -380,6 +380,109 @@ test.describe('Modalita Pro', () => {
   });
 });
 
+test.describe('La Pro viaggia con preset e link', () => {
+  const configura = async page => {
+    await page.click('#pro-toggle');
+    await page.locator('#pro-shutterAngle').fill('1');   // 90°
+    await page.locator('#pro-isoMax').fill('4');         // 6400
+    await page.locator('#pro-ev').fill('9');             // +1.0
+    await page.locator('#pro-wb').fill('1');             // 3200K
+    await page.locator('#pro-sharpness').fill('4');      // +2
+  };
+
+  test('il link condiviso porta con se i cinque valori', async ({ page }) => {
+    await configura(page);
+    const link = await page.evaluate(() => buildShareUrl());
+    // Ripulisco tutto: quello che si ricostruisce deve venire dal link.
+    await page.evaluate(() => localStorage.clear());
+    await page.goto(link);
+    await page.reload();
+    expect(await page.evaluate(() => ({ proMode, ...proSettings }))).toEqual({
+      proMode: true, shutterAngle: 90, isoMax: 6400, ev: 1, wb: 3200, sharpness: 2
+    });
+    await expect(page.locator('#val-iso')).toContainText('6400');
+    await expect(page.locator('#val-shutter')).toContainText('90°');
+  });
+
+  test('un preset richiamato riaccende la Pro come l avevi lasciata', async ({ page }) => {
+    // Un preset e' una configurazione intera: senza il blocco Pro darebbe
+    // risultati diversi da quando lo hai salvato.
+    await configura(page);
+    await page.fill('#input-preset-name', 'Notte Pro');
+    await page.click('button.btn-save-preset');
+    await page.click('#pro-toggle');                     // spengo
+    expect(await page.evaluate(() => proMode)).toBe(false);
+
+    await page.locator('.preset-tag-btn', { hasText: 'Notte Pro' }).click();
+    expect(await page.evaluate(() => ({ proMode, iso: proSettings.isoMax, ang: proSettings.shutterAngle })))
+      .toEqual({ proMode: true, iso: 6400, ang: 90 });
+  });
+
+  test('un link a Pro spenta la spegne anche a chi lo apre', async ({ page }) => {
+    // Altrimenti chi riceve vedrebbe i propri valori al posto di quelli di
+    // chi ha condiviso, e il link non mostrerebbe piu' lo stesso setup.
+    const link = await page.evaluate(() => { proMode = false; return buildShareUrl(); });
+    expect(link).toContain('pro=0');
+    await page.evaluate(() => localStorage.setItem('camstudio_pro_mode', '1'));
+    await page.goto(link);
+    await page.reload();
+    expect(await page.evaluate(() => proMode)).toBe(false);
+  });
+
+  test('un link a Pro spenta non cancella i cursori di chi lo apre', async ({ page }) => {
+    // A Pro spenta i valori non cambiano nulla: portarli con se' servirebbe
+    // solo a sovrascrivere le preferenze di chi riceve.
+    const link = await page.evaluate(() => { proMode = false; return buildShareUrl(); });
+
+    // I cursori vanno messi prima che l'app carichi il proprio stato: e' la
+    // sequenza reale, in cui l'utente li ha gia' impostati in una sessione
+    // precedente e poi apre il link di qualcun altro.
+    await page.evaluate(() => localStorage.setItem('camstudio_pro_settings',
+      JSON.stringify({ shutterAngle: 45, isoMax: 400, ev: 0, wb: 2800, sharpness: 2 })));
+    await page.reload();
+    expect(await page.evaluate(() => proSettings.isoMax), 'premessa').toBe(400);
+
+    await page.goto(link);
+    await page.reload();
+    expect(await page.evaluate(() => proSettings.isoMax)).toBe(400);
+    expect(await page.evaluate(() => proSettings.shutterAngle)).toBe(45);
+  });
+
+  test('i preset salvati prima della Pro continuano a funzionare', async ({ page }) => {
+    // Non dicono niente sulla Pro: lasciarla com'e' e' piu' onesto che
+    // spegnerla di autorita'.
+    await page.setInputFiles('#input-import-presets', {
+      name: 'vecchio.json', mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify({ presets: [
+        { name: 'Vecchio', scenarios: ['sport'], brand: 'dji', modelKey: 'action4', luce: 'sole' }
+      ]}))
+    });
+    await page.click('#pro-toggle');
+    await page.locator('.preset-tag-btn', { hasText: 'Vecchio' }).click();
+    expect(await page.evaluate(() => proMode)).toBe(true);
+    await expect(page.locator('#model-indicator')).toHaveText('Action 4');
+  });
+
+  test('valori Pro fuori scala nel link vengono scartati', async ({ page }) => {
+    await page.goto('/index.html#b=dji&s=reel&pro=1&sa=999&im=constructor&ev=42&wb=null&sh=9');
+    await page.reload();
+    const stato = await page.evaluate(() => proSettings);
+    expect(stato).toEqual(await page.evaluate(() => PRO_DEFAULTS));
+  });
+
+  test('valori Pro fuori scala in un preset importato vengono scartati', async ({ page }) => {
+    await page.setInputFiles('#input-import-presets', {
+      name: 'p.json', mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify({ presets: [
+        { name: 'Rotto', scenarios: ['reel'], pro: { mode: true, shutterAngle: 'toString', isoMax: 99999, ev: 'x', wb: -1, sharpness: 50 } }
+      ]}))
+    });
+    await page.locator('.preset-tag-btn', { hasText: 'Rotto' }).click();
+    expect(await page.evaluate(() => proSettings)).toEqual(await page.evaluate(() => PRO_DEFAULTS));
+    expect(await page.evaluate(() => proMode)).toBe(true);
+  });
+});
+
 test.describe('Coerenza fra le schede', () => {
   test('il bilanciamento del bianco non resta quello della modalita precedente', async ({ page }) => {
     // Foto e timelapse non impostavano val-wb: passando dal video ci restava

@@ -62,6 +62,14 @@ timelapse — perché ISO, bianco e nitidezza esistono in tutte: cursori che
 smettono di funzionare cambiando modalità, senza dirlo, sarebbero peggio di
 cursori assenti. L'angolo di otturatore no, che in foto non ha significato.
 
+Le impostazioni Pro **viaggiano con i preset e con il link condiviso**: un preset
+salvato con la Pro accesa la riaccende com'era, e chi apre il tuo link vede lo
+stesso setup, cursori compresi. Un link a Pro spenta la spegne anche a chi lo
+riceve — altrimenti vedrebbe i propri valori al posto dei tuoi — ma non gli
+cancella le posizioni dei suoi cursori, che a Pro spenta non cambiano nulla. I
+preset salvati prima della Pro non portano quel blocco: non dicono niente sulla
+Pro, e lasciarla com'è è più onesto che spegnerla d'autorità.
+
 Il **simulatore** segue i cursori: alzando il tetto ISO il rumore sale,
 abbassandolo scende ma l'immagine si scurisce — perché la luce che manca non
 arriva da nessun'altra parte — e aprendo l'angolo la scia del movimento si
@@ -167,8 +175,8 @@ npx playwright install chromium    # solo la prima volta
 npm test
 ```
 
-177 test end-to-end, eseguiti su due profili — desktop e mobile (Pixel 7) — per un
-totale di 354 esecuzioni. Coprono inizializzazione, motore di calcolo, escaping e
+184 test end-to-end, eseguiti su due profili — desktop e mobile (Pixel 7) — per un
+totale di 368 esecuzioni. Coprono inizializzazione, motore di calcolo, escaping e
 persistenza dei preset, export/import (compresi i file con valori fuori dominio),
 limite di ripresa, confronto fra camere, condivisione via link, accessibilità
 (semantica tab, `aria-pressed`, tastiera), safe area del notch, autonomia della
