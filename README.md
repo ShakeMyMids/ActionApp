@@ -40,6 +40,22 @@ diverse. Quando lo scenario chiede più fotogrammi di quanti la camera ne dia al
 risoluzione massima, l'app lo dice — a quel punto bisogna scendere di formato, e
 tacerlo significava suggerire una modalità che non esiste.
 
+**Modalità Pro.** Cinque parametri passano all'utente — angolo di otturatore,
+ISO massimo, compensazione EV, bilanciamento del bianco e nitidezza — con cursori
+che scorrono sui valori che le camere offrono davvero, non su scale continue.
+
+Accanto a ogni cursore resta scritto **cosa suggerirebbe l'app per quella scena**,
+e il suggerimento continua ad aggiornarsi mentre il cursore sta fermo: passando
+sott'acqua il consiglio sul bianco diventa 6500-7500K anche se hai lasciato 5500K,
+e la divergenza si vede invece di sparire. È la ragione per cui la Pro affianca il
+motore invece di spegnerlo. Nella matrice i valori decisi a mano sono marcati
+`manuale`, così non si confondono con quelli calcolati.
+
+L'angolo di otturatore non è un'etichetta: cambia il tempo di posa e con esso il
+filtro ND consigliato, perché a 90° entra metà della luce. Le fasce degli ND sono
+ora indicizzate sul tempo di posa e non più sugli fps — erano la stessa cosa
+finché l'angolo era fisso a 180°.
+
 **Simulatore visivo.** Un confronto a tendina fra ciò che esce dalla camera e il
 risultato dopo l’editing. Riflette sia le condizioni di ripresa — il rumore cresce
 alzando gli ISO, il motion blur compare quando otturatore e movimento lo
@@ -133,8 +149,8 @@ npx playwright install chromium    # solo la prima volta
 npm test
 ```
 
-151 test end-to-end, eseguiti su due profili — desktop e mobile (Pixel 7) — per un
-totale di 302 esecuzioni. Coprono inizializzazione, motore di calcolo, escaping e
+164 test end-to-end, eseguiti su due profili — desktop e mobile (Pixel 7) — per un
+totale di 328 esecuzioni. Coprono inizializzazione, motore di calcolo, escaping e
 persistenza dei preset, export/import (compresi i file con valori fuori dominio),
 limite di ripresa, confronto fra camere, condivisione via link, accessibilità
 (semantica tab, `aria-pressed`, tastiera), safe area del notch, autonomia della
