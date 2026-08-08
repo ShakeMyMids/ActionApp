@@ -657,6 +657,97 @@ test.describe('Ordine dei modelli', () => {
   });
 });
 
+test.describe('Camera predefinita (stellina)', () => {
+  const stella = (page, modello) =>
+    page.locator('#model-chips-container .btn-chip', { hasText: modello }).locator('.chip-star');
+
+  test('la stellina segna la camera e lo conferma', async ({ page }) => {
+    await page.click('#brand-card-gopro');
+    await stella(page, 'HERO 11').click();
+    await expect(page.locator('#toast')).toContainText('HERO 11 Black è ora la camera predefinita');
+    await expect(stella(page, 'HERO 11')).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  test('ce ne puo essere una sola', async ({ page }) => {
+    await page.click('#brand-card-gopro');
+    await stella(page, 'HERO 11').click();
+    await stella(page, 'HERO 13').click();
+    await expect(page.locator('.chip-star[aria-pressed="true"]')).toHaveCount(1);
+    await expect(stella(page, 'HERO 13')).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  test('toccarla di nuovo la toglie', async ({ page }) => {
+    await page.click('#brand-card-gopro');
+    await stella(page, 'HERO 11').click();
+    await stella(page, 'HERO 11').click();
+    await expect(page.locator('#toast')).toContainText('Camera predefinita rimossa');
+    await expect(page.locator('.chip-star[aria-pressed="true"]')).toHaveCount(0);
+  });
+
+  test('segnare una camera non la seleziona', async ({ page }) => {
+    // La stellina dice "questa e' la mia", non "mostrami questa": sono due
+    // gesti diversi e il click non deve scavalcare la selezione in corso.
+    await page.click('#brand-card-gopro');
+    const prima = await page.evaluate(() => currentModelKey);
+    await stella(page, 'HERO 11').click();
+    expect(await page.evaluate(() => currentModelKey)).toBe(prima);
+  });
+
+  test('l app si riapre sulla camera con la stellina', async ({ page }) => {
+    await page.click('#brand-card-gopro');
+    await stella(page, 'HERO 11').click();
+    await page.reload();
+    await expect(page.locator('#model-indicator')).toHaveText('HERO 11 Black');
+    expect(await page.evaluate(() => currentBrand)).toBe('gopro');
+  });
+
+  test('tornando al suo marchio ritrova quella con la stellina', async ({ page }) => {
+    // Senza stellina il marchio proporrebbe la piu' recente, cioe' la
+    // MISSION 1 Pro: la scelta esplicita deve battere la regola automatica.
+    await page.click('#brand-card-gopro');
+    await stella(page, 'HERO 11').click();
+    await page.click('#brand-card-dji');
+    await page.click('#brand-card-gopro');
+    expect(await page.evaluate(() => currentModelKey)).toBe('hero11');
+  });
+
+  test('sugli altri marchi resta valida la piu recente', async ({ page }) => {
+    await page.click('#brand-card-gopro');
+    await stella(page, 'HERO 11').click();
+    await page.click('#brand-card-dji');
+    expect(await page.evaluate(() => currentModelKey)).toBe('action6');
+  });
+
+  test('un link condiviso vince sulla stellina', async ({ page }) => {
+    // Chi manda un link vuole far vedere il proprio setup, non il tuo.
+    await page.click('#brand-card-gopro');
+    await stella(page, 'HERO 11').click();
+    const link = await page.evaluate(() => {
+      currentBrand = 'insta360'; currentModelKey = 'x4';
+      return buildShareUrl();
+    });
+    await page.goto(link);
+    await page.reload();
+    expect(await page.evaluate(() => currentBrand + '/' + currentModelKey)).toBe('insta360/x4');
+  });
+
+  test('si attiva anche da tastiera', async ({ page }) => {
+    await page.click('#brand-card-gopro');
+    await stella(page, 'HERO 11').focus();
+    await page.keyboard.press('Enter');
+    await expect(stella(page, 'HERO 11')).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  test('una camera che non esiste piu non blocca l avvio', async ({ page }) => {
+    // I cataloghi cambiano fra due versioni dell'app.
+    await page.evaluate(() => localStorage.setItem('camstudio_default_camera',
+      JSON.stringify({ brand: 'nikon', key: 'inesistente' })));
+    await page.reload();
+    await expect(page.locator('#model-chips-container .btn-chip')).not.toHaveCount(0);
+    expect(await page.evaluate(() => starredCamera)).toBeNull();
+  });
+});
+
 test.describe('Attacco, condivisione nativa e installazione', () => {
   test('l attacco segue il modello e vale anche in foto', async ({ page }) => {
     await page.locator('#tab-calc').click();

@@ -190,6 +190,17 @@
         .options-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 6px; }
         .options-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
         .btn-chip { background: var(--bg-primary); border: 1px solid var(--border); color: var(--text-primary); padding: 10px 15px 10px 9px; border-radius: 10px; font-size: 0.82rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; position: relative; box-shadow: 0 2px 4px var(--shadow-subtle); }
+        /* Stellina della camera predefinita. Spenta resta un contorno
+           discreto: è un'opzione, non un richiamo. */
+        .chip-star { font-size: 0.95rem; line-height: 1; cursor: pointer; opacity: 0.4; transition: opacity 0.2s, transform 0.15s; }
+        .chip-star:hover, .chip-star:focus-visible { opacity: 1; transform: scale(1.25); }
+        .chip-star.is-default { opacity: 1; color: var(--amber); }
+        /* Sul chip selezionato lo sfondo è il colore del brand: l'ambra ci
+           finirebbe sopra con poco contrasto, quindi la stellina passa
+           all'inchiostro del brand, già scelto per essere leggibile lì. */
+        .btn-chip.selected .chip-star { color: var(--brand-ink); opacity: 0.55; }
+        .btn-chip.selected .chip-star.is-default { opacity: 1; }
+
         .btn-chip.selected { background: var(--brand-color); border-color: var(--brand-color); color: var(--brand-ink); box-shadow: 0 4px 12px var(--shadow-strong); transform: scale(1.02); }
         .btn-radio span, .btn-chip span { text-wrap: balance; line-height: 1.2; }
         .btn-chip.selected::after { content: "✓"; position: absolute; top: 3px; right: 4px; font-size: 0.6rem; opacity: 0.85; color: var(--brand-ink); font-weight: bold; }
@@ -927,7 +938,10 @@
             legacyPresets: 'action4_custom_presets',
             // La scheda è un dato dell'attrezzatura, non della ripresa: resta
             // fuori dai preset e dal link condiviso, e vale per questo device.
-            cardGb: 'camstudio_card_gb'
+            cardGb: 'camstudio_card_gb',
+            // La camera preferita e' un dato di questo dispositivo, come la
+            // scheda: resta fuori dai preset e dal link condiviso.
+            defaultCamera: 'camstudio_default_camera'
         };
 
         // batteryMin: minuti indicativi di registrazione continua a 1080p/30 in
@@ -1125,9 +1139,53 @@
                 String(models[b].released).localeCompare(String(models[a].released)));
         }
 
-        // Il predefinito di un brand è il suo modello più recente.
+        // Il predefinito di un brand: la camera con la stellina se appartiene
+        // a questo brand, altrimenti la più recente. La scelta esplicita
+        // dell'utente batte la regola automatica — è tutto il punto della
+        // stellina, dato che il modello più recente non è quello che possiedi.
         function defaultModelFor(brand) {
+            if (starredCamera && starredCamera.brand === brand
+                && cameraModelsData[brand] && cameraModelsData[brand][starredCamera.key]) {
+                return starredCamera.key;
+            }
             return modelKeysFor(brand)[0];
+        }
+
+        function isStarred(brand, key) {
+            return !!starredCamera && starredCamera.brand === brand && starredCamera.key === key;
+        }
+
+        // Legge la preferenza scartando marchi e modelli che non esistono più:
+        // un catalogo può cambiare fra due versioni dell'app.
+        function readStarredCamera() {
+            try {
+                const parsed = JSON.parse(storageGet(STORAGE_KEYS.defaultCamera) || 'null');
+                if (!parsed || !cameraModelsData[parsed.brand]) return null;
+                if (!cameraModelsData[parsed.brand][parsed.key]) return null;
+                return { brand: parsed.brand, key: parsed.key };
+            } catch (e) {
+                return null;
+            }
+        }
+
+        // Una sola stellina in tutta l'app: è "la mia camera", quella con cui
+        // si apre. Toccare quella già segnata la toglie.
+        function toggleStarredCamera(el, event) {
+            if (event) event.stopPropagation();
+            const brand = el.dataset.brand;
+            const key = el.dataset.value;
+            if (!cameraModelsData[brand] || !cameraModelsData[brand][key]) return;
+
+            if (isStarred(brand, key)) {
+                starredCamera = null;
+                storageSet(STORAGE_KEYS.defaultCamera, '');
+                showToast(t('Camera predefinita rimossa'));
+            } else {
+                starredCamera = { brand, key };
+                storageSet(STORAGE_KEYS.defaultCamera, JSON.stringify(starredCamera));
+                showToast(t('{model} è ora la camera predefinita', { model: cameraModelsData[brand][key].shortName }));
+            }
+            renderModelChips();
         }
 
         function activeModel() {
@@ -1415,6 +1473,12 @@
             'Il mio setup per {model}': 'My setup for {model}',
             '<b>🔩 Attacco della camera:</b> {mount}': '<b>🔩 Camera mount:</b> {mount}',
 
+            // --- Camera predefinita (stellina) ---
+            'Imposta {model} come predefinita': 'Set {model} as default',
+            'Togli {model} dalle predefinite': 'Remove {model} as default',
+            '{model} è ora la camera predefinita': '{model} is now the default camera',
+            'Camera predefinita rimossa': 'Default camera cleared',
+
             // --- Confronto fra camere ---
             '📷 Quale camera porto?': '📷 Which camera do I take?',
             'In ordine di profondità: hai scelto la ripresa subacquea, e senza custodia il limite è quello.':
@@ -1663,6 +1727,10 @@
 
         let currentMode = 'video';
         let currentBrand = 'dji';
+        // Dichiarata qui e non più in basso: currentModelKey la legge subito
+        // tramite defaultModelFor, e con let una lettura anticipata non vale
+        // undefined, fa fallire l'intero script.
+        let starredCamera = null;
         // Non un modello fisso: il predefinito è il più recente del brand, la
         // stessa regola che vale cambiando marchio. Scriverlo a mano qui
         // significherebbe che l'avvio smette di seguire l'elenco appena esce
@@ -1787,7 +1855,15 @@
             if (!container) return;
             container.innerHTML = modelKeysFor(currentBrand).map(key => {
                 const on = key === currentModelKey;
-                return `<button type="button" class="btn-chip ${on ? 'selected' : ''}" data-action="selectModel" data-value="${escapeHtml(key)}" aria-pressed="${on}"><span>${escapeHtml(models[key].shortName)}</span></button>`;
+                const star = isStarred(currentBrand, key);
+                const etichetta = t(star ? 'Togli {model} dalle predefinite' : 'Imposta {model} come predefinita', { model: models[key].shortName });
+                // La stellina è uno span e non un bottone: sta dentro il chip,
+                // che è già un bottone, come fa il cestino sui preset.
+                return `<button type="button" class="btn-chip ${on ? 'selected' : ''}" data-action="selectModel" data-value="${escapeHtml(key)}" aria-pressed="${on}">`
+                    + `<span class="chip-star ${star ? 'is-default' : ''}" role="button" tabindex="0" aria-pressed="${star}"`
+                    + ` aria-label="${escapeHtml(etichetta)}" data-action="toggleStarredCamera"`
+                    + ` data-brand="${escapeHtml(currentBrand)}" data-value="${escapeHtml(key)}">${star ? '★' : '☆'}</span>`
+                    + `<span>${escapeHtml(models[key].shortName)}</span></button>`;
             }).join('');
         }
 
@@ -2808,6 +2884,7 @@
             calcBattery: el => calcBattery(el.dataset.value, el),
             setCardSize: el => setCardSize(el.dataset.value),
             pickCamera: el => pickCamera(el),
+            toggleStarredCamera: (el, event) => toggleStarredCamera(el, event),
             updateSimSlider: el => updateSimSlider(el),
             toggleTheme: el => toggleTheme(el),
             toggleLanguage: () => toggleLanguage(),
@@ -2894,6 +2971,15 @@
 
             const savedCard = Number(storageGet(STORAGE_KEYS.cardGb));
             if (CARD_SIZES.includes(savedCard)) currentCardGb = savedCard;
+
+            // La camera con la stellina è quella con cui l'app si apre. Va
+            // letta prima dell'hash, così un link condiviso continua a vincere:
+            // chi te lo manda vuole farti vedere il suo setup, non il tuo.
+            starredCamera = readStarredCamera();
+            if (starredCamera) {
+                currentBrand = starredCamera.brand;
+                currentModelKey = starredCamera.key;
+            }
 
             currentLang = detectLanguage();
             applyStateFromHash();

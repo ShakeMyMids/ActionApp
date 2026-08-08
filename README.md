@@ -30,6 +30,12 @@ mostra quanto resta davvero dell’inquadratura in 9:16, lo speed ramp congela i
 soggetto sul lato elaborato, il colore subacqueo applica e poi corregge la
 dominante, il trattamento audio confronta i livelli con e senza vento.
 
+**La tua camera.** La stellina sul modello lo segna come predefinito: l'app si
+apre su quello, e tornando al suo marchio ritrova quello invece del più recente.
+Serve perché la camera più nuova non è quella che possiedi — il catalogo si
+aggiorna, la tua attrezzatura no. Un link condiviso continua però a vincere sulla
+stellina: chi te lo manda vuole farti vedere il suo setup, non il tuo.
+
 **Preset locali.** Salvi una configurazione ricorrente e la richiami con un tocco.
 Restano nel browser, non lasciano il dispositivo — e puoi esportarli in JSON per
 riportarli su un altro telefono.
@@ -83,7 +89,7 @@ prudente produrrebbe una classifica falsata. Aggiungendo un modello, segui la
 convenzione documentata sopra `cameraModelsData`.
 
 L'elenco dei modelli è ordinato **dal più recente al più vecchio**, e il primo di
-ogni marchio è quello proposto all'avvio. L'ordine non dipende però da come i
+ogni marchio è quello proposto all'avvio, salvo che tu abbia scelto la tua. L'ordine non dipende però da come i
 modelli sono scritti nel sorgente: viene dal campo `released` (`AAAA-MM`), che
 ogni voce deve avere. Così aggiungerne uno non richiede di infilarlo nel punto
 giusto — basta la data, e l'elenco si risistema da solo. C'è un test che fallisce
@@ -109,8 +115,8 @@ npx playwright install chromium    # solo la prima volta
 npm test
 ```
 
-86 test end-to-end, eseguiti su due profili — desktop e mobile (Pixel 7) — per un
-totale di 172 esecuzioni. Coprono inizializzazione, motore di calcolo, escaping e
+96 test end-to-end, eseguiti su due profili — desktop e mobile (Pixel 7) — per un
+totale di 192 esecuzioni. Coprono inizializzazione, motore di calcolo, escaping e
 persistenza dei preset, export/import (compresi i file con valori fuori dominio),
 limite di ripresa, confronto fra camere, condivisione via link, accessibilità
 (semantica tab, `aria-pressed`, tastiera), safe area del notch, autonomia della
