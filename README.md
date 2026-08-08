@@ -51,6 +51,12 @@ e la divergenza si vede invece di sparire. È la ragione per cui la Pro affianca
 motore invece di spegnerlo. Nella matrice i valori decisi a mano sono marcati
 `manuale`, così non si confondono con quelli calcolati.
 
+Sotto ogni cursore c'è anche una riga che spiega **cosa comporta spostarlo**, in
+tutte e due le direzioni: un cursore senza spiegazione è una manopola senza
+etichetta, e chi non conosce già il parametro semplicemente non la tocca. La
+spiegazione è statica e resta più defilata del consiglio, che invece segue la
+scena; `aria-describedby` le lega entrambe al cursore.
+
 L'angolo di otturatore non è un'etichetta: cambia il tempo di posa e con esso il
 filtro ND consigliato, perché a 90° entra metà della luce. Le fasce degli ND sono
 ora indicizzate sul tempo di posa e non più sugli fps — erano la stessa cosa
@@ -149,8 +155,8 @@ npx playwright install chromium    # solo la prima volta
 npm test
 ```
 
-164 test end-to-end, eseguiti su due profili — desktop e mobile (Pixel 7) — per un
-totale di 328 esecuzioni. Coprono inizializzazione, motore di calcolo, escaping e
+168 test end-to-end, eseguiti su due profili — desktop e mobile (Pixel 7) — per un
+totale di 336 esecuzioni. Coprono inizializzazione, motore di calcolo, escaping e
 persistenza dei preset, export/import (compresi i file con valori fuori dominio),
 limite di ripresa, confronto fra camere, condivisione via link, accessibilità
 (semantica tab, `aria-pressed`, tastiera), safe area del notch, autonomia della
