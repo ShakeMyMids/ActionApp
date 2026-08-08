@@ -22,6 +22,17 @@ girare di notte chiede framerate bassi per raccogliere luce, girare sport ne
 chiede di alti per congelare l'azione. L'app non sceglie di nascosto — mostra il
 conflitto e ti fa decidere la priorità, poi ricalcola tutto di conseguenza.
 
+Lo stesso vale per il profilo **Endurance**, che abbassa il framerate per far
+durare la batteria: se così facendo toglie la fluidità che avevi chiesto
+scegliendo Sport o Slow-Motion, diventa un conflitto dichiarato e non una
+decisione presa in silenzio.
+
+**Il framerate ha una sola voce.** La risoluzione mostra la risoluzione, non il
+framerate massimo del modello: erano due numeri accanto che dicevano cose
+diverse. Quando lo scenario chiede più fotogrammi di quanti la camera ne dia alla
+risoluzione massima, l'app lo dice — a quel punto bisogna scendere di formato, e
+tacerlo significava suggerire una modalità che non esiste.
+
 **Simulatore visivo.** Un confronto a tendina fra ciò che esce dalla camera e il
 risultato dopo l’editing. Riflette sia le condizioni di ripresa — il rumore cresce
 alzando gli ISO, il motion blur compare quando otturatore e movimento lo
@@ -115,8 +126,8 @@ npx playwright install chromium    # solo la prima volta
 npm test
 ```
 
-138 test end-to-end, eseguiti su due profili — desktop e mobile (Pixel 7) — per un
-totale di 276 esecuzioni. Coprono inizializzazione, motore di calcolo, escaping e
+145 test end-to-end, eseguiti su due profili — desktop e mobile (Pixel 7) — per un
+totale di 290 esecuzioni. Coprono inizializzazione, motore di calcolo, escaping e
 persistenza dei preset, export/import (compresi i file con valori fuori dominio),
 limite di ripresa, confronto fra camere, condivisione via link, accessibilità
 (semantica tab, `aria-pressed`, tastiera), safe area del notch, autonomia della

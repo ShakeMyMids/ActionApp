@@ -150,6 +150,9 @@
         .tooltip:focus-visible { outline: 2px solid var(--brand-color); outline-offset: 2px; border-radius: 4px; }
         .tooltip-icon { font-size: 0.7rem; color: var(--brand-color); }
 
+        /* Avviso sul tetto di framerate: e' un'informazione, non un errore,
+           quindi ambra e non rosso come l'allarme della scheda. */
+        .alert-fps { background: rgba(245, 158, 11, 0.14); border: 1px solid var(--amber); color: var(--amber); padding: 10px 12px; border-radius: 8px; font-size: 0.78rem; margin-top: 12px; display: none; line-height: 1.4; font-weight: 600; }
         .alert-sd { background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: #ef4444; padding: 10px 12px; border-radius: 8px; font-size: 0.78rem; margin-top: 12px; display: none; line-height: 1.4; animation: slideUpFade 0.4s ease-out; font-weight: 600; }
         [data-theme="dark"] .alert-sd { color: #fca5a5; }
 
@@ -710,6 +713,7 @@
                         </div>
                     </div>
                     <div id="sd-alert" class="alert-sd"></div>
+                    <div id="fps-alert" class="alert-fps"></div>
 
                     <!-- MOTORE CONFLITTI -->
                     <div id="wrapper-tradeoffs" class="tradeoff-card">
@@ -1050,7 +1054,7 @@
                 'action6': { released: '2025-11', name: 'DJI Osmo Action 6', shortName: 'Action 6', maxRes: '4K @ 120fps (Sensore 1/1.1" 4:3)', logProfile: '10-bit D-Log M', waterproof: 20, mount: 'Sgancio Mag. v2', audio: 'Dual BT Direct DJI Mic 2/3.', bitrate: 120, photoRes: '38 MP RAW', batteryMin: 150 },
                 // L'autonomia presuppone il Vision Dock, incluso in ogni combo:
                 // la sola camera monta 530 mAh e dura molto meno.
-                'osmonano': { released: '2025-09', name: 'DJI Osmo Nano', shortName: 'Osmo Nano', maxRes: '4K @ 60fps (1/1.3", 120fps in slow-mo)', logProfile: '10-bit D-Log M', waterproof: 10, mount: 'Magnetico bilaterale', audio: 'Mic stereo + BT DJI Mic.', bitrate: 100, photoRes: '35 MP RAW', batteryMin: 120 }
+                'osmonano': { released: '2025-09', name: 'DJI Osmo Nano', shortName: 'Osmo Nano', maxRes: '4K @ 60fps (Sensore 1/1.3")', logProfile: '10-bit D-Log M', waterproof: 10, mount: 'Magnetico bilaterale', audio: 'Mic stereo + BT DJI Mic.', bitrate: 100, photoRes: '35 MP RAW', batteryMin: 120 }
             },
             gopro: {
                 'hero13': { released: '2024-09', name: 'GoPro HERO 13 Black', shortName: 'HERO 13 Black', maxRes: '5.3K @ 60fps (8:7)', logProfile: '10-bit GP-Log / HLG', waterproof: 10, mount: 'Linguette + Latch Mag.', audio: 'BT AirPods/Mic / Media Mod.', bitrate: 120, photoRes: '27 MP RAW', batteryMin: 100 },
@@ -1283,6 +1287,25 @@
         }
 
         function shutterFor(fps) { return `1/${fps * 2} s`; }
+
+        // maxRes descrive la modalità di punta e ci infila dentro il framerate
+        // massimo a quella risoluzione: "5.3K @ 60fps (8:7)". Mostrarlo così
+        // significa scrivere "60fps" accanto al framerate calcolato, che quasi
+        // sempre è un altro numero. Il framerate ha già la sua riga, quindi
+        // qui resta la sola risoluzione.
+        const FPS_IN_MAXRES = /\s*@\s*(\d+)\s*fps\s*/i;
+
+        function resolutionLabel(model) {
+            return String(model.maxRes).replace(FPS_IN_MAXRES, ' ').replace(/\s{2,}/g, ' ').trim();
+        }
+
+        // Il framerate massimo alla risoluzione massima. Serve ad avvertire
+        // quando lo scenario ne chiede di più: a quel punto bisogna scendere
+        // di risoluzione, e l'app taceva.
+        function maxFpsAtTopResolution(model) {
+            const m = FPS_IN_MAXRES.exec(String(model.maxRes));
+            return m ? Number(m[1]) : null;
+        }
 
         function ndFor(fps, light) {
             const tier = fps <= 30 ? 0 : fps <= 60 ? 1 : 2;
@@ -1639,6 +1662,15 @@
             '📤 Condividi setup': '📤 Share setup',
             'Il mio setup per {model}': 'My setup for {model}',
             '<b>🔩 Attacco della camera:</b> {mount}': '<b>🔩 Camera mount:</b> {mount}',
+
+            // --- Motore: Endurance e tetto di framerate ---
+            '🔋 Endurance vs Fluidità': '🔋 Endurance vs smoothness',
+            '🔋 Autonomia ({fps} fps)': '🔋 Battery ({fps} fps)',
+            '🎬 Fluidità ({fps} fps)': '🎬 Smoothness ({fps} fps)',
+            '⚡ Framerate: Scarsa Luce vs Slow-Mo': '⚡ Framerate: low light vs slow-mo',
+            '⚡ Slow-Mo ({fps} fps)': '⚡ Slow-mo ({fps} fps)',
+            '🎞️ <b>Scendi di risoluzione:</b> {model} arriva a {max} fps alla risoluzione massima. Per {fps} fps scegli un formato più basso nel menu della camera.':
+                '🎞️ <b>Drop the resolution:</b> the {model} reaches {max} fps at its top resolution. For {fps} fps pick a lower format in the camera menu.',
 
             // --- Guida e domande frequenti ---
             'Guida': 'Guide',
@@ -2035,7 +2067,7 @@
         let currentSub = 'fuori';
         let currentTemp = 20;
         let currentCardGb = 128;
-        let compromiseChoices = { fpsPriority: 'light', profilePriority: 'dlog', fovPriority: 'dewarp', stabPriority: 'rocksteady' };
+        let compromiseChoices = { fpsPriority: 'light', profilePriority: 'dlog', fovPriority: 'dewarp', stabPriority: 'rocksteady', endurancePriority: 'autonomia' };
 
         // fps calcolati dall'ultimo giro del motore video, usati dal simulatore.
         let lastComputedFps = 30;
@@ -2963,25 +2995,41 @@
             let res;
             if (ctx.isReel) res = (currentBrand === 'gopro' && currentModelKey.includes('hero11')) ? t('5.3K / 4K Verticale (8:7)') : t('4K Verticale (9:16)');
             else if (ctx.isGyro) res = t('4K Nativo (4:3 o 8:7)');
-            else res = ctx.model.maxRes;
+            else res = resolutionLabel(ctx.model);
             if (ctx.isEco) res = res.replace('4K', t('2.7K (Eco)')).replace('5.3K', t('2.7K (Eco)')).replace('8K', t('4K (Eco)'));
             return res;
         }
 
-        function computeFps(ctx, hasFpsConflict) {
-            let fps;
+        // I framerate che lo scenario chiede, prima che l'Endurance ci metta
+        // mano. Separarli dal risultato finale è ciò che permette di accorgersi
+        // che l'Endurance sta togliendo qualcosa.
+        function requestedFps(ctx, hasFpsConflict) {
             if (hasFpsConflict) {
-                fps = (compromiseChoices.fpsPriority === 'action')
+                return (compromiseChoices.fpsPriority === 'action')
                     ? (ctx.isSlowmo ? (ctx.isPal ? 100 : 120) : (ctx.isPal ? 50 : 60))
                     : (ctx.isPal ? 25 : 30);
-            } else if (ctx.isSlowmo) fps = ctx.isPal ? 100 : 120;
-            else if (ctx.isSport) fps = ctx.isPal ? 50 : 60;
-            else fps = ctx.isPal ? 25 : 30;
+            }
+            if (ctx.isSlowmo) return ctx.isPal ? 100 : 120;
+            if (ctx.isSport) return ctx.isPal ? 50 : 60;
+            return ctx.isPal ? 25 : 30;
+        }
 
-            // Il profilo Endurance abbassa gli fps di una fascia per volta.
-            if (ctx.isEco && fps > 60) fps = ctx.isPal ? 50 : 60;
-            else if (ctx.isEco && fps > 30 && !ctx.isSlowmo) fps = ctx.isPal ? 25 : 30;
+        // Il profilo Endurance abbassa gli fps di una fascia per volta.
+        function enduranceFps(ctx, fps) {
+            if (!ctx.isEco) return fps;
+            if (fps > 60) return ctx.isPal ? 50 : 60;
+            if (fps > 30) return ctx.isPal ? 25 : 30;
             return fps;
+        }
+
+        function computeFps(ctx, hasFpsConflict) {
+            const richiesti = requestedFps(ctx, hasFpsConflict);
+            const ridotti = enduranceFps(ctx, richiesti);
+            // Se l'Endurance toglierebbe fluidità, la scelta è dell'utente:
+            // scendere di framerate è il contrario di quello che ha chiesto
+            // selezionando Sport o SlowMo, e l'app non decide di nascosto.
+            if (ridotti < richiesti && compromiseChoices.endurancePriority === 'fluidita') return richiesti;
+            return ridotti;
         }
 
         function computeExposure(ctx, fps, hasFpsConflict) {
@@ -3084,6 +3132,20 @@
             }
         }
 
+        // Un modello che fa 5.3K a 60 fps non li fa a 100: per averli bisogna
+        // scendere di risoluzione. L'app lo taceva, mostrando una risoluzione
+        // massima accanto a un framerate che a quella risoluzione non esiste.
+        function renderFpsCeiling(ctx, fps) {
+            const alert = $('fps-alert');
+            if (!alert) return;
+            const tetto = maxFpsAtTopResolution(ctx.model);
+            if (!tetto || fps <= tetto) { alert.style.display = 'none'; return; }
+            alert.style.display = 'block';
+            alert.innerHTML = t('🎞️ <b>Scendi di risoluzione:</b> {model} arriva a {max} fps alla risoluzione massima. Per {fps} fps scegli un formato più basso nel menu della camera.', {
+                model: escapeHtml(ctx.model.shortName), max: tetto, fps
+            });
+        }
+
         function conflictBlock(label, key, options) {
             const buttons = options.map(opt =>
                 `<button type="button" class="btn-compromise ${compromiseChoices[key] === opt.value ? 'active' : ''}" data-action="setCompromise" data-key="${key}" data-value="${opt.value}" aria-pressed="${compromiseChoices[key] === opt.value}">${opt.label}</button>`
@@ -3091,13 +3153,22 @@
             return `<div class="conflict-block"><div class="conflict-label">${label}</div><div class="compromise-selector" role="group" aria-label="${label}">${buttons}</div></div>`;
         }
 
-        function renderConflicts(ctx, hasFpsConflict, hasProfileConflict) {
+        function renderConflicts(ctx, hasFpsConflict, hasProfileConflict, hasEnduranceConflict, richiesti) {
             let html = '';
+            if (hasEnduranceConflict) {
+                // L'Endurance abbassava il framerate in silenzio, e il pannello
+                // dichiarava "nessun conflitto": esattamente la decisione presa
+                // di nascosto che questo motore esiste per evitare.
+                html += conflictBlock(t('🔋 Endurance vs Fluidità'), 'endurancePriority', [
+                    { value: 'autonomia', label: t('🔋 Autonomia ({fps} fps)', { fps: enduranceFps(ctx, richiesti) }) },
+                    { value: 'fluidita', label: t('🎬 Fluidità ({fps} fps)', { fps: richiesti }) }
+                ]);
+            }
             if (hasFpsConflict) {
                 const actionFps = ctx.isSlowmo ? (ctx.isPal ? '100' : '120') : (ctx.isPal ? '50' : '60');
-                html += conflictBlock(t('⚡ Framerate: Scarsa Luce vs Sport'), 'fpsPriority', [
+                html += conflictBlock(ctx.isSlowmo ? t('⚡ Framerate: Scarsa Luce vs Slow-Mo') : t('⚡ Framerate: Scarsa Luce vs Sport'), 'fpsPriority', [
                     { value: 'light', label: t('💡 Luce ({fps} fps)', { fps: ctx.isPal ? '25' : '30' }) },
-                    { value: 'action', label: t('🚴 Azione ({fps} fps)', { fps: actionFps }) }
+                    { value: 'action', label: ctx.isSlowmo ? t('⚡ Slow-Mo ({fps} fps)', { fps: actionFps }) : t('🚴 Azione ({fps} fps)', { fps: actionFps }) }
                 ]);
             }
             if (hasProfileConflict) {
@@ -3126,6 +3197,8 @@
             const hasFpsConflict = (ctx.isNight || ctx.isIndoor || currentLuce === 'scarsa' || ctx.isSub) && (ctx.isSport || ctx.isSlowmo);
             const hasProfileConflict = (ctx.isNight || ctx.isIndoor) && ctx.isReel;
             const fps = computeFps(ctx, hasFpsConflict);
+            const richiesti = requestedFps(ctx, hasFpsConflict);
+            const hasEnduranceConflict = enduranceFps(ctx, richiesti) < richiesti;
             const exposure = computeExposure(ctx, fps, hasFpsConflict);
 
             setText('val-res', computeResolution(ctx));
@@ -3141,7 +3214,8 @@
             setHtml('rigging-text', computeVideoRigging(ctx));
 
             renderStorageMetrics(ctx, fps);
-            renderConflicts(ctx, hasFpsConflict, hasProfileConflict);
+            renderFpsCeiling(ctx, fps);
+            renderConflicts(ctx, hasFpsConflict, hasProfileConflict, hasEnduranceConflict, richiesti);
             return fps;
         }
 
