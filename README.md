@@ -126,8 +126,10 @@ da consultare davanti alla camera.
 index.html          l'app: markup, stili e logica in un solo file
 sw.js               service worker (network-first sull'HTML, cache-first sugli asset)
 manifest.json       manifest PWA
-icons/              icone 192 e 512, incluse le varianti maskable
+icons/              icone 192 e 512, più la variante maskable per Android
 scripts/serve.js    server statico senza dipendenze, per lo sviluppo e i test
+scripts/genera-icone.js  rigenera le icone PNG dal marchio (`npm run icone`)
+scripts/csp.js      ricalcola l'hash della CSP (`npm run csp`)
 tests/              suite Playwright
 docs/               mandato della revisione settimanale automatica
 .github/workflows/  CI: la suite gira a ogni push e su ogni pull request
@@ -353,6 +355,27 @@ Lo stesso marchio è anche l'icona della scheda del browser, come data URI: nien
 file da scaricare, quindi resta disponibile offline. Il PNG resta come ripiego
 per i browser che non leggono i favicon SVG.
 
+### Le icone dell'app
+
+Le icone in `icons/` non si disegnano a mano: le genera `npm run icone`, che rende
+lo stesso mirino con Chromium alle dimensioni richieste. È una scelta nata da un
+difetto reale — dopo il cambio di logo le icone erano rimaste una macchina
+fotografica generica, e nessuno se n'era accorto perché niente le confrontava con
+il marchio. Ora il test `il marchio delle icone e quello dell intestazione` fa
+quel confronto, e `npm run icone` rende la correzione un comando invece di una
+sessione con un editor grafico.
+
+Sull'icona il punto centrale è teal, ed è l'unica eccezione alla regola del colore
+neutro: l'icona non è interfaccia, è un quadrato di 48 px in mezzo ad altre icone
+sull'home screen, e lì un marchio interamente monocromatico sparisce.
+
+La variante **maskable** è un file a sé e non una copia della 512. Android ritaglia
+quelle icone a forma libera — cerchio, goccia, squircle a seconda del launcher — e
+garantisce solo il cerchio centrale dell'80%. Un quadrato inscritto in quel cerchio
+misura il 56% del lato, quindi il marchio nella maskable è più piccolo: servendo lo
+stesso file per entrambi gli scopi, sui launcher che ritagliano stretto verrebbe
+tagliato.
+
 ## Tipografia
 
 Due famiglie con ruoli distinti. **Space Grotesk** (peso variabile 400–700) porta
@@ -411,6 +434,38 @@ Il mandato che segue — priorità, metodo, convenzioni — sta in
 [`docs/revisione-settimanale.md`](docs/revisione-settimanale.md). Ogni esecuzione
 parte senza memoria di quelle precedenti e legge quel file: è lì che si cambia il
 modo di lavorare, non nella configurazione della pianificazione.
+
+## Politica di sicurezza dei contenuti
+
+La pagina dichiara una CSP in un `<meta>`, perché GitHub Pages non permette di
+impostare intestazioni HTTP.
+
+`script-src` **non** contiene `'unsafe-inline'`: dichiara l'hash SHA-256
+dell'unico blocco di script inline. La differenza non è teorica. Con
+`'unsafe-inline'` passerebbe anche un handler `onclick=` iniettato, che è il
+vettore realistico: `innerHTML` non esegue i tag `<script>` che gli si passano,
+ma esegue eccome un `<img onerror=...>`. Con l'hash, entrambi vengono rifiutati —
+e ci sono due test che lo verificano provando a iniettarli davvero, invece di
+limitarsi a leggere la stringa della policy.
+
+Il prezzo è che l'hash va rigenerato a ogni modifica dello script:
+
+```bash
+npm run csp            # riscrive l'hash
+npm run csp -- --check # fallisce se è disallineato
+```
+
+Senza rete di sicurezza sarebbe una trappola — l'app si romperebbe in silenzio, e
+solo in produzione — quindi il controllo sta anche nella suite.
+
+Due direttive meritano una nota. `style-src` tiene `'unsafe-inline'` perché la
+pagina usa attributi `style=` e gli hash non coprono gli attributi; l'iniezione di
+CSS è un vettore molto più debole. `worker-src 'self'` è esplicito perché
+altrimenti ricadrebbe su `script-src`, che contiene solo un hash, e la
+registrazione del service worker verrebbe rifiutata.
+
+`frame-ancestors` non c'è: nel `<meta>` viene ignorato e richiede
+un'intestazione HTTP. Su un hosting che le permette, vale la pena aggiungerla.
 
 ## Licenza
 

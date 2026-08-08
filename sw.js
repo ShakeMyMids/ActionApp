@@ -9,7 +9,7 @@
 // solo index.html, sw.js resterebbe identico e l'aggiornamento non verrebbe
 // mai annunciato. Legandola alla versione del pacchetto, ogni rilascio muove
 // questo file e l'app se ne accorge.
-const APP_VERSION = '13.4.0';
+const APP_VERSION = '13.5.0';
 const CACHE_NAME = `readyclickshot-v${APP_VERSION}-cache`;
 
 const PRECACHE_URLS = [
@@ -17,7 +17,8 @@ const PRECACHE_URLS = [
   './index.html',
   './manifest.json',
   './icons/icon-192.png',
-  './icons/icon-512.png'
+  './icons/icon-512.png',
+  './icons/icon-maskable-512.png'
 ];
 
 self.addEventListener('install', event => {
