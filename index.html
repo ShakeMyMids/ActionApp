@@ -1551,11 +1551,28 @@
             'Installa': 'Install',
             'Chiudi': 'Close',
             'Novità della versione {version}': "What's new in {version}",
-            'Installare su iPhone': 'Installing on iPhone',
-            'Apri questa pagina in Safari.': 'Open this page in Safari.',
+            'Installare su iPhone e iPad': 'Installing on iPhone and iPad',
             'Tocca il pulsante Condividi, quello con la freccia verso l\'alto.': 'Tap the Share button, the one with the upward arrow.',
-            '«Aggiungi a Home».': 'Choose "Add to Home Screen".',
-            'Scegli «Aggiungi a Home».': 'Choose "Add to Home Screen".',
+            'Scorri e scegli «Aggiungi a Home».': 'Scroll down and choose "Add to Home Screen".',
+            'Conferma: l\'app compare fra le altre e si apre a schermo intero.': 'Confirm: the app joins the others and opens full screen.',
+            'Installare su Mac con Safari': 'Installing on Mac with Safari',
+            'Apri il menu File di Safari.': "Open Safari's File menu.",
+            'Scegli «Aggiungi al Dock».': 'Choose "Add to Dock".',
+            'Serve Safari 17 o successivo: con le versioni precedenti l\'app funziona in una scheda.': 'Requires Safari 17 or later: on older versions the app works in a tab.',
+            'Installare con Firefox su Android': 'Installing with Firefox on Android',
+            'Apri il menu con i tre puntini.': 'Open the three-dot menu.',
+            'Scegli «Installa» oppure «Aggiungi a schermata Home».': 'Choose "Install" or "Add to Home screen".',
+            'Firefox su computer non installa le app web': 'Firefox on desktop cannot install web apps',
+            'Non è una mancanza dell\'app: Firefox per computer ha rimosso questa funzione.': "This is not a limitation of the app: desktop Firefox removed the feature.",
+            'In una scheda funziona tutto lo stesso, offline compreso: aggiungila ai preferiti.': 'Everything still works in a tab, offline included: bookmark it.',
+            'Per averla come applicazione, apri questa pagina in Chrome, Edge o Safari.': 'To get it as an app, open this page in Chrome, Edge or Safari.',
+            'Installare su Android': 'Installing on Android',
+            'Apri il menu del browser.': "Open the browser's menu.",
+            'Scegli «Installa app» oppure «Aggiungi a schermata Home».': 'Choose "Install app" or "Add to Home screen".',
+            'Installare sul computer': 'Installing on desktop',
+            'Cerca l\'icona di installazione nella barra degli indirizzi, di solito a destra.': 'Look for the install icon in the address bar, usually on the right.',
+            'In alternativa apri il menu del browser e cerca «Installa».': 'Otherwise open the browser menu and look for "Install".',
+            'Se non la trovi, il browser non supporta l\'installazione: in una scheda funziona tutto lo stesso.': "If it isn't there, your browser cannot install it: everything still works in a tab.",
             'I modelli sono in ordine di uscita, dal più recente.': 'Models are listed by release date, newest first.',
             'La stellina sul modello sceglie la camera predefinita: l\'app si riapre su quella.': 'The star on a model picks your default camera: the app reopens on it.',
             'Installazione e aggiornamento dall\'intestazione, con questo elenco delle novità.': 'Install and update from the header, with this list of changes.',
@@ -2261,38 +2278,105 @@
         // browser. display-mode copre Android e desktop, navigator.standalone
         // è la variante di Safari su iPhone.
         function isInstalled() {
-            return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
-                || window.navigator.standalone === true;
+            // standalone copre quasi tutto; le altre servono ai sistemi che
+            // aprono le app web con una barra ridotta o in una finestra
+            // propria, come i desktop Chromium.
+            const modi = ['standalone', 'minimal-ui', 'fullscreen', 'window-controls-overlay'];
+            const comeApp = window.matchMedia
+                && modi.some(m => window.matchMedia(`(display-mode: ${m})`).matches);
+            return !!comeApp || window.navigator.standalone === true;
         }
 
-        // Safari su iPhone non offre beforeinstallprompt: lì l'installazione è
-        // un gesto manuale. Mostrare un pulsante che non fa nulla sarebbe
-        // peggio che spiegare come si fa.
-        function isIosSafari() {
-            const ua = navigator.userAgent || '';
-            const iOS = /iPad|iPhone|iPod/.test(ua)
-                || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-            return iOS && /Safari/.test(ua) && !/CriOS|FxiOS|EdgiOS/.test(ua);
+        // Solo i browser Chromium offrono beforeinstallprompt. Altrove
+        // l'installazione esiste lo stesso, ma è un gesto manuale diverso per
+        // ogni sistema — e in un caso non esiste affatto. Serve quindi sapere
+        // dove siamo, per dire la cosa giusta invece di una generica.
+        //
+        // Gli argomenti sono espliciti e non letti da navigator: così la
+        // funzione si prova con le stringhe di ogni sistema, invece di poter
+        // essere verificata solo sul browser che esegue i test.
+        function browserPlatform(ua, platform, touchPoints) {
+            ua = ua === undefined ? (navigator.userAgent || '') : ua;
+            platform = platform === undefined ? navigator.platform : platform;
+            touchPoints = touchPoints === undefined ? navigator.maxTouchPoints : touchPoints;
+
+            // Un iPad recente si presenta come Mac: lo tradisce il touch.
+            const iOS = /iPad|iPhone|iPod/.test(ua) || (platform === 'MacIntel' && touchPoints > 1);
+            if (iOS) return 'ios';
+            if (/Android/.test(ua)) return /Firefox/.test(ua) ? 'firefox-android' : 'android';
+            if (/Firefox/.test(ua)) return 'firefox-desktop';
+            // Chrome e Edge si dichiarano anche Safari: vanno esclusi prima.
+            if (/Safari/.test(ua) && !/Chrome|Chromium|Edg|OPR/.test(ua)) return 'safari-desktop';
+            return 'desktop';
         }
+
+        // Come si installa, sistema per sistema. Dove non si può, si dice.
+        const INSTALL_GUIDES = {
+            ios: {
+                title: 'Installare su iPhone e iPad',
+                steps: [
+                    'Tocca il pulsante Condividi, quello con la freccia verso l\'alto.',
+                    'Scorri e scegli «Aggiungi a Home».',
+                    'Conferma: l\'app compare fra le altre e si apre a schermo intero.'
+                ]
+            },
+            'safari-desktop': {
+                title: 'Installare su Mac con Safari',
+                steps: [
+                    'Apri il menu File di Safari.',
+                    'Scegli «Aggiungi al Dock».',
+                    'Serve Safari 17 o successivo: con le versioni precedenti l\'app funziona in una scheda.'
+                ]
+            },
+            'firefox-android': {
+                title: 'Installare con Firefox su Android',
+                steps: [
+                    'Apri il menu con i tre puntini.',
+                    'Scegli «Installa» oppure «Aggiungi a schermata Home».'
+                ]
+            },
+            'firefox-desktop': {
+                title: 'Firefox su computer non installa le app web',
+                steps: [
+                    'Non è una mancanza dell\'app: Firefox per computer ha rimosso questa funzione.',
+                    'In una scheda funziona tutto lo stesso, offline compreso: aggiungila ai preferiti.',
+                    'Per averla come applicazione, apri questa pagina in Chrome, Edge o Safari.'
+                ]
+            },
+            android: {
+                title: 'Installare su Android',
+                steps: [
+                    'Apri il menu del browser.',
+                    'Scegli «Installa app» oppure «Aggiungi a schermata Home».'
+                ]
+            },
+            desktop: {
+                title: 'Installare sul computer',
+                steps: [
+                    'Cerca l\'icona di installazione nella barra degli indirizzi, di solito a destra.',
+                    'In alternativa apri il menu del browser e cerca «Installa».',
+                    'Se non la trovi, il browser non supporta l\'installazione: in una scheda funziona tutto lo stesso.'
+                ]
+            }
+        };
 
         function showEl(id, visible) {
             const el = $(id);
             if (el) el.hidden = !visible;
         }
 
-        // Il pulsante di installazione compare solo se c'è qualcosa da
-        // installare: né ad app già installata, né dove il browser non lo
-        // permette. Su iPhone resta, ma apre le istruzioni.
+        // Il pulsante c'è finché l'app non è installata. Dove il browser
+        // offre il prompt installa in un tocco, altrove apre le istruzioni di
+        // quel sistema: sono comunque più utili del silenzio.
         function refreshInstallButton() {
-            showEl('btn-install', !isInstalled() && (!!installPrompt || isIosSafari()));
+            showEl('btn-install', !isInstalled());
         }
 
         async function installApp() {
-            if (isIosSafari() && !installPrompt) {
-                openChangelog('ios');
+            if (!installPrompt) {
+                openInstallGuide();
                 return;
             }
-            if (!installPrompt) return;
             installPrompt.prompt();
             await installPrompt.userChoice;
             // Il prompt è a colpo singolo: dopo l'uso non è più riutilizzabile,
@@ -2338,12 +2422,6 @@
            Novità della versione
            ------------------------------------------------------------------ */
 
-        const IOS_STEPS = [
-            'Apri questa pagina in Safari.',
-            'Tocca il pulsante Condividi, quello con la freccia verso l\'alto.',
-            'Scegli «Aggiungi a Home».'
-        ];
-
         function changelogHtml() {
             return CHANGELOG.map(entry =>
                 `<div class="changelog-version">${escapeHtml(entry.version)}</div>`
@@ -2353,23 +2431,33 @@
             ).join('');
         }
 
-        function openChangelog(mode) {
+        function openOverlay(titolo, corpo) {
             const overlay = $('changelog-overlay');
             if (!overlay) return;
-            const iosMode = mode === 'ios';
-            setText('changelog-title', iosMode
-                ? t('Installare su iPhone')
-                : t('Novità della versione {version}', { version: APP_VERSION }));
-            setHtml('changelog-body', iosMode
-                ? `<ul class="changelog-list">${IOS_STEPS.map(p => `<li>${escapeHtml(t(p))}</li>`).join('')}</ul>`
-                : changelogHtml());
+            setText('changelog-title', titolo);
+            setHtml('changelog-body', corpo);
             overlay.hidden = false;
+        }
+
+        function openChangelog() {
+            openOverlay(t('Novità della versione {version}', { version: APP_VERSION }), changelogHtml());
+        }
+
+        // Le istruzioni del sistema su cui si sta girando. La piattaforma si
+        // può passare esplicitamente, il che rende la funzione provabile per
+        // ogni sistema senza doverli avere tutti a disposizione.
+        function openInstallGuide(platform) {
+            const guida = INSTALL_GUIDES[platform || browserPlatform()] || INSTALL_GUIDES.desktop;
+            openOverlay(t(guida.title),
+                `<ul class="changelog-list">${guida.steps.map(p => `<li>${escapeHtml(t(p))}</li>`).join('')}</ul>`);
         }
 
         function closeChangelog() {
             const overlay = $('changelog-overlay');
             if (overlay) overlay.hidden = true;
-            // Da qui in poi queste novità sono viste.
+            // Da qui in poi queste novità sono viste. Vale anche chiudendo le
+            // istruzioni d'installazione, ed è innocuo: in quel caso la
+            // versione vista è già quella corrente.
             storageSet(STORAGE_KEYS.seenVersion, APP_VERSION);
         }
 

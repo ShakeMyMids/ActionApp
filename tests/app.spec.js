@@ -773,25 +773,54 @@ test.describe('Camera predefinita (stellina)', () => {
 });
 
 test.describe('Installazione', () => {
-  test('il pulsante non c e finche il browser non lo propone', async ({ page }) => {
-    // Su desktop Linux beforeinstallprompt non scatta: non si promette una
-    // funzione che il browser non offre.
-    await expect(page.locator('#btn-install')).toBeHidden();
+  // Stringhe reali dei browser: la rilevazione e' una funzione pura, quindi si
+  // prova per ogni sistema senza doverli avere tutti a disposizione.
+  const SISTEMI = [
+    ['iPhone', 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1', 'iPhone', 5, 'ios'],
+    ['iPad che si spaccia per Mac', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15', 'MacIntel', 5, 'ios'],
+    ['Chrome su Android', 'Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36', 'Linux armv8l', 5, 'android'],
+    ['Firefox su Android', 'Mozilla/5.0 (Android 14; Mobile; rv:121.0) Gecko/121.0 Firefox/121.0', 'Linux armv8l', 5, 'firefox-android'],
+    ['Firefox su Windows', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0', 'Win32', 0, 'firefox-desktop'],
+    ['Safari su Mac', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15', 'MacIntel', 0, 'safari-desktop'],
+    ['Chrome su Windows', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36', 'Win32', 0, 'desktop'],
+    ['Edge su Windows', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0', 'Win32', 0, 'desktop'],
+    ['Chrome su Linux', 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36', 'Linux x86_64', 0, 'desktop'],
+  ];
+
+  test('riconosce il sistema da cui si arriva', async ({ page }) => {
+    for (const [nome, ua, platform, touch, atteso] of SISTEMI) {
+      const visto = await page.evaluate(([u, p, t]) => browserPlatform(u, p, t), [ua, platform, touch]);
+      expect(visto, nome).toBe(atteso);
+    }
   });
 
-  test('compare quando il browser lo propone', async ({ page }) => {
-    await page.evaluate(() => {
-      const ev = new Event('beforeinstallprompt');
-      ev.prompt = () => { window.__prompted = true; };
-      ev.userChoice = Promise.resolve({ outcome: 'accepted' });
-      window.dispatchEvent(ev);
-    });
+  test('ogni sistema ha istruzioni proprie e non vuote', async ({ page }) => {
+    const guide = await page.evaluate(() => Object.entries(INSTALL_GUIDES)
+      .map(([k, g]) => ({ k, titolo: g.title, passi: (g.steps || []).length })));
+    // Una piattaforma senza istruzioni lascerebbe l'utente davanti a una
+    // finestra vuota, che e' peggio del pulsante che non c'era.
+    expect(guide.filter(g => !g.titolo || g.passi === 0)).toEqual([]);
+    expect(guide.map(g => g.k).sort()).toEqual(
+      ['android', 'desktop', 'firefox-android', 'firefox-desktop', 'ios', 'safari-desktop']);
+  });
+
+  test('il pulsante c e finche l app non e installata', async ({ page }) => {
     await expect(page.locator('#btn-install')).toBeVisible();
   });
 
-  test('cliccarlo chiede l installazione e poi sparisce', async ({ page }) => {
-    // Il prompt del browser e' a colpo singolo: dopo l'uso non e' piu'
-    // riutilizzabile, quindi il pulsante non deve restare li' a mentire.
+  test('ad app installata sparisce', async ({ page }) => {
+    const installata = await page.evaluate(() => {
+      window.navigator.standalone = true;
+      refreshInstallButton();
+      return isInstalled();
+    });
+    expect(installata).toBe(true);
+    await expect(page.locator('#btn-install')).toBeHidden();
+  });
+
+  test('col prompt del browser installa in un tocco', async ({ page }) => {
+    // Con il prompt disponibile si installa senza istruzioni: la finestra non
+    // deve aprirsi, altrimenti si chiederebbe a mano cio' che il browser fa.
     await page.evaluate(() => {
       const ev = new Event('beforeinstallprompt');
       ev.prompt = () => { window.__prompted = true; };
@@ -800,17 +829,61 @@ test.describe('Installazione', () => {
     });
     await page.click('#btn-install');
     expect(await page.evaluate(() => window.__prompted)).toBe(true);
+    await expect(page.locator('#changelog-overlay')).toBeHidden();
+  });
+
+  test('a prompt consumato ripiega sulle istruzioni', async ({ page }) => {
+    // Il prompt del browser e' a colpo singolo. Se l'utente lo annulla il
+    // pulsante resta - l'app non e' installata - ma da li' in poi puo' solo
+    // spiegare come si fa, e lo fa invece di non rispondere al click.
+    await page.evaluate(() => {
+      const ev = new Event('beforeinstallprompt');
+      ev.prompt = () => {};
+      ev.userChoice = Promise.resolve({ outcome: 'dismissed' });
+      window.dispatchEvent(ev);
+    });
+    await page.click('#btn-install');
+    await expect(page.locator('#btn-install')).toBeVisible();
+    await page.click('#btn-install');
+    await expect(page.locator('#changelog-overlay')).toBeVisible();
+  });
+
+  test('a installazione avvenuta il pulsante sparisce', async ({ page }) => {
+    await page.evaluate(() => {
+      window.navigator.standalone = true;
+      window.dispatchEvent(new Event('appinstalled'));
+    });
     await expect(page.locator('#btn-install')).toBeHidden();
   });
 
-  test('ad app installata il pulsante resta nascosto', async ({ page }) => {
-    const installata = await page.evaluate(() => {
-      window.navigator.standalone = true;
-      refreshInstallButton();
-      return isInstalled();
-    });
-    expect(installata).toBe(true);
-    await expect(page.locator('#btn-install')).toBeHidden();
+  test('senza prompt apre le istruzioni invece di non fare nulla', async ({ page }) => {
+    await page.click('#btn-install');
+    await expect(page.locator('#changelog-overlay')).toBeVisible();
+    await expect(page.locator('.changelog-list li').first()).not.toBeEmpty();
+  });
+
+  test('le istruzioni sono quelle del sistema giusto', async ({ page }) => {
+    await page.evaluate(() => openInstallGuide('ios'));
+    await expect(page.locator('#changelog-title')).toContainText('iPhone');
+    await expect(page.locator('#changelog-body')).toContainText('Condividi');
+
+    await page.evaluate(() => openInstallGuide('firefox-desktop'));
+    // Il caso in cui non si puo' installare: va detto, non lasciato intendere.
+    await expect(page.locator('#changelog-title')).toContainText('non installa');
+    await expect(page.locator('#changelog-body')).toContainText('Chrome, Edge o Safari');
+
+    await page.evaluate(() => openInstallGuide('safari-desktop'));
+    await expect(page.locator('#changelog-body')).toContainText('Aggiungi al Dock');
+  });
+
+  test('una piattaforma sconosciuta ripiega sulle istruzioni generiche', async ({ page }) => {
+    await page.evaluate(() => openInstallGuide('sistema-che-non-esiste'));
+    await expect(page.locator('#changelog-title')).toContainText('computer');
+  });
+
+  test('le istruzioni parlano inglese quando serve', async ({ page }) => {
+    await page.evaluate(() => { setLanguage('en'); openInstallGuide('ios'); });
+    await expect(page.locator('#changelog-body')).toContainText('Share button');
   });
 });
 
