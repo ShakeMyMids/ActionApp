@@ -2206,3 +2206,155 @@ test.describe('Icone', () => {
     }
   });
 });
+
+test.describe('Priorita di conflitto applicate davvero', () => {
+  // Il selettore dei conflitti compare per qualunque marchio, ma il valore
+  // calcolato lo leggeva solo il ramo DJI: sugli altri i due bottoni
+  // cambiavano l'interfaccia senza toccare il risultato.
+  const SCENARI = ['reel', 'sport', 'travel', 'indoor', 'car', 'night', 'slowmo', 'gyroflow'];
+
+  async function soloScenari(page, voluti) {
+    for (const v of SCENARI) {
+      const el = page.locator(`[data-action="toggleScenario"][data-value="${v}"]`);
+      const selezionato = ((await el.getAttribute('class')) || '').includes('selected');
+      if (selezionato !== voluti.includes(v)) await el.click();
+    }
+  }
+
+  for (const marca of ['gopro', 'insta360', 'dji']) {
+    test(`la priorita di stabilizzazione cambia il risultato su ${marca}`, async ({ page }) => {
+      await page.click(`[data-action="selectBrand"][data-value="${marca}"]`);
+      await soloScenari(page, ['sport']);
+      const scelta = page.locator('[data-action="setCompromise"][data-key="stabPriority"]');
+      await expect(scelta.first()).toBeVisible();
+
+      await page.click('[data-action="setCompromise"][data-key="stabPriority"][data-value="rocksteady"]');
+      const conMax = await page.locator('#val-stab').innerText();
+      await page.click('[data-action="setCompromise"][data-key="stabPriority"][data-value="horizon"]');
+      const conOrizzonte = await page.locator('#val-stab').innerText();
+
+      expect(conOrizzonte).not.toBe(conMax);
+      // E non un valore qualsiasi: la scelta "orizzonte" deve nominarlo.
+      expect(conOrizzonte.toLowerCase()).toContain('horizon');
+    });
+  }
+});
+
+test.describe('Coerenza dell esposizione', () => {
+  const SCENARI = ['reel', 'sport', 'travel', 'indoor', 'car', 'night', 'slowmo', 'gyroflow'];
+
+  async function soloScenari(page, voluti) {
+    for (const v of SCENARI) {
+      const el = page.locator(`[data-action="toggleScenario"][data-value="${v}"]`);
+      const selezionato = ((await el.getAttribute('class')) || '').includes('selected');
+      if (selezionato !== voluti.includes(v)) await el.click();
+    }
+  }
+
+  test('la Pro non ripristina un ND che il motore ha appena tolto', async ({ page }) => {
+    // L'ND veniva calcolato in due punti: quello del ramo Pro considerava solo
+    // la ripresa subacquea, quindi accendere la Pro contraddiceva, a parita' di
+    // scena, il calcolo fatto un istante prima.
+    await soloScenari(page, ['slowmo']);
+    await page.click('[data-action="setLuce"][data-value="ombra"]');
+    const automatico = await page.locator('#val-nd').innerText();
+    expect(automatico).toContain('RIMUOVERE');
+
+    await page.click('#pro-toggle');
+    await expect(page.locator('#pro-toggle')).toHaveAttribute('aria-pressed', 'true');
+    expect(await page.locator('#val-nd').innerText()).toBe(automatico);
+  });
+
+  test('scarsa luce piu slowmo non nasconde l avviso di sottoesposizione', async ({ page }) => {
+    // Con sport+notte l'avviso compariva, con slowmo+notte no: nell'if/else il
+    // ramo slow-motion veniva prima di quello del buio, ma l'esposizione era
+    // critica in entrambi i casi.
+    await soloScenari(page, ['slowmo', 'night']);
+    await page.click('[data-action="setLuce"][data-value="scarsa"]');
+    await page.click('[data-action="setCompromise"][data-key="fpsPriority"][data-value="action"]');
+    expect(await page.locator('#val-shutter').innerText()).toContain('Scuro');
+    expect(await page.locator('#val-nd').innerText()).toContain('Sottoesposizione');
+  });
+});
+
+test.describe('Le priorita di conflitto viaggiano', () => {
+  async function sportNotturnoInAzione(page) {
+    await page.click('[data-action="toggleScenario"][data-value="sport"]');
+    await page.click('[data-action="toggleScenario"][data-value="night"]');
+    await page.click('[data-action="setLuce"][data-value="scarsa"]');
+    await page.click('[data-action="setCompromise"][data-key="fpsPriority"][data-value="action"]');
+  }
+
+  test('un preset richiamato riaccende anche la priorita scelta', async ({ page }) => {
+    await sportNotturnoInAzione(page);
+    const conAzione = await page.locator('#val-fps').innerText();
+
+    await page.fill('#input-preset-name', 'azione');
+    await page.click('button.btn-save-preset');
+
+    await page.click('[data-action="setCompromise"][data-key="fpsPriority"][data-value="light"]');
+    expect(await page.locator('#val-fps').innerText()).not.toBe(conAzione);
+
+    await page.click('#container-saved-presets [data-action="loadPreset"]');
+    expect(await page.locator('#val-fps').innerText()).toBe(conAzione);
+  });
+
+  test('il link condiviso porta con se la priorita scelta', async ({ page }) => {
+    await sportNotturnoInAzione(page);
+    const conAzione = await page.locator('#val-fps').innerText();
+    const url = await page.evaluate(() => buildShareUrl());
+    expect(url).toContain('fp=action');
+
+    await page.goto(url.replace(/^https?:\/\/[^/]+/, ''));
+    expect(await page.locator('#val-fps').innerText()).toBe(conAzione);
+  });
+
+  test('un valore di conflitto fuori dominio non entra', async ({ page }) => {
+    // Stesso trattamento degli altri ingressi non fidati: dominio chiuso, e le
+    // chiavi ereditate da Object.prototype non passano.
+    const esiti = await page.evaluate(() => ({
+      ignoto: sanitizeCompromiseChoices({ fpsPriority: 'qualsiasi' }).fpsPriority,
+      prototipo: sanitizeCompromiseChoices({ fpsPriority: 'constructor' }).fpsPriority,
+      nullo: sanitizeCompromiseChoices(null).stabPriority,
+      buono: sanitizeCompromiseChoices({ stabPriority: 'horizon' }).stabPriority
+    }));
+    expect(esiti).toEqual({ ignoto: 'light', prototipo: 'light', nullo: 'rocksteady', buono: 'horizon' });
+  });
+
+  test('ogni chiave di conflitto sopravvive a un giro nel link', async ({ page }) => {
+    // Se una chiave venisse dimenticata nella serializzazione, il suo valore
+    // non tornerebbe indietro.
+    const nonTornate = await page.evaluate(() => {
+      const scelte = { fpsPriority: 'action', profilePriority: 'normal', fovPriority: 'wide', stabPriority: 'horizon', endurancePriority: 'fluidita' };
+      const params = new URLSearchParams();
+      for (const [key, corta] of Object.entries(COMPROMISE_PARAMS)) params.set(corta, scelte[key]);
+      const letti = {};
+      for (const [key, corta] of Object.entries(COMPROMISE_PARAMS)) letti[key] = params.get(corta);
+      const puliti = sanitizeCompromiseChoices(letti);
+      return Object.keys(scelte).filter(k => puliti[k] !== scelte[k]);
+    });
+    expect(nonTornate).toEqual([]);
+  });
+
+  test('il preset multisport non perde la chiave dell autonomia', async ({ page }) => {
+    // Impostava l'oggetto a mano dimenticando endurancePriority, che restava
+    // undefined invece che al proprio valore predefinito.
+    const dopo = await page.evaluate(() => {
+      applyMultisportPreset();
+      return { ...compromiseChoices };
+    });
+    expect(Object.keys(dopo).sort()).toEqual(
+      ['endurancePriority', 'fovPriority', 'fpsPriority', 'profilePriority', 'stabPriority']);
+    expect(dopo.endurancePriority).toBe('autonomia');
+  });
+});
+
+test.describe('Catalogo verificato', () => {
+  test('la GO Ultra dichiara la risoluzione foto massima ufficiale', async ({ page }) => {
+    // Il manuale ufficiale (onlinemanual.insta360.com, Photo & Video
+    // Specifications) da' 50 MP / 8192x6144 come massimo; il catalogo
+    // dichiarava 12 MP, cioe' 4096x3072, una delle opzioni piu' basse.
+    const foto = await page.evaluate(() => cameraModelsData.insta360.goultra.photoRes);
+    expect(foto).toContain('50 MP');
+  });
+});
