@@ -1259,6 +1259,15 @@
             } catch (e) { return false; }
         }
 
+        // Object.prototype porta con sé membri come constructor, toString e
+        // valueOf. Cercarli con oggetto[chiave] li restituisce, e sono tutti
+        // truthy: un controllo scritto come `if (TABELLA[x])` li accetta come
+        // se fossero voci vere. Serve la proprietà propria — è già il modo in
+        // cui t() interroga il dizionario.
+        function hasOwn(obj, key) {
+            return !!obj && Object.prototype.hasOwnProperty.call(obj, key);
+        }
+
         // Tiene il valore solo se appartiene al dominio, altrimenti ripiega sul
         // default. Un valore assente ricade sul default come un valore errato:
         // i preset delle versioni precedenti non portano tutti i campi.
@@ -1269,7 +1278,7 @@
         // Scarta gli scenari sconosciuti: senza etichetta in SCENARIO_LABELS
         // finirebbero nel riepilogo come "undefined".
         function pickScenarios(list, fallback) {
-            const valid = Array.isArray(list) ? list.filter(s => SCENARIO_LABELS[s]) : [];
+            const valid = Array.isArray(list) ? list.filter(s => hasOwn(SCENARIO_LABELS, s)) : [];
             return valid.length ? valid : fallback;
         }
 
@@ -1285,7 +1294,7 @@
         // sorgente: così aggiungerne uno non richiede di infilarlo al posto
         // giusto, ed è la ragione per cui l'elenco non torna mai disordinato.
         function modelKeysFor(brand) {
-            const models = cameraModelsData[brand] || {};
+            const models = hasOwn(cameraModelsData, brand) ? cameraModelsData[brand] : {};
             return Object.keys(models).sort((a, b) =>
                 String(models[b].released).localeCompare(String(models[a].released)));
         }
@@ -1296,7 +1305,7 @@
         // stellina, dato che il modello più recente non è quello che possiedi.
         function defaultModelFor(brand) {
             if (starredCamera && starredCamera.brand === brand
-                && cameraModelsData[brand] && cameraModelsData[brand][starredCamera.key]) {
+                && hasOwn(cameraModelsData, brand) && hasOwn(cameraModelsData[brand], starredCamera.key)) {
                 return starredCamera.key;
             }
             return modelKeysFor(brand)[0];
@@ -1311,8 +1320,8 @@
         function readStarredCamera() {
             try {
                 const parsed = JSON.parse(storageGet(STORAGE_KEYS.defaultCamera) || 'null');
-                if (!parsed || !cameraModelsData[parsed.brand]) return null;
-                if (!cameraModelsData[parsed.brand][parsed.key]) return null;
+                if (!parsed || !hasOwn(cameraModelsData, parsed.brand)) return null;
+                if (!hasOwn(cameraModelsData[parsed.brand], parsed.key)) return null;
                 return { brand: parsed.brand, key: parsed.key };
             } catch (e) {
                 return null;
@@ -1325,7 +1334,7 @@
             if (event) event.stopPropagation();
             const brand = el.dataset.brand;
             const key = el.dataset.value;
-            if (!cameraModelsData[brand] || !cameraModelsData[brand][key]) return;
+            if (!hasOwn(cameraModelsData, brand) || !hasOwn(cameraModelsData[brand], key)) return;
 
             if (isStarred(brand, key)) {
                 starredCamera = null;
@@ -1339,12 +1348,20 @@
             renderModelChips();
         }
 
+        // Difesa in profondità: gli ingressi sono già filtrati, ma lo stato può
+        // arrivare anche da un localStorage scritto da una versione precedente.
+        // Qui non si deve poter cadere: è la funzione da cui passa ogni
+        // schermata, e un'eccezione lascerebbe l'app disegnata a metà.
         function activeModel() {
-            const brandModels = cameraModelsData[currentBrand];
-            return brandModels[currentModelKey] || Object.values(brandModels)[0];
+            const brandModels = hasOwn(cameraModelsData, currentBrand)
+                ? cameraModelsData[currentBrand] : cameraModelsData.dji;
+            return hasOwn(brandModels, currentModelKey)
+                ? brandModels[currentModelKey] : Object.values(brandModels)[0];
         }
 
-        function activeBrandConfig() { return BRAND_CONFIG[currentBrand] || BRAND_CONFIG.dji; }
+        function activeBrandConfig() {
+            return hasOwn(BRAND_CONFIG, currentBrand) ? BRAND_CONFIG[currentBrand] : BRAND_CONFIG.dji;
+        }
 
         // Marca come .active (e aria-pressed) il solo bottone del gruppo il cui
         // data-value corrisponde allo stato corrente.
@@ -2142,7 +2159,7 @@
         }
 
         function selectBrand(brand) {
-            if (!BRAND_CONFIG[brand]) return;
+            if (!hasOwn(BRAND_CONFIG, brand)) return;
             currentBrand = brand;
             currentModelKey = defaultModelFor(brand);
             renderBrandCards();
@@ -2152,7 +2169,7 @@
         }
 
         function selectModel(modelKey) {
-            if (!cameraModelsData[currentBrand][modelKey]) return;
+            if (!hasOwn(cameraModelsData[currentBrand], modelKey)) return;
             currentModelKey = modelKey;
             renderModelChips();
             updateResults();
@@ -2227,11 +2244,11 @@
                 luce: pickAllowed(preset.luce, LUCE_VALUES, 'sole'),
                 region: pickAllowed(preset.region, REGION_VALUES, 'pal'),
                 sub: pickAllowed(preset.sub, SUB_VALUES, 'fuori'),
-                bitrateProf: BITRATE_PROFILES[preset.bitrateProf] ? preset.bitrateProf : 'high'
+                bitrateProf: hasOwn(BITRATE_PROFILES, preset.bitrateProf) ? preset.bitrateProf : 'high'
             };
-            if (preset.brand && cameraModelsData[preset.brand]) {
+            if (hasOwn(cameraModelsData, preset.brand)) {
                 clean.brand = preset.brand;
-                clean.modelKey = cameraModelsData[preset.brand][preset.modelKey]
+                clean.modelKey = hasOwn(cameraModelsData[preset.brand], preset.modelKey)
                     ? preset.modelKey
                     : defaultModelFor(preset.brand);
             }
@@ -2268,10 +2285,10 @@
             currentLuce = pickAllowed(preset.luce, LUCE_VALUES, 'sole');
             currentRegion = pickAllowed(preset.region, REGION_VALUES, 'pal');
             currentSub = pickAllowed(preset.sub, SUB_VALUES, 'fuori');
-            currentBitrateProfile = BITRATE_PROFILES[preset.bitrateProf] ? preset.bitrateProf : 'high';
-            if (preset.brand && cameraModelsData[preset.brand]) {
+            currentBitrateProfile = hasOwn(BITRATE_PROFILES, preset.bitrateProf) ? preset.bitrateProf : 'high';
+            if (hasOwn(cameraModelsData, preset.brand)) {
                 currentBrand = preset.brand;
-                currentModelKey = cameraModelsData[preset.brand][preset.modelKey]
+                currentModelKey = hasOwn(cameraModelsData[preset.brand], preset.modelKey)
                     ? preset.modelKey
                     : defaultModelFor(preset.brand);
             }
@@ -2376,17 +2393,17 @@
             if (!params.has('b') && !params.has('s')) return false;
 
             const brand = params.get('b');
-            if (brand && cameraModelsData[brand]) {
+            if (hasOwn(cameraModelsData, brand)) {
                 currentBrand = brand;
                 const model = params.get('m');
-                currentModelKey = (model && cameraModelsData[brand][model]) ? model : defaultModelFor(brand);
+                currentModelKey = hasOwn(cameraModelsData[brand], model) ? model : defaultModelFor(brand);
             }
             selectedScenarios = pickScenarios((params.get('s') || '').split(','), selectedScenarios);
             currentMode = pickAllowed(params.get('mode'), MODE_VALUES, currentMode);
             currentLuce = pickAllowed(params.get('l'), LUCE_VALUES, currentLuce);
             currentRegion = pickAllowed(params.get('r'), REGION_VALUES, currentRegion);
             currentSub = pickAllowed(params.get('sub'), SUB_VALUES, currentSub);
-            if (BITRATE_PROFILES[params.get('bp')]) currentBitrateProfile = params.get('bp');
+            if (hasOwn(BITRATE_PROFILES, params.get('bp'))) currentBitrateProfile = params.get('bp');
 
             // Un link condiviso porta anche la lingua, ma una scelta esplicita
             // gia' memorizzata dall'utente ha la precedenza.
@@ -2612,7 +2629,8 @@
         // può passare esplicitamente, il che rende la funzione provabile per
         // ogni sistema senza doverli avere tutti a disposizione.
         function openInstallGuide(platform) {
-            const guida = INSTALL_GUIDES[platform || browserPlatform()] || INSTALL_GUIDES.desktop;
+            const chiave = platform || browserPlatform();
+            const guida = hasOwn(INSTALL_GUIDES, chiave) ? INSTALL_GUIDES[chiave] : INSTALL_GUIDES.desktop;
             openOverlay(t(guida.title),
                 `<ul class="changelog-list">${guida.steps.map(p => `<li>${escapeHtml(t(p))}</li>`).join('')}</ul>`);
         }
@@ -2689,7 +2707,7 @@
         }
 
         function renderBattery() {
-            const preset = BATTERY_TEMPS[String(currentTemp)] || BATTERY_TEMPS['20'];
+            const preset = hasOwn(BATTERY_TEMPS, String(currentTemp)) ? BATTERY_TEMPS[String(currentTemp)] : BATTERY_TEMPS['20'];
             const base = activeModel().batteryMin || 115;
             // Arrotondato a 5 minuti: è una stima, non un cronometro.
             const minutes = Math.round((base * preset.factor) / 5) * 5;
@@ -2708,7 +2726,7 @@
         }
 
         function batteryMinutes() {
-            const preset = BATTERY_TEMPS[String(currentTemp)] || BATTERY_TEMPS['20'];
+            const preset = hasOwn(BATTERY_TEMPS, String(currentTemp)) ? BATTERY_TEMPS[String(currentTemp)] : BATTERY_TEMPS['20'];
             return ((activeModel().batteryMin || 115) * preset.factor);
         }
 
@@ -2803,7 +2821,7 @@
         function pickCamera(el) {
             const brand = el.dataset.brand;
             const key = el.dataset.value;
-            if (!cameraModelsData[brand] || !cameraModelsData[brand][key]) return;
+            if (!hasOwn(cameraModelsData, brand) || !hasOwn(cameraModelsData[brand], key)) return;
             currentBrand = brand;
             currentModelKey = key;
             updateUIState();
@@ -3043,7 +3061,8 @@
         function renderStorageMetrics(ctx, fps) {
             let mbps = ctx.model.bitrate;
             if (fps >= 100) mbps += 20;
-            mbps = Math.floor(mbps * (BITRATE_PROFILES[currentBitrateProfile] || BITRATE_PROFILES.high).factor);
+            const profilo = hasOwn(BITRATE_PROFILES, currentBitrateProfile) ? BITRATE_PROFILES[currentBitrateProfile] : BITRATE_PROFILES.high;
+            mbps = Math.floor(mbps * profilo.factor);
 
             // Il calcolo del limite di ripresa vive in un'altra scheda ma
             // dipende da questo bitrate: lo si tiene qui invece di rifare i

