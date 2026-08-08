@@ -152,6 +152,7 @@
 
         /* Avviso sul tetto di framerate: e' un'informazione, non un errore,
            quindi ambra e non rosso come l'allarme della scheda. */
+        .conflict-note { font-size: 0.75rem; line-height: 1.45; color: var(--text-secondary); margin-top: 8px; }
         .alert-fps { background: rgba(245, 158, 11, 0.14); border: 1px solid var(--amber); color: var(--amber); padding: 10px 12px; border-radius: 8px; font-size: 0.78rem; margin-top: 12px; display: none; line-height: 1.4; font-weight: 600; }
         .alert-sd { background: rgba(239, 68, 68, 0.15); border: 1px solid #ef4444; color: #ef4444; padding: 10px 12px; border-radius: 8px; font-size: 0.78rem; margin-top: 12px; display: none; line-height: 1.4; animation: slideUpFade 0.4s ease-out; font-weight: 600; }
         [data-theme="dark"] .alert-sd { color: #fca5a5; }
@@ -1114,6 +1115,33 @@
         const REGION_VALUES = ['pal', 'ntsc'];
         const SUB_VALUES = ['fuori', 'sub'];
 
+        // Cosa comporta ogni scelta. Il pannello diceva che un compromesso
+        // c'era, non che cosa costasse: chi non conosce la regola dei 180° non
+        // ha modo di decidere. Ogni voce dichiara il guadagno e la rinuncia,
+        // perché è la rinuncia a rendere la scelta una scelta.
+        const TRADEOFF_NOTES = {
+            fpsPriority: {
+                light: 'A framerate basso l\'otturatore resta lento e il sensore raccoglie il doppio della luce: meno rumore e ISO più bassi. In cambio il movimento veloce esce mosso, e in post non potrai rallentare.',
+                action: 'Più fotogrammi congelano l\'azione e permettono il rallenty in post. Ma ogni raddoppio di framerate dimezza il tempo di posa: serve un ISO più alto, quindi più rumore, e con poca luce l\'immagine resterà scura.'
+            },
+            endurancePriority: {
+                autonomia: 'Meno fotogrammi e bitrate più basso: batteria e scheda durano molto di più e la camera scalda meno. In cambio il movimento è meno fluido e non resta margine per rallentare in post.',
+                fluidita: 'Il movimento resta fluido e il rallenty possibile. Ma consuma il doppio: batteria e scheda finiscono prima, e nelle riprese lunghe la camera può surriscaldarsi.'
+            },
+            profilePriority: {
+                dlog: 'Il profilo log conserva le alte luci e lascia margine in correzione colore. Ma al buio solleva il rumore nelle ombre, e senza un LUT in post il file resta slavato: non è pronto da pubblicare.',
+                normal: 'Colore e contrasto sono già fatti in camera: file pronto da pubblicare e rumore più contenuto al buio. In cambio le alte luci bruciate non si recuperano più.'
+            },
+            fovPriority: {
+                dewarp: 'Le linee restano dritte e sparisce l\'effetto pesce: è ciò che serve al verticale e alle inquadrature con orizzonti o architetture. Il prezzo è un ritaglio, quindi meno campo visivo.',
+                wide: 'Campo visivo massimo e più senso di velocità, che è il motivo per cui si gira in azione. In cambio le linee si incurvano ai bordi, e nel ritaglio verticale la distorsione si nota di più.'
+            },
+            stabPriority: {
+                rocksteady: 'Stabilizzazione al massimo: le vibrazioni spariscono. In cambio ritaglia di più l\'immagine, e in curva l\'orizzonte segue l\'inclinazione della camera.',
+                horizon: 'L\'orizzonte resta dritto anche inclinando la camera, cosa che in curva cambia il risultato. Costa un ritaglio maggiore e, su alcuni modelli, un limite su risoluzione o framerate.'
+            }
+        };
+
         // Tagli di MicroSD offerti dal calcolo del limite di ripresa.
         const CARD_SIZES = [64, 128, 256, 512];
 
@@ -1294,6 +1322,18 @@
         // sempre è un altro numero. Il framerate ha già la sua riga, quindi
         // qui resta la sola risoluzione.
         const FPS_IN_MAXRES = /\s*@\s*(\d+)\s*fps\s*/i;
+
+        // Il nome del profilo colore, senza la profondita' di bit e senza le
+        // varianti. logProfile e' scritto come "10-bit D-Log M": prendendone la
+        // prima parola si otteneva "10-bit", che non dice quale profilo sia —
+        // e su un bottone di scelta e' proprio l'informazione che serve.
+        function logProfileName(model) {
+            return String(model.logProfile)
+                .replace(/\d+-bit/gi, '')      // profondità: non identifica il profilo
+                .replace(/\([^)]*\)/g, '')      // note fra parentesi
+                .split('/')[0]                  // la prima variante
+                .trim() || String(model.logProfile);
+        }
 
         function resolutionLabel(model) {
             return String(model.maxRes).replace(FPS_IN_MAXRES, ' ').replace(/\s{2,}/g, ' ').trim();
@@ -1662,6 +1702,28 @@
             '📤 Condividi setup': '📤 Share setup',
             'Il mio setup per {model}': 'My setup for {model}',
             '<b>🔩 Attacco della camera:</b> {mount}': '<b>🔩 Camera mount:</b> {mount}',
+
+            // --- Conseguenze dei compromessi ---
+            'A framerate basso l\'otturatore resta lento e il sensore raccoglie il doppio della luce: meno rumore e ISO più bassi. In cambio il movimento veloce esce mosso, e in post non potrai rallentare.':
+                'At a low framerate the shutter stays slow and the sensor gathers twice the light: less noise and lower ISO. In exchange fast movement comes out blurred, and you will not be able to slow it down in post.',
+            'Più fotogrammi congelano l\'azione e permettono il rallenty in post. Ma ogni raddoppio di framerate dimezza il tempo di posa: serve un ISO più alto, quindi più rumore, e con poca luce l\'immagine resterà scura.':
+                'More frames freeze the action and allow slow motion in post. But every doubling of the framerate halves the exposure time: you need a higher ISO, so more noise, and in low light the image will stay dark.',
+            'Meno fotogrammi e bitrate più basso: batteria e scheda durano molto di più e la camera scalda meno. In cambio il movimento è meno fluido e non resta margine per rallentare in post.':
+                'Fewer frames and a lower bitrate: battery and card last much longer and the camera runs cooler. In exchange the movement is less smooth and there is no room left to slow it down in post.',
+            'Il movimento resta fluido e il rallenty possibile. Ma consuma il doppio: batteria e scheda finiscono prima, e nelle riprese lunghe la camera può surriscaldarsi.':
+                'Movement stays smooth and slow motion remains possible. But it consumes twice as much: battery and card run out sooner, and on long takes the camera may overheat.',
+            'Il profilo log conserva le alte luci e lascia margine in correzione colore. Ma al buio solleva il rumore nelle ombre, e senza un LUT in post il file resta slavato: non è pronto da pubblicare.':
+                'The log profile preserves the highlights and leaves room for colour grading. But in the dark it lifts noise in the shadows, and without a LUT in post the file stays washed out: it is not ready to publish.',
+            'Colore e contrasto sono già fatti in camera: file pronto da pubblicare e rumore più contenuto al buio. In cambio le alte luci bruciate non si recuperano più.':
+                'Colour and contrast are already baked in camera: a file ready to publish and less noise in the dark. In exchange blown highlights cannot be recovered.',
+            'Le linee restano dritte e sparisce l\'effetto pesce: è ciò che serve al verticale e alle inquadrature con orizzonti o architetture. Il prezzo è un ritaglio, quindi meno campo visivo.':
+                'Lines stay straight and the fisheye look disappears: what vertical framing and shots with horizons or architecture need. The price is a crop, so less field of view.',
+            'Campo visivo massimo e più senso di velocità, che è il motivo per cui si gira in azione. In cambio le linee si incurvano ai bordi, e nel ritaglio verticale la distorsione si nota di più.':
+                'Maximum field of view and more sense of speed, which is why you shoot action this way. In exchange lines bend at the edges, and in a vertical crop the distortion shows more.',
+            'Stabilizzazione al massimo: le vibrazioni spariscono. In cambio ritaglia di più l\'immagine, e in curva l\'orizzonte segue l\'inclinazione della camera.':
+                'Stabilisation at maximum: vibrations disappear. In exchange it crops the image more, and through a turn the horizon follows the camera tilt.',
+            'L\'orizzonte resta dritto anche inclinando la camera, cosa che in curva cambia il risultato. Costa un ritaglio maggiore e, su alcuni modelli, un limite su risoluzione o framerate.':
+                'The horizon stays level even as you tilt the camera, which changes the result through a turn. It costs a larger crop and, on some models, a limit on resolution or framerate.',
 
             // --- Motore: Endurance e tetto di framerate ---
             '🔋 Endurance vs Fluidità': '🔋 Endurance vs smoothness',
@@ -2882,7 +2944,7 @@
 
         function editGoalLabels(model) {
             return {
-                'dlog_lut': t('🎨 Grading {profile}', { profile: model.logProfile.split(' ')[0] }),
+                'dlog_lut': t('🎨 Grading {profile}', { profile: logProfileName(model) }),
                 'reel_fast': t('📱 Reel In-App 9:16'),
                 'speed_ramp': t('⚡ Speed Ramp Sport'),
                 'audio_clean': t('🎙️ Audio & Vento'),
@@ -3150,7 +3212,18 @@
             const buttons = options.map(opt =>
                 `<button type="button" class="btn-compromise ${compromiseChoices[key] === opt.value ? 'active' : ''}" data-action="setCompromise" data-key="${key}" data-value="${opt.value}" aria-pressed="${compromiseChoices[key] === opt.value}">${opt.label}</button>`
             ).join('');
-            return `<div class="conflict-block"><div class="conflict-label">${label}</div><div class="compromise-selector" role="group" aria-label="${label}">${buttons}</div></div>`;
+
+            // La nota segue la scelta in corso e la descrive per intero, non
+            // solo per il lato buono: aria-describedby la lega al gruppo, così
+            // chi usa un lettore di schermo la sente insieme ai bottoni.
+            const note = (TRADEOFF_NOTES[key] || {})[compromiseChoices[key]];
+            const noteId = `conflict-note-${key}`;
+            const noteHtml = note
+                ? `<div class="conflict-note" id="${noteId}">${escapeHtml(t(note))}</div>` : '';
+
+            return `<div class="conflict-block"><div class="conflict-label">${label}</div>`
+                + `<div class="compromise-selector" role="group" aria-label="${label}"`
+                + `${note ? ` aria-describedby="${noteId}"` : ''}>${buttons}</div>${noteHtml}</div>`;
         }
 
         function renderConflicts(ctx, hasFpsConflict, hasProfileConflict, hasEnduranceConflict, richiesti) {
@@ -3173,7 +3246,7 @@
             }
             if (hasProfileConflict) {
                 html += conflictBlock(t('🎨 Profilo Colore: Reel vs Notturno'), 'profilePriority', [
-                    { value: 'dlog', label: `🎬 ${ctx.model.logProfile.split(' ')[0]}` },
+                    { value: 'dlog', label: `🎬 ${escapeHtml(logProfileName(ctx.model))}` },
                     { value: 'normal', label: t('🌙 Standard') }
                 ]);
             }
