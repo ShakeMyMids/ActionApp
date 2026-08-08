@@ -225,6 +225,78 @@ test.describe('Coerenza del motore', () => {
   });
 });
 
+test.describe('Conseguenze dei compromessi', () => {
+  test('ogni compromesso spiega cosa comporta la scelta in corso', async ({ page }) => {
+    await page.locator('#scenario-chips-container .btn-chip', { hasText: 'Bici / Sport' }).click();
+    await page.locator('#scenario-chips-container .btn-chip', { hasText: 'Notturno' }).click();
+
+    const blocchi = await page.locator('.conflict-block').count();
+    expect(blocchi).toBeGreaterThan(1);
+    // Un compromesso senza spiegazione lascia decidere alla cieca.
+    await expect(page.locator('.conflict-note')).toHaveCount(blocchi);
+    for (let i = 0; i < blocchi; i++) {
+      expect((await page.locator('.conflict-note').nth(i).innerText()).length).toBeGreaterThan(60);
+    }
+  });
+
+  test('la nota segue la scelta e cambia con essa', async ({ page }) => {
+    await page.locator('#scenario-chips-container .btn-chip', { hasText: 'Bici / Sport' }).click();
+    await page.locator('#scenario-chips-container .btn-chip', { hasText: 'Notturno' }).click();
+
+    const prima = await page.locator('.conflict-note').first().innerText();
+    await page.locator('.btn-compromise', { hasText: 'Azione' }).click();
+    const dopo = await page.locator('.conflict-note').first().innerText();
+    expect(dopo).not.toBe(prima);
+    // Ogni nota dichiara anche la rinuncia: e' la rinuncia a rendere la
+    // scelta una scelta, e senza non sarebbe un compromesso.
+    expect(prima).toMatch(/In cambio|Ma /);
+    expect(dopo).toMatch(/In cambio|Ma /);
+  });
+
+  test('la nota e legata al gruppo per i lettori di schermo', async ({ page }) => {
+    await page.locator('#scenario-chips-container .btn-chip', { hasText: 'Bici / Sport' }).click();
+    await page.locator('#scenario-chips-container .btn-chip', { hasText: 'Notturno' }).click();
+    const id = await page.locator('.compromise-selector').first().getAttribute('aria-describedby');
+    expect(id).toBeTruthy();
+    await expect(page.locator(`#${id}`)).toHaveClass(/conflict-note/);
+  });
+
+  test('ogni opzione di ogni compromesso ha la sua nota', async ({ page }) => {
+    // Una voce senza nota mostrerebbe la spiegazione solo per meta' scelte.
+    const buchi = await page.evaluate(() => {
+      const out = [];
+      for (const [chiave, opzioni] of Object.entries(TRADEOFF_NOTES))
+        for (const [valore, testo] of Object.entries(opzioni))
+          if (!testo || testo.length < 60) out.push(`${chiave}/${valore}`);
+      return out;
+    });
+    expect(buchi).toEqual([]);
+  });
+
+  test('il bottone del profilo colore nomina il profilo, non i bit', async ({ page }) => {
+    // Diceva "10-bit", che e' la profondita' e non identifica il profilo:
+    // su un bottone di scelta e' proprio l'informazione che serve.
+    const nomi = await page.evaluate(() => Object.values(cameraModelsData)
+      .flatMap(ms => Object.values(ms))
+      .map(m => logProfileName(m)));
+    for (const n of nomi) {
+      expect(n).not.toMatch(/bit/i);
+      expect(n.length).toBeGreaterThan(2);
+    }
+
+    await page.locator('#scenario-chips-container .btn-chip', { hasText: 'Notturno' }).click();
+    await expect(page.locator('#container-conflicts')).toContainText('D-Log M');
+    await expect(page.locator('#container-conflicts')).not.toContainText('🎬 10-bit');
+  });
+
+  test('le note parlano inglese', async ({ page }) => {
+    await page.locator('#scenario-chips-container .btn-chip', { hasText: 'Bici / Sport' }).click();
+    await page.locator('#scenario-chips-container .btn-chip', { hasText: 'Notturno' }).click();
+    await page.click('[data-action="toggleLanguage"]');
+    await expect(page.locator('.conflict-note').first()).toContainText('In exchange');
+  });
+});
+
 test.describe('Coerenza fra wizard e calcolatore ND', () => {
   test('a 30 fps in pieno sole entrambi indicano ND64 / ND128', async ({ page }) => {
     await expect(page.locator('#val-fps')).toHaveText('25 fps (PAL)');

@@ -22,6 +22,13 @@ girare di notte chiede framerate bassi per raccogliere luce, girare sport ne
 chiede di alti per congelare l'azione. L'app non sceglie di nascosto — mostra il
 conflitto e ti fa decidere la priorità, poi ricalcola tutto di conseguenza.
 
+Ogni compromesso dichiara anche **cosa comporta**: sotto i due pulsanti c'è una
+riga che descrive la scelta in corso, con il guadagno e la rinuncia. È la
+rinuncia a rendere una scelta tale, e senza quella l'utente decide alla cieca —
+scegliere fra «25 fps» e «50 fps» non dice niente a chi non conosce la regola dei
+180°. La riga segue la selezione e `aria-describedby` la lega al gruppo di
+pulsanti, così arriva anche a chi usa un lettore di schermo.
+
 Lo stesso vale per il profilo **Endurance**, che abbassa il framerate per far
 durare la batteria: se così facendo toglie la fluidità che avevi chiesto
 scegliendo Sport o Slow-Motion, diventa un conflitto dichiarato e non una
@@ -126,8 +133,8 @@ npx playwright install chromium    # solo la prima volta
 npm test
 ```
 
-145 test end-to-end, eseguiti su due profili — desktop e mobile (Pixel 7) — per un
-totale di 290 esecuzioni. Coprono inizializzazione, motore di calcolo, escaping e
+151 test end-to-end, eseguiti su due profili — desktop e mobile (Pixel 7) — per un
+totale di 302 esecuzioni. Coprono inizializzazione, motore di calcolo, escaping e
 persistenza dei preset, export/import (compresi i file con valori fuori dominio),
 limite di ripresa, confronto fra camere, condivisione via link, accessibilità
 (semantica tab, `aria-pressed`, tastiera), safe area del notch, autonomia della
