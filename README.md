@@ -115,8 +115,8 @@ npx playwright install chromium    # solo la prima volta
 npm test
 ```
 
-110 test end-to-end, eseguiti su due profili — desktop e mobile (Pixel 7) — per un
-totale di 220 esecuzioni. Coprono inizializzazione, motore di calcolo, escaping e
+117 test end-to-end, eseguiti su due profili — desktop e mobile (Pixel 7) — per un
+totale di 234 esecuzioni. Coprono inizializzazione, motore di calcolo, escaping e
 persistenza dei preset, export/import (compresi i file con valori fuori dominio),
 limite di ripresa, confronto fra camere, condivisione via link, accessibilità
 (semantica tab, `aria-pressed`, tastiera), safe area del notch, autonomia della
@@ -166,12 +166,29 @@ test fallisce se la prima voce non è la versione in corso.
 
 ## Installazione e aggiornamenti
 
-Il pulsante **Installa** nell'intestazione compare solo quando c'è davvero
-qualcosa da installare: non ad app già installata, e non dove il browser non lo
-permette. Su Chrome, Edge e Android usa `beforeinstallprompt` e installa in un
-tocco; su Safari per iPhone quell'evento non esiste e l'installazione resta un
-gesto manuale, quindi lì il pulsante apre le istruzioni invece di fingere di
-fare qualcosa.
+Il pulsante **Installa** nell'intestazione c'è finché l'app non è installata, su
+qualunque sistema. Dove il browser offre `beforeinstallprompt` — i Chromium, cioè
+Chrome, Edge, Opera e Samsung Internet, su Windows, macOS, Linux, ChromeOS e
+Android — installa in un tocco. Altrove l'installazione esiste lo stesso ma è un
+gesto manuale diverso per ciascuno, e il pulsante apre le istruzioni di quel
+sistema invece di fingere di fare qualcosa:
+
+| Sistema | Come si installa |
+|---|---|
+| iPhone e iPad | Condividi → «Aggiungi a Home» |
+| Mac con Safari | File → «Aggiungi al Dock» (Safari 17+) |
+| Firefox su Android | menu → «Installa» |
+| Firefox su computer | **non si può**: la funzione è stata rimossa dal browser |
+| altri | icona nella barra degli indirizzi, o menu → «Installa» |
+
+Il caso di Firefox su computer viene detto apertamente, con l'alternativa: in una
+scheda l'app funziona lo stesso, offline compreso. Nascondere il pulsante avrebbe
+lasciato l'utente a chiedersi perché lì manchi.
+
+La piattaforma si riconosce con `browserPlatform()`, che prende `userAgent`,
+`platform` e `maxTouchPoints` come argomenti invece di leggerli da `navigator`:
+così si verifica con le stringhe reali di ogni sistema, senza doverli avere tutti
+a disposizione. Un iPad recente si dichiara Mac, e lo tradisce il touch.
 
 Quando un rilascio è pronto compare **Aggiorna**. Toccandolo il worker in attesa
 prende il posto del vecchio e la pagina si ricarica; subito dopo si apre
