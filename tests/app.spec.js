@@ -657,14 +657,14 @@ test.describe('Coerenza fra wizard e calcolatore ND', () => {
     const wizardNd = await page.locator('#val-nd').textContent();
     expect(wizardNd).toContain('ND64 / ND128');
 
-    await page.locator('.tab-btn', { hasText: 'Rigging & Calc' }).click();
+    await page.locator('.tab-btn', { hasText: 'Preparazione' }).click();
     await page.locator('#panel-calc .btn-radio', { hasText: '30 FPS' }).click();
     await expect(page.locator('#calc-result-shutter')).toHaveText('1/60 s');
     await expect(page.locator('#calc-result-nd')).toContainText('ND64 / ND128');
   });
 
   test('a framerate alti serve meno densita di ND', async ({ page }) => {
-    await page.locator('.tab-btn', { hasText: 'Rigging & Calc' }).click();
+    await page.locator('.tab-btn', { hasText: 'Preparazione' }).click();
     await page.locator('#panel-calc .btn-radio', { hasText: '120 FPS' }).click();
     await expect(page.locator('#calc-result-shutter')).toHaveText('1/240 s');
     await expect(page.locator('#calc-result-nd')).toContainText('ND16 / ND32');
@@ -673,7 +673,7 @@ test.describe('Coerenza fra wizard e calcolatore ND', () => {
 
 test.describe('Guida editing', () => {
   test('non lascia trapelare markdown grezzo', async ({ page }) => {
-    await page.locator('.tab-btn', { hasText: 'Editing & Vis' }).click();
+    await page.locator('.tab-btn', { hasText: 'Montaggio' }).click();
     await page.locator('#panel-editing .btn-chip', { hasText: 'Audio & Vento' }).click();
 
     await expect(page.locator('#edit-export-list')).not.toContainText('**');
@@ -682,7 +682,7 @@ test.describe('Guida editing', () => {
 
   test('si adatta al brand selezionato', async ({ page }) => {
     await page.click('#brand-card-gopro');
-    await page.locator('.tab-btn', { hasText: 'Editing & Vis' }).click();
+    await page.locator('.tab-btn', { hasText: 'Montaggio' }).click();
     await expect(page.locator('#editing-app-header')).toContainText('GoPro Quik');
   });
 });
@@ -1299,6 +1299,48 @@ test.describe('Camera predefinita (stellina)', () => {
     await page.reload();
     await expect(page.locator('#model-chips-container .btn-chip')).not.toHaveCount(0);
     expect(await page.evaluate(() => starredCamera)).toBeNull();
+  });
+});
+
+test.describe('Nomi delle schede', () => {
+  test('sono parole intere e non gergo troncato', async ({ page }) => {
+    // "Rigging & Calc" e "Editing & Vis" mescolavano inglese e italiano e
+    // troncavano due parole a meta': in una barra di navigazione l'etichetta
+    // e' l'unica cosa che dice dove porta.
+    const etichette = await page.locator('.tab-btn').allInnerTexts();
+    expect(etichette).toHaveLength(5);
+    for (const e of etichette) {
+      const pulita = e.replace(/\s+/g, ' ').trim();
+      expect(pulita, e).not.toContain('&');
+      expect(pulita.split(' '), e).toHaveLength(1);
+    }
+  });
+
+  test('sono tradotte davvero, non lasciate in inglese', async ({ page }) => {
+    // Se l'etichetta italiana e quella inglese coincidono, quasi sempre vuol
+    // dire che l'italiana era gia' inglese.
+    const it = await page.locator('.tab-btn').allInnerTexts();
+    await page.click('[data-action="toggleLanguage"]');
+    const en = await page.locator('.tab-btn').allInnerTexts();
+    for (let i = 0; i < it.length; i++) expect(en[i], it[i]).not.toBe(it[i]);
+  });
+
+  test('le scorciatoie del manifest usano gli stessi nomi', async ({ page }) => {
+    // Altrimenti il menu del sistema operativo dice una cosa e l'app un'altra.
+    const manifest = await page.evaluate(async () => (await fetch('./manifest.json')).json());
+    const etichette = (await page.locator('.tab-btn').allInnerTexts()).map(x => x.trim());
+    for (const sc of manifest.shortcuts) {
+      expect(etichette, sc.name).toContain(sc.name);
+    }
+  });
+
+  test('nessun titolo di sezione infila inglese fra parentesi', async ({ page }) => {
+    // "(180° Rule)", "(Stress Test)", "(Cheat Sheets)": stessa incoerenza
+    // delle schede, un gradino piu' in basso.
+    const titoli = await page.locator('.section-title').allInnerTexts();
+    for (const titolo of titoli) {
+      expect(titolo, titolo).not.toMatch(/\((?:[^)]*\b(?:Rule|Test|Sheets|Dinamico)\b[^)]*)\)/i);
+    }
   });
 });
 
