@@ -4,7 +4,13 @@
 //     quindi la cache-first bloccherebbe l'utente su una versione vecchia per
 //     sempre. La cache resta come fallback offline.
 //   - Asset statici (icone, manifest): CACHE-FIRST con aggiornamento in background.
-const CACHE_NAME = 'readyclickshot-v13-cache';
+// La versione sta qui e non solo in index.html per una ragione pratica: il
+// browser cerca aggiornamenti confrontando i byte di questo file. Se cambiasse
+// solo index.html, sw.js resterebbe identico e l'aggiornamento non verrebbe
+// mai annunciato. Legandola alla versione del pacchetto, ogni rilascio muove
+// questo file e l'app se ne accorge.
+const APP_VERSION = '13.2.0';
+const CACHE_NAME = `readyclickshot-v${APP_VERSION}-cache`;
 
 const PRECACHE_URLS = [
   './',
@@ -22,8 +28,16 @@ self.addEventListener('install', event => {
       .then(cache => Promise.all(
         PRECACHE_URLS.map(url => cache.add(url).catch(() => null))
       ))
-      .then(() => self.skipWaiting())
   );
+  // Niente skipWaiting automatico: la versione nuova resta in attesa e l'app
+  // mostra il pulsante di aggiornamento. Sostituire il worker sotto i piedi
+  // dell'utente vorrebbe dire ricaricare la pagina mentre sta leggendo le
+  // impostazioni davanti alla camera.
+});
+
+// L'app chiede di passare alla versione nuova quando l'utente lo decide.
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('activate', event => {

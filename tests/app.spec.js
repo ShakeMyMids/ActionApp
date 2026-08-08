@@ -179,11 +179,35 @@ test.describe('PWA', () => {
 
   test('la versione del pacchetto e quella della cache restano allineate', async () => {
     // Se cambia il contenuto ma non il nome della cache, i browser restano
-    // sulle vecchie copie degli asset statici.
+    // sulle vecchie copie degli asset statici. La versione intera e non solo
+    // la major: e' cio' che fa cambiare i byte di sw.js a ogni rilascio, ed e'
+    // il modo in cui il browser si accorge che c'e' un aggiornamento.
     const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
     const sw = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
-    const major = pkg.version.split('.')[0];
-    expect(sw).toContain(`-v${major}-cache`);
+    expect(sw).toContain(`const APP_VERSION = '${pkg.version}';`);
+    expect(sw).toContain('`readyclickshot-v${APP_VERSION}-cache`');
+  });
+
+  test('l app e il worker dichiarano la stessa versione', async () => {
+    // Se divergono, l'elenco delle novita' si intesta a una versione che non
+    // e' quella che sta girando.
+    const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+    const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    expect(html).toContain(`const APP_VERSION = '${pkg.version}';`);
+  });
+
+  test('ogni versione del changelog ha almeno una voce', async ({ page }) => {
+    const vuote = await page.evaluate(() =>
+      CHANGELOG.filter(e => !e.version || !Array.isArray(e.changes) || !e.changes.length)
+        .map(e => e.version || '(senza versione)'));
+    expect(vuote).toEqual([]);
+  });
+
+  test('il changelog parte dalla versione in corso', async ({ page }) => {
+    // Aprendo le novita' si legge "novita' della versione X": se X non fosse
+    // la prima della lista, l'elenco mostrerebbe per prime quelle di un'altra.
+    expect(await page.evaluate(() => CHANGELOG[0].version)).toBe(
+      await page.evaluate(() => APP_VERSION));
   });
 
   test('la versione del formato dei preset segue quella del pacchetto', async () => {
@@ -748,6 +772,124 @@ test.describe('Camera predefinita (stellina)', () => {
   });
 });
 
+test.describe('Installazione', () => {
+  test('il pulsante non c e finche il browser non lo propone', async ({ page }) => {
+    // Su desktop Linux beforeinstallprompt non scatta: non si promette una
+    // funzione che il browser non offre.
+    await expect(page.locator('#btn-install')).toBeHidden();
+  });
+
+  test('compare quando il browser lo propone', async ({ page }) => {
+    await page.evaluate(() => {
+      const ev = new Event('beforeinstallprompt');
+      ev.prompt = () => { window.__prompted = true; };
+      ev.userChoice = Promise.resolve({ outcome: 'accepted' });
+      window.dispatchEvent(ev);
+    });
+    await expect(page.locator('#btn-install')).toBeVisible();
+  });
+
+  test('cliccarlo chiede l installazione e poi sparisce', async ({ page }) => {
+    // Il prompt del browser e' a colpo singolo: dopo l'uso non e' piu'
+    // riutilizzabile, quindi il pulsante non deve restare li' a mentire.
+    await page.evaluate(() => {
+      const ev = new Event('beforeinstallprompt');
+      ev.prompt = () => { window.__prompted = true; };
+      ev.userChoice = Promise.resolve({ outcome: 'accepted' });
+      window.dispatchEvent(ev);
+    });
+    await page.click('#btn-install');
+    expect(await page.evaluate(() => window.__prompted)).toBe(true);
+    await expect(page.locator('#btn-install')).toBeHidden();
+  });
+
+  test('ad app installata il pulsante resta nascosto', async ({ page }) => {
+    const installata = await page.evaluate(() => {
+      window.navigator.standalone = true;
+      refreshInstallButton();
+      return isInstalled();
+    });
+    expect(installata).toBe(true);
+    await expect(page.locator('#btn-install')).toBeHidden();
+  });
+});
+
+test.describe('Aggiornamento', () => {
+  test('senza aggiornamenti il pulsante non c e', async ({ page }) => {
+    await page.evaluate(() => navigator.serviceWorker.ready);
+    await expect(page.locator('#btn-update')).toBeHidden();
+  });
+
+  test('un deploy fa comparire il pulsante e applicarlo ricarica l app', async ({ page, request }) => {
+    await page.evaluate(() => navigator.serviceWorker.ready);
+    await page.waitForTimeout(300);
+
+    // Cambia i byte di sw.js: e' cosi' che il browser si accorge del deploy.
+    await request.get('/__test/sw-bump?value=NUOVA');
+    try {
+      await page.evaluate(async () => {
+        const reg = await navigator.serviceWorker.getRegistration();
+        await reg.update();
+      });
+      await expect(page.locator('#btn-update')).toBeVisible({ timeout: 8000 });
+      expect(await page.evaluate(async () =>
+        !!(await navigator.serviceWorker.getRegistration()).waiting)).toBe(true);
+
+      await Promise.all([
+        page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 10000 }),
+        page.click('#btn-update'),
+      ]);
+      await expect(page.locator('#btn-update')).toBeHidden();
+      await expect(page.locator('#model-chips-container .btn-chip')).not.toHaveCount(0);
+    } finally {
+      await request.get('/__test/sw-bump?value=');
+    }
+  });
+});
+
+test.describe('Novita della versione', () => {
+  test('alla prima visita non si mostrano', async ({ page }) => {
+    // Non e' cambiato niente: si e' appena arrivati.
+    await expect(page.locator('#changelog-overlay')).toBeHidden();
+    expect(await page.evaluate(() => localStorage.getItem('camstudio_seen_version')))
+      .toBe(await page.evaluate(() => APP_VERSION));
+  });
+
+  test('arrivando da una versione precedente si aprono', async ({ page }) => {
+    await page.evaluate(() => localStorage.setItem('camstudio_seen_version', '13.0.0'));
+    await page.reload();
+    await expect(page.locator('#changelog-overlay')).toBeVisible();
+    await expect(page.locator('#changelog-title')).toContainText('13.2.0');
+    await expect(page.locator('.changelog-list li').first()).not.toBeEmpty();
+  });
+
+  test('chiuse non tornano al ricaricamento', async ({ page }) => {
+    await page.evaluate(() => localStorage.setItem('camstudio_seen_version', '13.0.0'));
+    await page.reload();
+    await page.click('[data-action="closeChangelog"]');
+    await expect(page.locator('#changelog-overlay')).toBeHidden();
+    await page.reload();
+    await expect(page.locator('#changelog-overlay')).toBeHidden();
+  });
+
+  test('si chiudono con Esc e cliccando fuori', async ({ page }) => {
+    await page.evaluate(() => openChangelog());
+    await page.keyboard.press('Escape');
+    await expect(page.locator('#changelog-overlay')).toBeHidden();
+
+    await page.evaluate(() => openChangelog());
+    await page.locator('#changelog-overlay').click({ position: { x: 5, y: 5 } });
+    await expect(page.locator('#changelog-overlay')).toBeHidden();
+  });
+
+  test('elencano tutte le versioni note', async ({ page }) => {
+    await page.evaluate(() => openChangelog());
+    const mostrate = await page.evaluate(() =>
+      [...document.querySelectorAll('.changelog-version')].map(v => v.innerText));
+    expect(mostrate).toEqual(await page.evaluate(() => CHANGELOG.map(e => e.version)));
+  });
+});
+
 test.describe('Attacco, condivisione nativa e installazione', () => {
   test('l attacco segue il modello e vale anche in foto', async ({ page }) => {
     await page.locator('#tab-calc').click();
@@ -760,12 +902,11 @@ test.describe('Attacco, condivisione nativa e installazione', () => {
     await expect(page.locator('#rigging-mount')).toContainText('Linguette + Filetto 1/4"');
   });
 
-  test('i bottoni progressivi compaiono solo se l API esiste', async ({ page }) => {
-    // Non si promette una funzione che il browser non ha.
+  test('il bottone di condivisione compare solo se l API esiste', async ({ page }) => {
+    // Non si promette una funzione che il browser non ha. L'installazione ha
+    // ora la sua sezione: qui resta solo la condivisione del setup.
     const atteso = await page.evaluate(() => !!navigator.share);
     expect(await page.locator('#btn-share').isVisible()).toBe(atteso);
-    // beforeinstallprompt non scatta senza i criteri di engagement.
-    await expect(page.locator('#btn-install')).toBeHidden();
   });
 });
 
