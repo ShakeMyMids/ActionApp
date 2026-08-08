@@ -12,28 +12,52 @@
   "theme_color": "#0f172a",
   "shortcuts": [
     {
-      "name": "Setup Wizard",
-      "short_name": "Wizard",
+      "name": "Ripresa",
+      "short_name": "Ripresa",
       "url": "./index.html#tab=wizard",
-      "icons": [{ "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+      "icons": [
+        {
+          "src": "./icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     },
     {
-      "name": "Rigging & Calc",
-      "short_name": "Rigging",
+      "name": "Preparazione",
+      "short_name": "Prep",
       "url": "./index.html#tab=calc",
-      "icons": [{ "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+      "icons": [
+        {
+          "src": "./icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     },
     {
-      "name": "Editing & Vis",
-      "short_name": "Editing",
+      "name": "Montaggio",
+      "short_name": "Montaggio",
       "url": "./index.html#tab=editing",
-      "icons": [{ "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+      "icons": [
+        {
+          "src": "./icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     },
     {
-      "name": "Cheat Sheets",
-      "short_name": "Cheat",
+      "name": "Riferimento",
+      "short_name": "Riferim.",
       "url": "./index.html#tab=guide",
-      "icons": [{ "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+      "icons": [
+        {
+          "src": "./icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     }
   ],
   "icons": [

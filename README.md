@@ -62,6 +62,14 @@ timelapse — perché ISO, bianco e nitidezza esistono in tutte: cursori che
 smettono di funzionare cambiando modalità, senza dirlo, sarebbero peggio di
 cursori assenti. L'angolo di otturatore no, che in foto non ha significato.
 
+Le impostazioni Pro **viaggiano con i preset e con il link condiviso**: un preset
+salvato con la Pro accesa la riaccende com'era, e chi apre il tuo link vede lo
+stesso setup, cursori compresi. Un link a Pro spenta la spegne anche a chi lo
+riceve — altrimenti vedrebbe i propri valori al posto dei tuoi — ma non gli
+cancella le posizioni dei suoi cursori, che a Pro spenta non cambiano nulla. I
+preset salvati prima della Pro non portano quel blocco: non dicono niente sulla
+Pro, e lasciarla com'è è più onesto che spegnerla d'autorità.
+
 Il **simulatore** segue i cursori: alzando il tetto ISO il rumore sale,
 abbassandolo scende ma l'immagine si scurisce — perché la luce che manca non
 arriva da nessun'altra parte — e aprendo l'angolo la scia del movimento si
@@ -167,8 +175,8 @@ npx playwright install chromium    # solo la prima volta
 npm test
 ```
 
-177 test end-to-end, eseguiti su due profili — desktop e mobile (Pixel 7) — per un
-totale di 354 esecuzioni. Coprono inizializzazione, motore di calcolo, escaping e
+188 test end-to-end, eseguiti su due profili — desktop e mobile (Pixel 7) — per un
+totale di 376 esecuzioni. Coprono inizializzazione, motore di calcolo, escaping e
 persistenza dei preset, export/import (compresi i file con valori fuori dominio),
 limite di ripresa, confronto fra camere, condivisione via link, accessibilità
 (semantica tab, `aria-pressed`, tastiera), safe area del notch, autonomia della
@@ -282,6 +290,20 @@ difficile da seguire, non più chiaro. C'è un test che lo verifica.
 **Per aggiungere una lingua**: duplica l'oggetto `EN` in `index.html`,
 traducine i valori e aggiungi il codice a `SUPPORTED_LANGS`. Le chiavi restano
 le stesse.
+
+## Nomi delle schede
+
+Le cinque schede si chiamano **Ripresa, Preparazione, Montaggio, Riferimento,
+Guida**: una parola italiana ciascuna, che dice cosa c'è dentro. Prima erano
+«Setup Wizard», «Rigging & Calc», «Editing & Vis» e «Cheat Sheets» — inglese e
+italiano mescolati, con due parole troncate a metà. In una barra di navigazione
+l'etichetta è l'unica cosa che dice dove porta, e «Vis» non dice niente.
+
+I nomi delle scorciatoie nel manifest sono gli stessi, altrimenti il menu del
+sistema operativo direbbe una cosa e l'app un'altra. Tre test tengono la
+regola: nessuna «&», una parola sola, e ogni etichetta diversa dalla sua
+traduzione — se coincidono, quasi sempre vuol dire che l'italiana era già
+inglese.
 
 ## Colore
 
