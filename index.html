@@ -782,6 +782,7 @@
                             <div style="font-size: 0.78rem; color: var(--text-secondary); text-transform: uppercase;" data-i18n>Shutter Perfetto</div>
                             <div id="calc-result-shutter" class="calc-val">1/60 s</div>
                             <div id="calc-result-nd" class="calc-sub">In sole diretto (EV15): ND64 / ND128</div>
+                            <div id="calc-result-pro" class="calc-sub" style="display:none; color: var(--brand-color); margin-top: 4px; font-weight: 600;"></div>
                         </div>
                     </div>
 
@@ -1215,7 +1216,7 @@
         // Versione dell'app, tenuta uguale a quella di sw.js e package.json.
         // Serve a due cose: capire se l'utente arriva da una versione diversa,
         // e intestare l'elenco delle novità.
-        const APP_VERSION = '13.2.0';
+        const APP_VERSION = '13.3.0';
 
         // Testi della Guida. Come per il changelog stanno qui e non in un file
         // a parte, perché la scheda deve restare leggibile offline.
@@ -1231,6 +1232,7 @@
             ['🎛️ Motore dei conflitti', 'Girare di notte chiede framerate bassi per raccogliere luce, girare sport ne chiede di alti per congelare l\'azione. Quando le due cose si scontrano l\'app mostra il conflitto e ti fa scegliere la priorità, poi ricalcola tutto di conseguenza.'],
             ['🖼️ Simulatore', 'Un confronto a tendina fra ciò che esce dalla camera e il risultato dopo il montaggio. Il rumore cresce alzando gli ISO, il motion blur compare quando otturatore e movimento lo giustificano.'],
             ['🔋 Limite di ripresa', 'Scheda e batteria si esauriscono in momenti diversi. L\'app dice quale dei due ti ferma prima, e il verdetto cambia alzando gli fps o passando al profilo Endurance.'],
+            ['🎚️ Modalità Pro', 'Se preferisci decidere tu, cinque parametri passano ai cursori: angolo di otturatore, ISO massimo, compensazione EV, bilanciamento del bianco e nitidezza. Accanto a ognuno resta scritto cosa suggerirebbe l\'app per la scena in corso, così vedi da cosa ti stai allontanando invece di perderlo di vista.'],
             ['📷 Confronto fra camere', 'Se ne possiedi più di una, ordina i modelli sul criterio che conta per la ripresa in corso: profondità sott\'acqua, autonomia in viaggio, bitrate con poca luce.'],
             ['💾 Preset e condivisione', '«Copia link setup» produce un indirizzo che contiene l\'intera configurazione: chi lo apre vede esattamente le tue impostazioni, senza che nulla passi da un server.'],
             ['📶 Uso offline', 'Installata, resta utilizzabile senza rete — che è la condizione in cui serve davvero, in mezzo al nulla.']
@@ -1245,6 +1247,8 @@
             ['L\'app si apre su una camera che non è la mia.', 'Senza indicazioni propone la più recente del marchio, che non è quella che possiedi. Tocca la stellina accanto al tuo modello: da lì in poi l\'app si aprirà su quello.'],
             ['I miei preset finiscono su un server?', 'No. Restano nel browser di questo dispositivo e non vengono inviati da nessuna parte; puoi esportarli in JSON per portarli altrove. Anche il link condiviso non passa da un server: la configurazione viaggia dentro l\'indirizzo stesso.'],
             ['Su iPhone il pulsante non installa niente.', 'Safari non permette ai siti di avviare l\'installazione, quindi lì il pulsante apre le istruzioni: Condividi, poi «Aggiungi a Home». Su Chrome, Edge e Android l\'installazione avviene invece con un tocco.'],
+            ['Ho spostato un cursore Pro ma il consiglio dell\'app resta un altro numero.', 'È voluto. Il cursore è la tua scelta, la riga sotto è cosa suggerirebbe l\'app per quella scena: restano visibili insieme proprio perché tu sappia quanto te ne stai allontanando. Se vuoi tornare indietro, il pulsante in fondo al pannello riporta tutto ai valori consigliati.'],
+            ['L\'angolo di otturatore cambia davvero qualcosa?', 'Sì, e non solo il tempo di posa: cambia anche il filtro ND consigliato. A 90° entra metà della luce rispetto a 180°, quindi serve un ND meno denso. È il motivo per cui l\'angolo compare fra i parametri Pro invece che come nota informativa.'],
             ['Come faccio a sapere se è uscita una versione nuova?', 'Quando è pronta compare «Aggiorna» nell\'intestazione. Toccandolo l\'app passa alla versione nuova e apre l\'elenco di cosa è cambiato.']
         ];
 
@@ -1252,6 +1256,16 @@
         // perché l'app deve poterlo mostrare anche offline, che è la condizione
         // in cui la si usa davvero.
         const CHANGELOG = [
+            {
+                version: '13.3.0',
+                changes: [
+                    'Modalità Pro: cinque parametri a cursore — otturatore, ISO, EV, bianco e nitidezza — con accanto il valore che l\'app suggerirebbe.',
+                    'Ogni compromesso e ogni cursore dicono cosa comporta la scelta, guadagno e rinuncia.',
+                    'Il motore non si contraddice più: la risoluzione non dichiara un framerate diverso da quello calcolato.',
+                    'L\'Endurance non abbassa più il framerate in silenzio: ora è un conflitto dichiarato.',
+                    'Avviso quando il framerate chiesto supera quello della risoluzione massima.'
+                ]
+            },
             {
                 version: '13.2.0',
                 changes: [
@@ -1762,6 +1776,28 @@
             'Il mio setup per {model}': 'My setup for {model}',
             '<b>🔩 Attacco della camera:</b> {mount}': '<b>🔩 Camera mount:</b> {mount}',
 
+            'Col tuo angolo Pro ({angle}°): {shutter} · ND {nd}': 'At your Pro angle ({angle}°): {shutter} · ND {nd}',
+
+            // --- Guida e changelog: voci della 13.3.0 ---
+            'Modalità Pro: cinque parametri a cursore — otturatore, ISO, EV, bianco e nitidezza — con accanto il valore che l\'app suggerirebbe.':
+                'Pro mode: five parameters on sliders — shutter, ISO, EV, white balance and sharpness — with the value the app would suggest right beside each one.',
+            'Ogni compromesso e ogni cursore dicono cosa comporta la scelta, guadagno e rinuncia.':
+                'Every trade-off and every slider says what the choice costs, gain and sacrifice alike.',
+            'Il motore non si contraddice più: la risoluzione non dichiara un framerate diverso da quello calcolato.':
+                'The engine no longer contradicts itself: the resolution never states a framerate different from the calculated one.',
+            'L\'Endurance non abbassa più il framerate in silenzio: ora è un conflitto dichiarato.':
+                'Endurance no longer lowers the framerate silently: it is now a declared conflict.',
+            'Avviso quando il framerate chiesto supera quello della risoluzione massima.':
+                'A warning when the requested framerate exceeds the one available at the top resolution.',
+            'Se preferisci decidere tu, cinque parametri passano ai cursori: angolo di otturatore, ISO massimo, compensazione EV, bilanciamento del bianco e nitidezza. Accanto a ognuno resta scritto cosa suggerirebbe l\'app per la scena in corso, così vedi da cosa ti stai allontanando invece di perderlo di vista.':
+                'If you would rather decide yourself, five parameters move to sliders: shutter angle, maximum ISO, EV compensation, white balance and sharpness. Beside each one stays what the app would suggest for the current scene, so you see what you are moving away from instead of losing sight of it.',
+            'Ho spostato un cursore Pro ma il consiglio dell\'app resta un altro numero.': 'I moved a Pro slider but the app\'s suggestion still shows a different number.',
+            'È voluto. Il cursore è la tua scelta, la riga sotto è cosa suggerirebbe l\'app per quella scena: restano visibili insieme proprio perché tu sappia quanto te ne stai allontanando. Se vuoi tornare indietro, il pulsante in fondo al pannello riporta tutto ai valori consigliati.':
+                'That is intended. The slider is your choice, the line below is what the app would suggest for that scene: they stay visible together precisely so you know how far you are drifting. To go back, the button at the bottom of the panel restores every suggested value.',
+            'L\'angolo di otturatore cambia davvero qualcosa?': 'Does the shutter angle actually change anything?',
+            'Sì, e non solo il tempo di posa: cambia anche il filtro ND consigliato. A 90° entra metà della luce rispetto a 180°, quindi serve un ND meno denso. È il motivo per cui l\'angolo compare fra i parametri Pro invece che come nota informativa.':
+                'Yes, and not only the exposure time: it also changes the recommended ND filter. At 90° half the light comes in compared to 180°, so a lighter ND is needed. That is why the angle sits among the Pro parameters rather than as a note.',
+
             // --- Modalità Pro ---
             '🎚️ Modalità Pro': '🎚️ Pro mode',
             'Prendi in mano cinque parametri. Accanto a ciascuno resta il valore che l\'app suggerirebbe per questa scena: se ti allontani, lo vedi.':
@@ -2232,6 +2268,10 @@
         // Bitrate dell'ultimo giro del motore, usato dal limite di ripresa:
         // sta in un'altra scheda ma deve rispecchiare le stesse impostazioni.
         let lastMbps = 110;
+
+        // fps scelti nel calcolatore della scheda 2, che ha una sua selezione
+        // indipendente da quella del wizard.
+        let calcFps = 30;
 
         /* ==================================================================
            4. TEMA E NAVIGAZIONE
@@ -2871,7 +2911,7 @@
            ================================================================== */
 
         function calcShutter(fps, el) {
-            const value = Number(fps);
+            calcFps = Number(fps) || calcFps;
             if (el && el.parentElement) {
                 el.parentElement.querySelectorAll('.btn-radio').forEach(b => {
                     const on = b === el;
@@ -2879,8 +2919,31 @@
                     b.setAttribute('aria-pressed', on ? 'true' : 'false');
                 });
             }
+            renderShutterCalc();
+        }
+
+        // Separato dal click perche' la riga dell'angolo Pro deve aggiornarsi
+        // anche muovendo il cursore nell'altra scheda: legata al solo click,
+        // restava ferma finche' non si toccava di nuovo il calcolatore.
+        function renderShutterCalc() {
+            const value = calcFps;
             setText('calc-result-shutter', shutterFor(value, 180));
             setText('calc-result-nd', t('In sole diretto (EV15): {nd}', { nd: t(ndFor(shutterDenominator(value, 180), 'sole')) }));
+            // Il calcolatore insegna la regola dei 180°, quindi resta su quella.
+            // Ma se in Pro hai scelto un altro angolo, mostrare solo i 180°
+            // vorrebbe dire dare un numero che non userai: si affianca il tuo.
+            const proRiga = $('calc-result-pro');
+            if (proRiga) {
+                const mostra = proMode && proSettings.shutterAngle !== 180;
+                proRiga.style.display = mostra ? 'block' : 'none';
+                if (mostra) {
+                    proRiga.innerText = t('Col tuo angolo Pro ({angle}°): {shutter} · ND {nd}', {
+                        angle: proSettings.shutterAngle,
+                        shutter: shutterFor(value, proSettings.shutterAngle),
+                        nd: t(ndFor(shutterDenominator(value, proSettings.shutterAngle), 'sole'))
+                    });
+                }
+            }
         }
 
         function calcBattery(temp, el) {
@@ -3125,6 +3188,31 @@
             if (currentMode === 'foto') title = t('📸 Setup Foto {model}', { model });
             else if (currentMode === 'timelapse') title = t('⏱️ Setup Timelapse {model}', { model });
             setText('res-title', title);
+        }
+
+        // ISO, bianco e nitidezza valgono in tutte e tre le modalità, quindi
+        // la Modalità Pro deve raggiungerle tutte: restare nel solo video
+        // avrebbe significato cursori che smettono di funzionare cambiando
+        // scheda, senza dirlo.
+        function isoLine(auto) {
+            return proMode ? t('Min ISO 100 / Max {max} · manuale', { max: proSettings.isoMax }) : auto;
+        }
+        function wbLine(auto) {
+            return proMode ? t('Manuale {wb}K · manuale', { wb: proSettings.wb }) : auto;
+        }
+        function sharpLine(auto) {
+            return proMode
+                ? t('Sharpness: {n} · manuale', { n: proSettings.sharpness > 0 ? '+' + proSettings.sharpness : String(proSettings.sharpness) })
+                : auto;
+        }
+
+        // Il bianco automatico dipende dalla scena e non dalla modalità: foto e
+        // timelapse non lo impostavano affatto, quindi passando dal video ci
+        // restava il valore di prima.
+        function autoWhiteBalance(ctx) {
+            return t(ctx.isSub ? 'Manuale 6500K - 7500K'
+                : ctx.isIndoor ? 'Manuale 3800K - 4200K'
+                : ctx.isNight ? 'Auto WB' : 'Manuale 5500K');
         }
 
         function formatEv(ev) {
@@ -3504,18 +3592,12 @@
             // cui la Pro affianca l'app invece di spegnerla.
             autoValues.sharp = computeSharpness(ctx);
             autoValues.iso = t((ctx.isNight || ctx.isIndoor || ctx.isSub) ? 'Min ISO 100 / Max 1600' : 'Min ISO 100 / Max 800');
-            autoValues.wb = t(ctx.isSub ? 'Manuale 6500K - 7500K' : ctx.isIndoor ? 'Manuale 3800K - 4200K' : ctx.isNight ? 'Auto WB' : 'Manuale 5500K');
+            autoValues.wb = autoWhiteBalance(ctx);
             autoValues.shutter = shutterFor(fps, 180);
 
-            setText('val-sharp', proMode
-                ? t('Sharpness: {n} · manuale', { n: proSettings.sharpness > 0 ? '+' + proSettings.sharpness : String(proSettings.sharpness) })
-                : autoValues.sharp);
-            setText('val-iso', proMode
-                ? t('Min ISO 100 / Max {max} · manuale', { max: proSettings.isoMax })
-                : autoValues.iso);
-            setText('val-wb', proMode
-                ? t('Manuale {wb}K · manuale', { wb: proSettings.wb })
-                : autoValues.wb);
+            setText('val-sharp', sharpLine(autoValues.sharp));
+            setText('val-iso', isoLine(autoValues.iso));
+            setText('val-wb', wbLine(autoValues.wb));
             setHtml('rigging-text', computeVideoRigging(ctx));
 
             renderStorageMetrics(ctx, fps);
@@ -3542,8 +3624,16 @@
             setText('val-color', t('Formato RAW (.DNG)'));
             setText('val-fov', t('Wide / Linear'));
             setText('val-stab', t('OIS / IBIS Attivo'));
-            setText('val-sharp', t('Nitidezza: Bassa'));
-            setText('val-iso', t(ctx.isNight ? 'ISO 100 fisso (Su treppiede)' : 'ISO Auto (Max 400)'));
+            autoValues.sharp = t('Nitidezza: Bassa');
+            autoValues.iso = t(ctx.isNight ? 'ISO 100 fisso (Su treppiede)' : 'ISO Auto (Max 400)');
+            autoValues.wb = autoWhiteBalance(ctx);
+            // In foto l'angolo di otturatore non ha senso: il tempo di posa lo
+            // decide lo scatto, non un rapporto col framerate.
+            autoValues.shutter = null;
+
+            setText('val-sharp', sharpLine(autoValues.sharp));
+            setText('val-iso', isoLine(autoValues.iso));
+            setText('val-wb', wbLine(autoValues.wb));
 
             if (ctx.isSport) setHtml('rigging-text', t(`<b>📸 Scatto Sport:</b> Attacco frontale rigido su manubrio o pettorina. Più il supporto è rigido, meno vibrazioni e micro-mosso.`));
             else if (ctx.isSub) setHtml('rigging-text', t(`<b>📸 Subacqueo:</b> Usa il timer a 3s per evitare micro-movimenti al tocco.`));
@@ -3582,8 +3672,14 @@
 
             setText('val-color', t('Video MP4 (o Foto RAW)'));
             setText('val-fov', t('Wide / Standard'));
-            setText('val-sharp', t('Sharpness: Low | Colore: Standard'));
-            setText('val-iso', t(ctx.isNight ? 'ISO Min 100 / Max 800' : 'ISO 100 fisso'));
+            autoValues.sharp = t('Sharpness: Low | Colore: Standard');
+            autoValues.iso = t(ctx.isNight ? 'ISO Min 100 / Max 800' : 'ISO 100 fisso');
+            autoValues.wb = autoWhiteBalance(ctx);
+            autoValues.shutter = null;
+
+            setText('val-sharp', sharpLine(autoValues.sharp));
+            setText('val-iso', isoLine(autoValues.iso));
+            setText('val-wb', wbLine(autoValues.wb));
             setText('metric-bitrate', t('Variabile (Basso consumo)'));
             setText('metric-size', t('~1 GB / Ora di ripresa reale'));
             const alert = $('sd-alert');
@@ -3620,17 +3716,41 @@
                 aqua: selectedEditGoals.includes('underwater_color')
             };
 
-            let isoNoiseLevel = 0;
-            if (ctx.isNight) isoNoiseLevel = 0.85;
-            else if (ctx.isIndoor || currentLuce === 'scarsa') isoNoiseLevel = 0.45;
-            else if (ctx.isSub) isoNoiseLevel = 0.25;
-            if (currentMode === 'foto' && ctx.isNight) isoNoiseLevel = 0.1;
+            // Quanto ISO chiederebbe la scena, da 0 a 1. Al buio la camera
+            // deve salire, in pieno sole no: e' questo che decide il rumore,
+            // non il tetto da solo.
+            let isoDemand = 0;
+            if (ctx.isNight) isoDemand = 0.85;
+            else if (ctx.isIndoor || currentLuce === 'scarsa') isoDemand = 0.45;
+            else if (ctx.isSub) isoDemand = 0.25;
+            if (currentMode === 'foto' && ctx.isNight) isoDemand = 0.1;
 
+            let isoNoiseLevel = isoDemand;
+            let sottoesposizione = 0;
+            if (proMode) {
+                // Il tetto scelto si confronta con quello che l'app avrebbe
+                // messo: alzandolo il rumore sale, abbassandolo scende — ma
+                // l'immagine si scurisce, perche' la luce mancante non arriva
+                // da nessun'altra parte. Al tetto automatico non cambia nulla.
+                const tettoAuto = (ctx.isNight || ctx.isIndoor || ctx.isSub) ? 1600 : 800;
+                const fattore = proSettings.isoMax / tettoAuto;
+                isoNoiseLevel = Math.min(0.95, isoDemand * fattore);
+                if (fattore < 1) sottoesposizione = isoDemand * (1 - fattore) * 0.4;
+            }
+
+            // Il mosso dipende dal tempo di posa, non dagli fps: erano legati
+            // finche' l'angolo restava 180°. A 360° si espone il doppio e la
+            // scia raddoppia, ed e' il motivo per cui l'angolo esiste.
             let motionBlurPx = 0;
             if (ctx.isSport || ctx.isCar || currentMode === 'timelapse') {
                 if (currentMode === 'foto') motionBlurPx = 0;
                 else if (currentMode === 'timelapse' && !ctx.isNight) motionBlurPx = 3.5;
-                else motionBlurPx = (fps <= 30) ? 2.5 : 1.0;
+                else {
+                    const denom = shutterDenominator(fps, proMode ? proSettings.shutterAngle : 180);
+                    // 125/denom: a 1/50 rende i 2.5px di prima, e da lì scala
+                    // con continuità invece di saltare a gradino.
+                    motionBlurPx = Math.min(6, Math.max(0.4, 125 / denom));
+                }
             }
 
             // Lo speed ramp confronta il movimento a velocità piena con quello
@@ -3666,6 +3786,17 @@
                 fContrast = 0.95; fSat = 0.9; fBri = gBri;
                 if (!ctx.isNight && !ctx.isSub && !goal.aqua) { tagFlat = t('STANDARD PROFILE'); tagGrad = t('IN-APP ENHANCE'); }
             }
+
+            // Compensazione EV e tetto ISO agiscono sulla luminosita': un tetto
+            // basso al buio non da' un'immagine pulita e luminosa, la da' pulita
+            // e scura, e il simulatore deve mostrarlo.
+            if (proMode) {
+                const ev = proSettings.ev * 0.18;
+                fBri += ev - sottoesposizione;
+                gBri += ev - sottoesposizione;
+            }
+            fBri = Math.max(0.2, fBri);
+            gBri = Math.max(0.2, gBri);
 
             if (noiseOverlay) noiseOverlay.style.opacity = isoNoiseLevel;
             // La scena è condivisa dai due livelli via <use>: il blur viaggia
@@ -3720,6 +3851,7 @@
             else if (currentMode === 'timelapse') renderTimelapseMode(ctx);
 
             renderProPanel();
+            renderShutterCalc();
             renderSimulator(ctx, lastComputedFps);
             renderBattery();
             renderCameraCompare();

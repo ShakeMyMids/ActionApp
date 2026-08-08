@@ -57,6 +57,18 @@ etichetta, e chi non conosce già il parametro semplicemente non la tocca. La
 spiegazione è statica e resta più defilata del consiglio, che invece segue la
 scena; `aria-describedby` le lega entrambe al cursore.
 
+I cinque parametri valgono in **tutte e tre le modalità** — video, foto e
+timelapse — perché ISO, bianco e nitidezza esistono in tutte: cursori che
+smettono di funzionare cambiando modalità, senza dirlo, sarebbero peggio di
+cursori assenti. L'angolo di otturatore no, che in foto non ha significato.
+
+Il **simulatore** segue i cursori: alzando il tetto ISO il rumore sale,
+abbassandolo scende ma l'immagine si scurisce — perché la luce che manca non
+arriva da nessun'altra parte — e aprendo l'angolo la scia del movimento si
+allunga. Il calcolatore della scheda Rigging resta sulla regola dei 180°, che è
+il suo scopo, ma affianca il tempo di posa al tuo angolo quando ne hai scelto
+un altro.
+
 L'angolo di otturatore non è un'etichetta: cambia il tempo di posa e con esso il
 filtro ND consigliato, perché a 90° entra metà della luce. Le fasce degli ND sono
 ora indicizzate sul tempo di posa e non più sugli fps — erano la stessa cosa
@@ -155,8 +167,8 @@ npx playwright install chromium    # solo la prima volta
 npm test
 ```
 
-168 test end-to-end, eseguiti su due profili — desktop e mobile (Pixel 7) — per un
-totale di 336 esecuzioni. Coprono inizializzazione, motore di calcolo, escaping e
+177 test end-to-end, eseguiti su due profili — desktop e mobile (Pixel 7) — per un
+totale di 354 esecuzioni. Coprono inizializzazione, motore di calcolo, escaping e
 persistenza dei preset, export/import (compresi i file con valori fuori dominio),
 limite di ripresa, confronto fra camere, condivisione via link, accessibilità
 (semantica tab, `aria-pressed`, tastiera), safe area del notch, autonomia della

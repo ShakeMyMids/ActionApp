@@ -380,6 +380,102 @@ test.describe('Modalita Pro', () => {
   });
 });
 
+test.describe('Coerenza fra le schede', () => {
+  test('il bilanciamento del bianco non resta quello della modalita precedente', async ({ page }) => {
+    // Foto e timelapse non impostavano val-wb: passando dal video ci restava
+    // il valore di prima, che e' un consiglio sbagliato travestito da giusto.
+    await page.locator('#scenario-chips-container .btn-chip', { hasText: 'Indoor' }).click();
+    await expect(page.locator('#val-wb')).toContainText('3800K');
+
+    await page.click('[data-action="setMode"][data-value="foto"]');
+    await expect(page.locator('#val-wb')).toContainText('3800K');
+    await page.click('[data-action="setMode"][data-value="timelapse"]');
+    await expect(page.locator('#val-wb')).toContainText('3800K');
+  });
+
+  test('la Pro arriva a tutte e tre le modalita', async ({ page }) => {
+    // Cursori che smettono di funzionare cambiando modalita', senza dirlo,
+    // sarebbero peggio di cursori assenti.
+    await page.click('#pro-toggle');
+    await page.locator('#pro-isoMax').fill('4');
+    for (const m of ['video', 'foto', 'timelapse']) {
+      await page.click(`[data-action="setMode"][data-value="${m}"]`);
+      await expect(page.locator('#val-iso'), m).toContainText('6400');
+      await expect(page.locator('#val-wb'), m).toContainText('manuale');
+      await expect(page.locator('#val-sharp'), m).toContainText('manuale');
+    }
+  });
+
+  test('il simulatore reagisce al tetto ISO', async ({ page }) => {
+    await page.locator('#scenario-chips-container .btn-chip', { hasText: 'Notturno' }).click();
+    await page.click('#pro-toggle');
+    const rumore = () => page.evaluate(() =>
+      Number(getComputedStyle(document.getElementById('sim-iso-noise')).opacity));
+
+    await page.locator('#pro-isoMax').fill('4');          // ISO 6400
+    const alto = await rumore();
+    await page.locator('#pro-isoMax').fill('0');          // ISO 400
+    const basso = await rumore();
+    expect(basso).toBeLessThan(alto);
+  });
+
+  test('un tetto ISO basso al buio scurisce, non pulisce e basta', async ({ page }) => {
+    // Abbassare l'ISO non regala un'immagine pulita e luminosa: la luce che
+    // manca non arriva da nessun'altra parte, e il simulatore deve dirlo.
+    await page.locator('#scenario-chips-container .btn-chip', { hasText: 'Notturno' }).click();
+    await page.click('#pro-toggle');
+    const luce = () => page.evaluate(() => Number(
+      /brightness\(([\d.]+)\)/.exec(document.querySelector('.sim-layer-flat').style.filter)[1]));
+
+    await page.locator('#pro-isoMax').fill('2');          // tetto automatico
+    const normale = await luce();
+    await page.locator('#pro-isoMax').fill('0');          // ISO 400
+    expect(await luce()).toBeLessThan(normale);
+  });
+
+  test('il simulatore reagisce all angolo di otturatore', async ({ page }) => {
+    await page.locator('#scenario-chips-container .btn-chip', { hasText: 'Bici / Sport' }).click();
+    await page.click('#pro-toggle');
+    const mosso = () => page.evaluate(() => parseFloat(
+      document.querySelector('.sim-layer-flat').style.getPropertyValue('--subject-blur')));
+
+    await page.locator('#pro-shutterAngle').fill('0');    // 45°
+    const stretto = await mosso();
+    await page.locator('#pro-shutterAngle').fill('5');    // 360°
+    expect(await mosso()).toBeGreaterThan(stretto);
+  });
+
+  test('il calcolatore otturatore affianca l angolo scelto in Pro', async ({ page }) => {
+    await page.click('#pro-toggle');
+    await page.locator('#pro-shutterAngle').fill('1');    // 90°
+    await page.locator('#tab-calc').click();
+    // Deve aggiornarsi da solo: legato al solo click sul calcolatore restava
+    // fermo finche' non lo si toccava di nuovo.
+    await expect(page.locator('#calc-result-pro')).toBeVisible();
+    await expect(page.locator('#calc-result-pro')).toContainText('90°');
+    await expect(page.locator('#calc-result-pro')).toContainText('1/120 s');
+  });
+
+  test('a 180° il calcolatore non aggiunge una riga inutile', async ({ page }) => {
+    await page.click('#pro-toggle');
+    await page.locator('#tab-calc').click();
+    await expect(page.locator('#calc-result-pro')).toBeHidden();
+  });
+
+  test('la Guida racconta anche la Modalita Pro', async ({ page }) => {
+    await page.click('[data-action="switchTab"][data-value="help"]');
+    await expect(page.locator('#help-features')).toContainText('Modalità Pro');
+    await expect(page.locator('#help-faq')).toContainText('cursore Pro');
+  });
+
+  test('il changelog elenca la versione in corso', async ({ page }) => {
+    const versione = await page.evaluate(() => APP_VERSION);
+    expect(await page.evaluate(() => CHANGELOG[0].version)).toBe(versione);
+    await page.evaluate(() => openChangelog());
+    await expect(page.locator('#changelog-body')).toContainText('Modalità Pro');
+  });
+});
+
 test.describe('Conseguenze dei compromessi', () => {
   test('ogni compromesso spiega cosa comporta la scelta in corso', async ({ page }) => {
     await page.locator('#scenario-chips-container .btn-chip', { hasText: 'Bici / Sport' }).click();
@@ -1514,7 +1610,10 @@ test.describe('Novita della versione', () => {
     await page.evaluate(() => localStorage.setItem('camstudio_seen_version', '13.0.0'));
     await page.reload();
     await expect(page.locator('#changelog-overlay')).toBeVisible();
-    await expect(page.locator('#changelog-title')).toContainText('13.2.0');
+    // Legato alla versione e non a un numero scritto a mano: un rilascio non
+    // deve far fallire un test che sui rilasci non ha niente da dire.
+    await expect(page.locator('#changelog-title')).toContainText(
+      await page.evaluate(() => APP_VERSION));
     await expect(page.locator('.changelog-list li').first()).not.toBeEmpty();
   });
 
