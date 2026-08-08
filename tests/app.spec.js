@@ -303,7 +303,15 @@ test.describe('Accessibilita', () => {
 
   test('le schede espongono la semantica tab/tabpanel', async ({ page }) => {
     await expect(page.locator('[role="tablist"]')).toHaveCount(1);
-    await expect(page.locator('[role="tab"]')).toHaveCount(4);
+    // Il numero si ricava da TAB_VALUES: aggiungere una scheda non deve far
+    // fallire un test che sulle schede non ha niente da dire.
+    const schede = await page.evaluate(() => TAB_VALUES.length);
+    await expect(page.locator('[role="tab"]')).toHaveCount(schede);
+    await expect(page.locator('[role="tabpanel"]')).toHaveCount(schede);
+    // Ogni scheda punta a un pannello che esiste davvero.
+    const orfane = await page.evaluate(() => TAB_VALUES.filter(v =>
+      !document.getElementById('tab-' + v) || !document.getElementById('panel-' + v)));
+    expect(orfane).toEqual([]);
     await expect(page.locator('#tab-wizard')).toHaveAttribute('aria-selected', 'true');
     await expect(page.locator('#panel-calc')).toHaveAttribute('hidden', '');
 
@@ -769,6 +777,74 @@ test.describe('Camera predefinita (stellina)', () => {
     await page.reload();
     await expect(page.locator('#model-chips-container .btn-chip')).not.toHaveCount(0);
     expect(await page.evaluate(() => starredCamera)).toBeNull();
+  });
+});
+
+test.describe('Guida e domande frequenti', () => {
+  test('la scheda esiste ed e raggiungibile dalla navigazione', async ({ page }) => {
+    await page.click('[data-action="switchTab"][data-value="help"]');
+    await expect(page.locator('#panel-help')).toBeVisible();
+    await expect(page.locator('.tab-btn.active')).toHaveAttribute('data-value', 'help');
+  });
+
+  test('spiega l app, i passi, le funzioni e le domande', async ({ page }) => {
+    await page.click('[data-action="switchTab"][data-value="help"]');
+    await expect(page.locator('#help-intro')).not.toBeEmpty();
+    await expect(page.locator('.help-step')).toHaveCount(3);
+    await expect(page.locator('#help-features .editing-card')).not.toHaveCount(0);
+    await expect(page.locator('.faq-item')).not.toHaveCount(0);
+  });
+
+  test('ogni domanda ha una risposta e ogni funzione una spiegazione', async ({ page }) => {
+    // Una voce senza testo lascerebbe una riga vuota invece di una risposta.
+    const vuote = await page.evaluate(() =>
+      [...HELP_FAQ, ...HELP_FEATURES, ...HELP_STEPS]
+        .filter(([titolo, testo]) => !titolo || !testo || testo.length < 20)
+        .map(([titolo]) => titolo || '(senza titolo)'));
+    expect(vuote).toEqual([]);
+  });
+
+  test('le domande si aprono e si chiudono', async ({ page }) => {
+    await page.click('[data-action="switchTab"][data-value="help"]');
+    const prima = page.locator('.faq-item').first();
+    await expect(prima.locator('.faq-answer')).toBeHidden();
+    await prima.locator('summary').click();
+    await expect(prima.locator('.faq-answer')).toBeVisible();
+    await prima.locator('summary').click();
+    await expect(prima.locator('.faq-answer')).toBeHidden();
+  });
+
+  test('riporta la versione in corso', async ({ page }) => {
+    await page.click('[data-action="switchTab"][data-value="help"]');
+    await expect(page.locator('#help-version')).toContainText(
+      await page.evaluate(() => APP_VERSION));
+  });
+
+  test('si apre anche da indirizzo, come le altre schede', async ({ page }) => {
+    await page.goto('/index.html#tab=help');
+    await page.reload();
+    await expect(page.locator('.tab-btn.active')).toHaveAttribute('data-value', 'help');
+  });
+
+  test('la navigazione a cinque voci non deborda dallo schermo', async ({ page }) => {
+    // La barra era tarata su quattro voci con una larghezza fissa del 25%.
+    const misure = await page.evaluate(() => ({
+      somma: [...document.querySelectorAll('.tab-btn')]
+        .reduce((n, b) => n + b.getBoundingClientRect().width, 0),
+      barra: document.querySelector('.tab-nav').getBoundingClientRect().width
+    }));
+    expect(misure.somma).toBeLessThanOrEqual(misure.barra + 1);
+  });
+});
+
+test.describe('Guida in inglese', () => {
+  test.use({ locale: 'en-US' });
+
+  test('la guida segue la lingua del browser', async ({ page }) => {
+    await page.click('[data-action="switchTab"][data-value="help"]');
+    await expect(page.locator('#help-intro')).toContainText('works out your camera settings');
+    await expect(page.locator('.faq-item summary').first()).toContainText('official');
+    await expect(page.locator('.tab-btn[data-value="help"]')).toContainText('Guide');
   });
 });
 

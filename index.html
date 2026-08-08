@@ -189,9 +189,26 @@
         .changelog-list { margin: 0 0 4px 18px; padding: 0; font-size: 0.85rem; line-height: 1.5; }
         .changelog-list li { margin-bottom: 5px; }
 
+        /* Guida e domande frequenti */
+        .help-intro { font-size: 0.88rem; line-height: 1.55; color: var(--text-primary); margin-bottom: 18px; }
+        .help-step { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 12px; }
+        .help-step-n { font-family: var(--font-display); font-size: 0.8rem; font-weight: 700; color: var(--brand-ink); background: var(--brand-color); min-width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex: none; transition: background 0.3s; }
+        .help-step-t { font-family: var(--font-display); font-weight: 700; font-size: 0.86rem; display: block; margin-bottom: 2px; }
+        .help-step-d { font-size: 0.82rem; line-height: 1.45; color: var(--text-secondary); }
+        /* Fisarmonica nativa: details/summary e' raggiungibile da tastiera e
+           apribile senza righe di JavaScript. */
+        .faq-item { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 8px; overflow: hidden; }
+        .faq-item summary { cursor: pointer; padding: 12px 14px; font-family: var(--font-display); font-weight: 600; font-size: 0.85rem; list-style: none; display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+        .faq-item summary::-webkit-details-marker { display: none; }
+        .faq-item summary::after { content: '+'; font-size: 1.1rem; color: var(--text-secondary); flex: none; }
+        .faq-item[open] summary::after { content: '−'; }
+        .faq-item summary:hover, .faq-item summary:focus-visible { color: var(--brand-color); }
+        .faq-answer { padding: 0 14px 13px; font-size: 0.82rem; line-height: 1.5; color: var(--text-secondary); }
+        .help-foot { margin-top: 20px; font-size: 0.74rem; color: var(--text-secondary); text-align: center; }
+
         /* Nav Tabs */
         .tab-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-nav); backdrop-filter: blur(16px); border-top: 1px solid var(--border); display: flex; justify-content: space-around; padding: 8px calc(4px + var(--safe-right)) calc(24px + var(--safe-bottom)) calc(4px + var(--safe-left)); z-index: 100; }
-        .tab-btn { font-family: var(--font-display); background: none; border: none; color: var(--text-secondary); display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 0.66rem; font-weight: 600; letter-spacing: 0.1px; cursor: pointer; width: 25%; transition: color 0.2s, transform 0.2s; }
+        .tab-btn { font-family: var(--font-display); background: none; border: none; color: var(--text-secondary); display: flex; flex-direction: column; align-items: center; gap: 3px; font-size: 0.66rem; font-weight: 600; letter-spacing: 0.1px; cursor: pointer; flex: 1; min-width: 0; transition: color 0.2s, transform 0.2s; }
         .tab-btn.active { color: var(--brand-color); transform: scale(1.05); }
         .tab-btn svg { width: 20px; height: 20px; fill: currentColor; }
 
@@ -387,7 +404,7 @@
                 border-top: none; border-bottom: 1px solid var(--border); justify-content: flex-start;
                 gap: 12px; padding: 10px 32px; max-width: 1200px; margin: 0 auto 16px; border-radius: 0 0 12px 12px;
             }
-            .tab-btn { width: auto; flex-direction: row; gap: 8px; padding: 8px 18px; font-size: 0.82rem; border-radius: 8px; background: var(--bg-card); border: 1px solid var(--border); box-shadow: 0 2px 4px var(--shadow-subtle);}
+            .tab-btn { width: auto; flex: none; flex-direction: row; gap: 8px; padding: 8px 18px; font-size: 0.82rem; border-radius: 8px; background: var(--bg-card); border: 1px solid var(--border); box-shadow: 0 2px 4px var(--shadow-subtle);}
             .tab-btn.active { background: var(--brand-color); color: var(--brand-ink); border-color: var(--brand-color); box-shadow: 0 4px 12px var(--shadow-strong); }
             .options-grid { grid-template-columns: repeat(auto-fit, minmax(135px, 1fr)); gap: 8px; margin-bottom: 4px; }
             .options-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
@@ -458,6 +475,7 @@
         <button type="button" class="tab-btn" role="tab" id="tab-calc" aria-controls="panel-calc" aria-selected="false" data-action="switchTab" data-value="calc"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 14H7v-2h10v2zm0-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg><span data-i18n>Rigging & Calc</span></button>
         <button type="button" class="tab-btn" role="tab" id="tab-editing" aria-controls="panel-editing" aria-selected="false" data-action="switchTab" data-value="editing"><svg viewBox="0 0 24 24"><path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4zM14 16H5V8h9v8z"/></svg><span data-i18n>Editing & Vis</span></button>
         <button type="button" class="tab-btn" role="tab" id="tab-guide" aria-controls="panel-guide" aria-selected="false" data-action="switchTab" data-value="guide"><svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/></svg><span data-i18n>Cheat Sheets</span></button>
+        <button type="button" class="tab-btn" role="tab" id="tab-help" aria-controls="panel-help" aria-selected="false" data-action="switchTab" data-value="help"><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/></svg><span data-i18n>Guida</span></button>
     </div>
 
     <div class="container">
@@ -952,6 +970,22 @@
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41-.56-.22-.96-.48-1.38-.9-.42-.42-.68-.82-.9-1.38-.16-.42-.36-1.06-.41-2.23-.06-1.27-.07-1.65-.07-4.85s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41 1.27-.06 1.65-.07 4.85-.07M12 0C8.74 0 8.33.01 7.05.07 5.78.13 4.9.33 4.14.63c-.79.3-1.46.72-2.13 1.38C1.35 2.68.93 3.35.63 4.14.33 4.9.13 5.78.07 7.05.01 8.33 0 8.74 0 12s.01 3.67.07 4.95c.06 1.27.26 2.15.56 2.91.3.79.72 1.46 1.38 2.13.67.66 1.34 1.08 2.13 1.38.76.3 1.64.5 2.91.56C8.33 23.99 8.74 24 12 24s3.67-.01 4.95-.07c1.27-.06 2.15-.26 2.91-.56.79-.3 1.46-.72 2.13-1.38.66-.67 1.08-1.34 1.38-2.13.3-.76.5-1.64.56-2.91.06-1.28.07-1.69.07-4.95s-.01-3.67-.07-4.95c-.06-1.27-.26-2.15-.56-2.91-.3-.79-.72-1.46-1.38-2.13C21.32 1.35 20.65.93 19.86.63c-.76-.3-1.64-.5-2.91-.56C15.67.01 15.26 0 12 0z"/><path d="M12 5.84a6.16 6.16 0 1 0 0 12.32 6.16 6.16 0 0 0 0-12.32zM12 16a4 4 0 1 1 0-8 4 4 0 0 1 0 8z"/><circle cx="18.41" cy="5.59" r="1.44"/></svg>@shakemymids__</a>
     </footer>
 
+        <!-- TAB 5: GUIDA E DOMANDE FREQUENTI -->
+        <div id="panel-help" class="panel" role="tabpanel" aria-labelledby="tab-help" hidden>
+            <div class="help-intro" id="help-intro"></div>
+
+            <div class="section-title" data-i18n>Come si usa</div>
+            <div id="help-steps"></div>
+
+            <div class="section-title" data-i18n>Le funzioni, una per una</div>
+            <div id="help-features"></div>
+
+            <div class="section-title" data-i18n>Domande frequenti</div>
+            <div id="help-faq"></div>
+
+            <div class="help-foot" id="help-version"></div>
+        </div>
+
     <!-- Novità della versione. Il contenuto arriva da CHANGELOG, così resta
          leggibile anche offline. -->
     <div id="changelog-overlay" class="overlay" hidden>
@@ -1080,7 +1114,7 @@
         const CARD_SIZES = [64, 128, 256, 512];
 
         // Schede dell'app, raggiungibili anche dagli shortcut del manifest.
-        const TAB_VALUES = ['wizard', 'calc', 'editing', 'guide'];
+        const TAB_VALUES = ['wizard', 'calc', 'editing', 'guide', 'help'];
 
         // Criteri per il confronto fra camere. Si ordina solo su campi
         // numerici inequivocabili: una classifica costruita su maxRes
@@ -1101,6 +1135,37 @@
         // Serve a due cose: capire se l'utente arriva da una versione diversa,
         // e intestare l'elenco delle novità.
         const APP_VERSION = '13.2.0';
+
+        // Testi della Guida. Come per il changelog stanno qui e non in un file
+        // a parte, perché la scheda deve restare leggibile offline.
+        const HELP_INTRO = 'ReadyClickShot calcola le impostazioni di ripresa partendo dalla scena che hai davanti, non da una tabella di preset fissi. Gli dici cosa stai per girare, con che luce e con quale camera: ne escono risoluzione, framerate, otturatore, filtro ND, ISO e bilanciamento del bianco, più i consigli di montaggio e di rigging.';
+
+        const HELP_STEPS = [
+            ['Scegli la camera', 'Marchio e modello. La stellina accanto al modello segna il tuo: da lì in poi l\'app si riaprirà su quello.'],
+            ['Descrivi la ripresa', 'Cosa giri, con che luce, dentro o fuori dall\'acqua, quanto ti serve durare. Non un preset: la situazione reale.'],
+            ['Leggi le impostazioni', 'Se due esigenze si contraddicono l\'app te lo dice e ti fa scegliere la priorità, invece di decidere di nascosto.']
+        ];
+
+        const HELP_FEATURES = [
+            ['🎛️ Motore dei conflitti', 'Girare di notte chiede framerate bassi per raccogliere luce, girare sport ne chiede di alti per congelare l\'azione. Quando le due cose si scontrano l\'app mostra il conflitto e ti fa scegliere la priorità, poi ricalcola tutto di conseguenza.'],
+            ['🖼️ Simulatore', 'Un confronto a tendina fra ciò che esce dalla camera e il risultato dopo il montaggio. Il rumore cresce alzando gli ISO, il motion blur compare quando otturatore e movimento lo giustificano.'],
+            ['🔋 Limite di ripresa', 'Scheda e batteria si esauriscono in momenti diversi. L\'app dice quale dei due ti ferma prima, e il verdetto cambia alzando gli fps o passando al profilo Endurance.'],
+            ['📷 Confronto fra camere', 'Se ne possiedi più di una, ordina i modelli sul criterio che conta per la ripresa in corso: profondità sott\'acqua, autonomia in viaggio, bitrate con poca luce.'],
+            ['💾 Preset e condivisione', '«Copia link setup» produce un indirizzo che contiene l\'intera configurazione: chi lo apre vede esattamente le tue impostazioni, senza che nulla passi da un server.'],
+            ['📶 Uso offline', 'Installata, resta utilizzabile senza rete — che è la condizione in cui serve davvero, in mezzo al nulla.']
+        ];
+
+        const HELP_FAQ = [
+            ['I dati delle camere sono ufficiali?', 'In parte. Risoluzione massima, profilo colore, profondità senza custodia e risoluzione foto sono i valori dichiarati dai costruttori. Bitrate e autonomia no: sono stime su una scala interna, e valgono più come confronto fra modelli che come numero assoluto.'],
+            ['Perché l\'autonomia è più bassa di quella del produttore?', 'Perché il dato ufficiale è misurato nelle condizioni migliori: 1080p a 24 fps, modalità endurance, temperatura mite. In 4K con la stabilizzazione attiva dura molto meno. L\'app parte da circa il 60% di quel valore e applica anche il fattore della temperatura.'],
+            ['Perché sott\'acqua mi dice di togliere i filtri ND?', 'Perché sott\'acqua la luce cala in fretta e un ND toglierebbe altri stop, costringendo la camera ad alzare gli ISO e quindi il rumore. Il filtro rosso è un\'altra cosa: corregge la dominante blu, non riduce la luce.'],
+            ['Cos\'è la regola dei 180°?', 'L\'otturatore dovrebbe stare intorno al doppio del framerate: a 50 fps, 1/100 s. Ne esce un motion blur naturale, simile a quello del cinema. Otturatori più rapidi congelano il movimento e lo rendono scattoso.'],
+            ['La mia camera non è in elenco.', 'Il catalogo copre quindici modelli recenti dei tre marchi principali. Se manca il tuo, scegli quello della stessa famiglia: fra generazioni vicine le impostazioni consigliate cambiano poco, mentre autonomia e bitrate no — tienine conto.'],
+            ['L\'app si apre su una camera che non è la mia.', 'Senza indicazioni propone la più recente del marchio, che non è quella che possiedi. Tocca la stellina accanto al tuo modello: da lì in poi l\'app si aprirà su quello.'],
+            ['I miei preset finiscono su un server?', 'No. Restano nel browser di questo dispositivo e non vengono inviati da nessuna parte; puoi esportarli in JSON per portarli altrove. Anche il link condiviso non passa da un server: la configurazione viaggia dentro l\'indirizzo stesso.'],
+            ['Su iPhone il pulsante non installa niente.', 'Safari non permette ai siti di avviare l\'installazione, quindi lì il pulsante apre le istruzioni: Condividi, poi «Aggiungi a Home». Su Chrome, Edge e Android l\'installazione avviene invece con un tocco.'],
+            ['Come faccio a sapere se è uscita una versione nuova?', 'Quando è pronta compare «Aggiorna» nell\'intestazione. Toccandolo l\'app passa alla versione nuova e apre l\'elenco di cosa è cambiato.']
+        ];
 
         // Cosa è cambiato, dalla più recente. Sta qui e non in un file a parte
         // perché l'app deve poterlo mostrare anche offline, che è la condizione
@@ -1558,6 +1623,72 @@
             'Il mio setup per {model}': 'My setup for {model}',
             '<b>🔩 Attacco della camera:</b> {mount}': '<b>🔩 Camera mount:</b> {mount}',
 
+            // --- Guida e domande frequenti ---
+            'Guida': 'Guide',
+            'Come si usa': 'How to use it',
+            'Le funzioni, una per una': 'The features, one by one',
+            'Domande frequenti': 'Frequently asked questions',
+            'Versione {version}': 'Version {version}',
+            'ReadyClickShot calcola le impostazioni di ripresa partendo dalla scena che hai davanti, non da una tabella di preset fissi. Gli dici cosa stai per girare, con che luce e con quale camera: ne escono risoluzione, framerate, otturatore, filtro ND, ISO e bilanciamento del bianco, più i consigli di montaggio e di rigging.':
+                'ReadyClickShot works out your camera settings from the scene in front of you, not from a table of fixed presets. You tell it what you are about to shoot, in what light and with which camera: out come resolution, framerate, shutter, ND filter, ISO and white balance, plus editing and rigging advice.',
+
+            'Scegli la camera': 'Pick your camera',
+            'Marchio e modello. La stellina accanto al modello segna il tuo: da lì in poi l\'app si riaprirà su quello.':
+                'Brand and model. The star next to a model marks yours: from then on the app reopens on it.',
+            'Descrivi la ripresa': 'Describe the shot',
+            'Cosa giri, con che luce, dentro o fuori dall\'acqua, quanto ti serve durare. Non un preset: la situazione reale.':
+                'What you are shooting, in what light, in or out of the water, how long you need to last. Not a preset: the actual situation.',
+            'Leggi le impostazioni': 'Read the settings',
+            'Se due esigenze si contraddicono l\'app te lo dice e ti fa scegliere la priorità, invece di decidere di nascosto.':
+                'If two needs contradict each other the app says so and lets you choose the priority, instead of deciding behind your back.',
+
+            '🎛️ Motore dei conflitti': '🎛️ Conflict engine',
+            'Girare di notte chiede framerate bassi per raccogliere luce, girare sport ne chiede di alti per congelare l\'azione. Quando le due cose si scontrano l\'app mostra il conflitto e ti fa scegliere la priorità, poi ricalcola tutto di conseguenza.':
+                'Shooting at night calls for low framerates to gather light, shooting sport calls for high ones to freeze the action. When the two collide the app shows the conflict and lets you choose the priority, then recalculates everything accordingly.',
+            '🖼️ Simulatore': '🖼️ Simulator',
+            'Un confronto a tendina fra ciò che esce dalla camera e il risultato dopo il montaggio. Il rumore cresce alzando gli ISO, il motion blur compare quando otturatore e movimento lo giustificano.':
+                'A slider comparison between what comes out of the camera and the result after editing. Noise grows as ISO rises, motion blur appears when shutter and movement justify it.',
+            '🔋 Limite di ripresa': '🔋 Recording limit',
+            'Scheda e batteria si esauriscono in momenti diversi. L\'app dice quale dei due ti ferma prima, e il verdetto cambia alzando gli fps o passando al profilo Endurance.':
+                'Card and battery run out at different moments. The app tells you which one stops you first, and the verdict changes as you raise the framerate or switch to the Endurance profile.',
+            '📷 Confronto fra camere': '📷 Camera comparison',
+            'Se ne possiedi più di una, ordina i modelli sul criterio che conta per la ripresa in corso: profondità sott\'acqua, autonomia in viaggio, bitrate con poca luce.':
+                'If you own more than one, it ranks the models by what matters for the shot at hand: depth underwater, battery life when travelling, bitrate in low light.',
+            '💾 Preset e condivisione': '💾 Presets and sharing',
+            '«Copia link setup» produce un indirizzo che contiene l\'intera configurazione: chi lo apre vede esattamente le tue impostazioni, senza che nulla passi da un server.':
+                '"Copy setup link" produces an address containing the entire configuration: whoever opens it sees exactly your settings, with nothing going through a server.',
+            '📶 Uso offline': '📶 Offline use',
+            'Installata, resta utilizzabile senza rete — che è la condizione in cui serve davvero, in mezzo al nulla.':
+                'Once installed it keeps working without a network — which is when you actually need it, in the middle of nowhere.',
+
+            'I dati delle camere sono ufficiali?': 'Are the camera specs official?',
+            'In parte. Risoluzione massima, profilo colore, profondità senza custodia e risoluzione foto sono i valori dichiarati dai costruttori. Bitrate e autonomia no: sono stime su una scala interna, e valgono più come confronto fra modelli che come numero assoluto.':
+                'Partly. Maximum resolution, colour profile, depth without a housing and photo resolution are the manufacturers\' stated figures. Bitrate and battery life are not: they are estimates on an internal scale, and are worth more as a comparison between models than as absolute numbers.',
+            'Perché l\'autonomia è più bassa di quella del produttore?': 'Why is battery life lower than the manufacturer says?',
+            'Perché il dato ufficiale è misurato nelle condizioni migliori: 1080p a 24 fps, modalità endurance, temperatura mite. In 4K con la stabilizzazione attiva dura molto meno. L\'app parte da circa il 60% di quel valore e applica anche il fattore della temperatura.':
+                'Because the official figure is measured in the best conditions: 1080p at 24 fps, endurance mode, mild temperature. In 4K with stabilisation on it lasts far less. The app starts from about 60% of that value and also applies the temperature factor.',
+            'Perché sott\'acqua mi dice di togliere i filtri ND?': 'Why does it tell me to remove ND filters underwater?',
+            'Perché sott\'acqua la luce cala in fretta e un ND toglierebbe altri stop, costringendo la camera ad alzare gli ISO e quindi il rumore. Il filtro rosso è un\'altra cosa: corregge la dominante blu, non riduce la luce.':
+                'Because light falls off quickly underwater and an ND would take away further stops, forcing the camera to raise ISO and therefore noise. A red filter is a different thing: it corrects the blue cast, it does not reduce light.',
+            'Cos\'è la regola dei 180°?': 'What is the 180° rule?',
+            'L\'otturatore dovrebbe stare intorno al doppio del framerate: a 50 fps, 1/100 s. Ne esce un motion blur naturale, simile a quello del cinema. Otturatori più rapidi congelano il movimento e lo rendono scattoso.':
+                'The shutter should sit at around twice the framerate: at 50 fps, 1/100 s. The result is natural motion blur, close to what cinema looks like. Faster shutters freeze movement and make it look jittery.',
+            'La mia camera non è in elenco.': 'My camera is not in the list.',
+            'Il catalogo copre quindici modelli recenti dei tre marchi principali. Se manca il tuo, scegli quello della stessa famiglia: fra generazioni vicine le impostazioni consigliate cambiano poco, mentre autonomia e bitrate no — tienine conto.':
+                'The catalogue covers fifteen recent models from the three main brands. If yours is missing, pick the one from the same family: between nearby generations the recommended settings change little, while battery life and bitrate do — keep that in mind.',
+            'L\'app si apre su una camera che non è la mia.': 'The app opens on a camera that is not mine.',
+            'Senza indicazioni propone la più recente del marchio, che non è quella che possiedi. Tocca la stellina accanto al tuo modello: da lì in poi l\'app si aprirà su quello.':
+                'With no indication it offers the newest of the brand, which is not the one you own. Tap the star next to your model: from then on the app will open on it.',
+            'I miei preset finiscono su un server?': 'Do my presets end up on a server?',
+            'No. Restano nel browser di questo dispositivo e non vengono inviati da nessuna parte; puoi esportarli in JSON per portarli altrove. Anche il link condiviso non passa da un server: la configurazione viaggia dentro l\'indirizzo stesso.':
+                'No. They stay in this device\'s browser and are never sent anywhere; you can export them as JSON to take them elsewhere. The shared link does not go through a server either: the configuration travels inside the address itself.',
+            'Su iPhone il pulsante non installa niente.': 'On iPhone the button does not install anything.',
+            'Safari non permette ai siti di avviare l\'installazione, quindi lì il pulsante apre le istruzioni: Condividi, poi «Aggiungi a Home». Su Chrome, Edge e Android l\'installazione avviene invece con un tocco.':
+                'Safari does not let sites start the installation, so there the button opens the instructions: Share, then "Add to Home Screen". On Chrome, Edge and Android installing takes one tap.',
+            'Come faccio a sapere se è uscita una versione nuova?': 'How do I know a new version is out?',
+            'Quando è pronta compare «Aggiorna» nell\'intestazione. Toccandolo l\'app passa alla versione nuova e apre l\'elenco di cosa è cambiato.':
+                'When one is ready "Update" appears in the header. Tapping it moves the app to the new version and opens the list of what changed.',
+
             // --- Installazione, aggiornamento e novità ---
             'Aggiorna': 'Update',
             'Installa': 'Install',
@@ -1823,8 +1954,30 @@
 
         // Ridisegna tutto il contenuto generato da JS. Serve all'avvio, al
         // cambio di lingua e all'arrivo di un link condiviso.
+        // La Guida si ridisegna col resto: cambiando lingua i testi seguono.
+        function renderHelp() {
+            if (!$('help-faq')) return;
+            setText('help-intro', t(HELP_INTRO));
+
+            setHtml('help-steps', HELP_STEPS.map(([titolo, testo], i) =>
+                `<div class="help-step"><span class="help-step-n">${i + 1}</span>`
+                + `<span><span class="help-step-t">${escapeHtml(t(titolo))}</span>`
+                + `<span class="help-step-d">${escapeHtml(t(testo))}</span></span></div>`).join(''));
+
+            setHtml('help-features', HELP_FEATURES.map(([titolo, testo]) =>
+                `<div class="editing-card"><div class="editing-card-title">${escapeHtml(t(titolo))}</div>`
+                + `<div class="help-step-d">${escapeHtml(t(testo))}</div></div>`).join(''));
+
+            setHtml('help-faq', HELP_FAQ.map(([domanda, risposta]) =>
+                `<details class="faq-item"><summary>${escapeHtml(t(domanda))}</summary>`
+                + `<div class="faq-answer">${escapeHtml(t(risposta))}</div></details>`).join(''));
+
+            setText('help-version', t('Versione {version}', { version: APP_VERSION }));
+        }
+
         function renderAll() {
             updateUIState();
+            renderHelp();
             renderSavedPresets();
             updateResults();
             updateEditingGuide();
