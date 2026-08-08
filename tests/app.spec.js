@@ -129,6 +129,102 @@ test.describe('Motore di calcolo', () => {
   });
 });
 
+test.describe('Coerenza del motore', () => {
+  test('la risoluzione non dichiara un framerate diverso da quello calcolato', async ({ page }) => {
+    // maxRes descrive la modalita' di punta e ci infila dentro il framerate
+    // massimo a quella risoluzione. Mostrarlo com'e' significava scrivere
+    // "5.3K @ 60fps" sopra un "25 fps (PAL)" calcolato: l'app si contraddiceva
+    // da sola su 28 combinazioni su 36.
+    const incoerenze = await page.evaluate(() => {
+      const out = [];
+      const scenari = [['reel'], ['sport'], ['travel'], ['night'], ['slowmo'],
+                       ['sport', 'night'], ['slowmo', 'night'], ['travel', 'indoor'], ['gyroflow']];
+      for (const brand of Object.keys(cameraModelsData))
+        for (const modello of Object.keys(cameraModelsData[brand]))
+          for (const s of scenari)
+            for (const luce of ['sole', 'ombra', 'scarsa'])
+              for (const prof of ['high', 'std', 'eco']) {
+                currentBrand = brand; currentModelKey = modello;
+                selectedScenarios = [...s]; currentLuce = luce;
+                currentBitrateProfile = prof; currentSub = 'fuori'; currentMode = 'video';
+                updateResults();
+                const res = document.getElementById('val-res').innerText;
+                const nelTesto = /(\d+)\s*fps/i.exec(res);
+                const calcolati = /(\d+) fps/.exec(document.getElementById('val-fps').innerText);
+                if (nelTesto && calcolati && nelTesto[1] !== calcolati[1]) {
+                  out.push(`${brand}/${modello} ${s.join('+')}/${luce}/${prof}: "${res}" vs ${calcolati[1]}fps`);
+                }
+              }
+      return out;
+    });
+    expect(incoerenze).toEqual([]);
+  });
+
+  test('l Endurance dichiara il conflitto invece di deciderlo', async ({ page }) => {
+    // Abbassava il framerate in silenzio mentre il pannello diceva
+    // "nessun conflitto": il contrario di quello che il motore promette.
+    await page.locator('#scenario-chips-container .btn-chip', { hasText: 'Bici / Sport' }).click();
+    await expect(page.locator('#val-fps')).toHaveText('50 fps (PAL)');
+
+    await page.locator('#panel-wizard .btn-radio', { hasText: 'Endurance' }).click();
+    await expect(page.locator('#val-fps')).toHaveText('25 fps (PAL)');
+    await expect(page.locator('#container-conflicts')).toContainText('Endurance');
+    await expect(page.locator('#container-conflicts')).not.toContainText('Nessun conflitto');
+  });
+
+  test('scegliendo la fluidita il framerate richiesto viene rispettato', async ({ page }) => {
+    await page.locator('#scenario-chips-container .btn-chip', { hasText: 'Slow-Motion' }).click();
+    await expect(page.locator('#val-fps')).toHaveText('100 fps (PAL)');
+
+    await page.locator('#panel-wizard .btn-radio', { hasText: 'Endurance' }).click();
+    await expect(page.locator('#val-fps')).toHaveText('50 fps (PAL)');
+
+    await page.locator('.btn-compromise', { hasText: 'Fluidità' }).click();
+    await expect(page.locator('#val-fps')).toHaveText('100 fps (PAL)');
+  });
+
+  test('senza perdita di framerate non si inventa un conflitto', async ({ page }) => {
+    // In viaggio il motore chiede gia' 25 fps: l'Endurance non toglie niente.
+    await page.locator('#scenario-chips-container .btn-chip', { hasText: 'Viaggi' }).click();
+    await page.locator('#panel-wizard .btn-radio', { hasText: 'Endurance' }).click();
+    await expect(page.locator('#container-conflicts')).not.toContainText('Endurance vs');
+  });
+
+  test('avverte quando il framerate supera il tetto della risoluzione massima', async ({ page }) => {
+    // Una HERO 13 fa 5.3K a 60 fps, non a 100: per averli si scende di
+    // risoluzione. L'app mostrava i due numeri accanto senza dirlo.
+    await page.click('#brand-card-gopro');
+    // Modello scelto a mano: il predefinito del marchio e' il piu' recente e
+    // cambiera' di nuovo alla prossima uscita.
+    await page.locator('#model-chips-container .btn-chip', { hasText: 'HERO 13 Black' }).click();
+    await expect(page.locator('#fps-alert')).toBeHidden();
+
+    await page.locator('#scenario-chips-container .btn-chip', { hasText: 'Slow-Motion' }).click();
+    await expect(page.locator('#val-fps')).toHaveText('100 fps (PAL)');
+    await expect(page.locator('#fps-alert')).toBeVisible();
+    await expect(page.locator('#fps-alert')).toContainText('60 fps');
+    await expect(page.locator('#fps-alert')).toContainText('HERO 13 Black');
+  });
+
+  test('l avviso sparisce quando il framerate rientra', async ({ page }) => {
+    await page.click('#brand-card-gopro');
+    await page.locator('#model-chips-container .btn-chip', { hasText: 'HERO 13 Black' }).click();
+    await page.locator('#scenario-chips-container .btn-chip', { hasText: 'Slow-Motion' }).click();
+    await expect(page.locator('#fps-alert')).toBeVisible();
+    await page.locator('#panel-wizard .btn-radio', { hasText: 'Endurance' }).click();
+    await expect(page.locator('#val-fps')).toHaveText('50 fps (PAL)');
+    await expect(page.locator('#fps-alert')).toBeHidden();
+  });
+
+  test('il conflitto sulla luce nomina lo scenario giusto', async ({ page }) => {
+    // Diceva "vs Sport" anche quando lo scenario era lo slow motion.
+    await page.locator('#scenario-chips-container .btn-chip', { hasText: 'Slow-Motion' }).click();
+    await page.locator('#scenario-chips-container .btn-chip', { hasText: 'Notturno' }).click();
+    await expect(page.locator('#container-conflicts')).toContainText('Slow-Mo');
+    await expect(page.locator('#container-conflicts')).not.toContainText('vs Sport');
+  });
+});
+
 test.describe('Coerenza fra wizard e calcolatore ND', () => {
   test('a 30 fps in pieno sole entrambi indicano ND64 / ND128', async ({ page }) => {
     await expect(page.locator('#val-fps')).toHaveText('25 fps (PAL)');
