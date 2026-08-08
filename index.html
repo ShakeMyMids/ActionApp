@@ -190,6 +190,17 @@
         .options-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 6px; }
         .options-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
         .btn-chip { background: var(--bg-primary); border: 1px solid var(--border); color: var(--text-primary); padding: 10px 15px 10px 9px; border-radius: 10px; font-size: 0.82rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; position: relative; box-shadow: 0 2px 4px var(--shadow-subtle); }
+        /* Stellina della camera predefinita. Spenta resta un contorno
+           discreto: è un'opzione, non un richiamo. */
+        .chip-star { font-size: 0.95rem; line-height: 1; cursor: pointer; opacity: 0.4; transition: opacity 0.2s, transform 0.15s; }
+        .chip-star:hover, .chip-star:focus-visible { opacity: 1; transform: scale(1.25); }
+        .chip-star.is-default { opacity: 1; color: var(--amber); }
+        /* Sul chip selezionato lo sfondo è il colore del brand: l'ambra ci
+           finirebbe sopra con poco contrasto, quindi la stellina passa
+           all'inchiostro del brand, già scelto per essere leggibile lì. */
+        .btn-chip.selected .chip-star { color: var(--brand-ink); opacity: 0.55; }
+        .btn-chip.selected .chip-star.is-default { opacity: 1; }
+
         .btn-chip.selected { background: var(--brand-color); border-color: var(--brand-color); color: var(--brand-ink); box-shadow: 0 4px 12px var(--shadow-strong); transform: scale(1.02); }
         .btn-radio span, .btn-chip span { text-wrap: balance; line-height: 1.2; }
         .btn-chip.selected::after { content: "✓"; position: absolute; top: 3px; right: 4px; font-size: 0.6rem; opacity: 0.85; color: var(--brand-ink); font-weight: bold; }
@@ -927,7 +938,10 @@
             legacyPresets: 'action4_custom_presets',
             // La scheda è un dato dell'attrezzatura, non della ripresa: resta
             // fuori dai preset e dal link condiviso, e vale per questo device.
-            cardGb: 'camstudio_card_gb'
+            cardGb: 'camstudio_card_gb',
+            // La camera preferita e' un dato di questo dispositivo, come la
+            // scheda: resta fuori dai preset e dal link condiviso.
+            defaultCamera: 'camstudio_default_camera'
         };
 
         // batteryMin: minuti indicativi di registrazione continua a 1080p/30 in
@@ -944,29 +958,29 @@
         // picco assoluto raggiungibile con firmware modificati.
         const cameraModelsData = {
             dji: {
-                'action5pro': { name: 'DJI Osmo Action 5 Pro', shortName: 'Action 5 Pro', maxRes: '4K @ 120fps (Sensore 1/1.3" 4:3)', logProfile: '10-bit D-Log M', waterproof: 20, mount: 'Sgancio Mag. v2', audio: 'Dual BT Direct DJI Mic 2.', bitrate: 110, photoRes: '40 MP RAW', batteryMin: 150 },
-                'action4': { name: 'DJI Osmo Action 4', shortName: 'Action 4', maxRes: '4K @ 120fps (Sensore 1/1.3" 4:3)', logProfile: '10-bit D-Log M', waterproof: 18, mount: 'Sgancio Mag. Rapido', audio: 'BT Direct DJI Mic 2.', bitrate: 110, photoRes: '10 MP RAW', batteryMin: 120 },
-                'action3': { name: 'DJI Osmo Action 3', shortName: 'Action 3', maxRes: '4K @ 120fps (Sensore 1/1.7" 4:3)', logProfile: '10-bit D-Cinelike', waterproof: 16, mount: 'Sgancio Mag. Rapido', audio: 'RX USB-C per DJI Mic.', bitrate: 100, photoRes: '12 MP RAW', batteryMin: 115 },
-                'action6': { name: 'DJI Osmo Action 6', shortName: 'Action 6', maxRes: '4K @ 120fps (Sensore 1/1.1" 4:3)', logProfile: '10-bit D-Log M', waterproof: 20, mount: 'Sgancio Mag. v2', audio: 'Dual BT Direct DJI Mic 2/3.', bitrate: 120, photoRes: '38 MP RAW', batteryMin: 150 },
+                'action5pro': { released: '2024-09', name: 'DJI Osmo Action 5 Pro', shortName: 'Action 5 Pro', maxRes: '4K @ 120fps (Sensore 1/1.3" 4:3)', logProfile: '10-bit D-Log M', waterproof: 20, mount: 'Sgancio Mag. v2', audio: 'Dual BT Direct DJI Mic 2.', bitrate: 110, photoRes: '40 MP RAW', batteryMin: 150 },
+                'action4': { released: '2023-08', name: 'DJI Osmo Action 4', shortName: 'Action 4', maxRes: '4K @ 120fps (Sensore 1/1.3" 4:3)', logProfile: '10-bit D-Log M', waterproof: 18, mount: 'Sgancio Mag. Rapido', audio: 'BT Direct DJI Mic 2.', bitrate: 110, photoRes: '10 MP RAW', batteryMin: 120 },
+                'action3': { released: '2022-09', name: 'DJI Osmo Action 3', shortName: 'Action 3', maxRes: '4K @ 120fps (Sensore 1/1.7" 4:3)', logProfile: '10-bit D-Cinelike', waterproof: 16, mount: 'Sgancio Mag. Rapido', audio: 'RX USB-C per DJI Mic.', bitrate: 100, photoRes: '12 MP RAW', batteryMin: 115 },
+                'action6': { released: '2025-11', name: 'DJI Osmo Action 6', shortName: 'Action 6', maxRes: '4K @ 120fps (Sensore 1/1.1" 4:3)', logProfile: '10-bit D-Log M', waterproof: 20, mount: 'Sgancio Mag. v2', audio: 'Dual BT Direct DJI Mic 2/3.', bitrate: 120, photoRes: '38 MP RAW', batteryMin: 150 },
                 // L'autonomia presuppone il Vision Dock, incluso in ogni combo:
                 // la sola camera monta 530 mAh e dura molto meno.
-                'osmonano': { name: 'DJI Osmo Nano', shortName: 'Osmo Nano', maxRes: '4K @ 60fps (1/1.3", 120fps in slow-mo)', logProfile: '10-bit D-Log M', waterproof: 10, mount: 'Magnetico bilaterale', audio: 'Mic stereo + BT DJI Mic.', bitrate: 100, photoRes: '35 MP RAW', batteryMin: 120 }
+                'osmonano': { released: '2025-09', name: 'DJI Osmo Nano', shortName: 'Osmo Nano', maxRes: '4K @ 60fps (1/1.3", 120fps in slow-mo)', logProfile: '10-bit D-Log M', waterproof: 10, mount: 'Magnetico bilaterale', audio: 'Mic stereo + BT DJI Mic.', bitrate: 100, photoRes: '35 MP RAW', batteryMin: 120 }
             },
             gopro: {
-                'hero13': { name: 'GoPro HERO 13 Black', shortName: 'HERO 13 Black', maxRes: '5.3K @ 60fps (8:7)', logProfile: '10-bit GP-Log / HLG', waterproof: 10, mount: 'Linguette + Latch Mag.', audio: 'BT AirPods/Mic / Media Mod.', bitrate: 120, photoRes: '27 MP RAW', batteryMin: 100 },
-                'hero12': { name: 'GoPro HERO 12 Black', shortName: 'HERO 12 Black', maxRes: '5.3K @ 60fps (8:7)', logProfile: '10-bit GP-Log / HDR', waterproof: 10, mount: 'Linguette Pieghevoli', audio: 'Dual BT Audio / Media Mod.', bitrate: 120, photoRes: '27 MP RAW', batteryMin: 95 },
-                'hero11': { name: 'GoPro HERO 11 Black', shortName: 'HERO 11 Black', maxRes: '5.3K @ 60fps (8:7)', logProfile: '10-bit Flat', waterproof: 10, mount: 'Linguette Pieghevoli', audio: 'Media Mod o Mic 3.5mm.', bitrate: 120, photoRes: '27 MP RAW', batteryMin: 90 },
-                'hero10_9': { name: 'GoPro HERO 10 / 9 Black', shortName: 'HERO 10 / 9', maxRes: '5.3K @ 60fps', logProfile: '8-bit Flat', waterproof: 10, mount: 'Linguette Pieghevoli', audio: 'Media Mod o Mic 3.5mm.', bitrate: 100, photoRes: '23 MP RAW', batteryMin: 75 },
-                'mission1pro': { name: 'GoPro MISSION 1 PRO', shortName: 'MISSION 1 Pro', maxRes: '8K @ 60fps (Sensore 1")', logProfile: '10-bit GP-Log2 / HLG', waterproof: 20, mount: 'Linguette + Filetto 1/4"', audio: '4 mic 32-bit float / USB-C.', bitrate: 240, photoRes: '50 MP RAW', batteryMin: 185 },
-                'max2': { name: 'GoPro MAX2 (360°)', shortName: 'MAX2 360°', maxRes: '8K @ 30fps 360°', logProfile: '10-bit GP-Log', waterproof: 5, mount: 'Linguette Pieghevoli', audio: '6 mic 360° + riduzione vento.', bitrate: 120, photoRes: '29 MP', batteryMin: 85 }
+                'hero13': { released: '2024-09', name: 'GoPro HERO 13 Black', shortName: 'HERO 13 Black', maxRes: '5.3K @ 60fps (8:7)', logProfile: '10-bit GP-Log / HLG', waterproof: 10, mount: 'Linguette + Latch Mag.', audio: 'BT AirPods/Mic / Media Mod.', bitrate: 120, photoRes: '27 MP RAW', batteryMin: 100 },
+                'hero12': { released: '2023-09', name: 'GoPro HERO 12 Black', shortName: 'HERO 12 Black', maxRes: '5.3K @ 60fps (8:7)', logProfile: '10-bit GP-Log / HDR', waterproof: 10, mount: 'Linguette Pieghevoli', audio: 'Dual BT Audio / Media Mod.', bitrate: 120, photoRes: '27 MP RAW', batteryMin: 95 },
+                'hero11': { released: '2022-09', name: 'GoPro HERO 11 Black', shortName: 'HERO 11 Black', maxRes: '5.3K @ 60fps (8:7)', logProfile: '10-bit Flat', waterproof: 10, mount: 'Linguette Pieghevoli', audio: 'Media Mod o Mic 3.5mm.', bitrate: 120, photoRes: '27 MP RAW', batteryMin: 90 },
+                'hero10_9': { released: '2021-09', name: 'GoPro HERO 10 / 9 Black', shortName: 'HERO 10 / 9', maxRes: '5.3K @ 60fps', logProfile: '8-bit Flat', waterproof: 10, mount: 'Linguette Pieghevoli', audio: 'Media Mod o Mic 3.5mm.', bitrate: 100, photoRes: '23 MP RAW', batteryMin: 75 },
+                'mission1pro': { released: '2026-04', name: 'GoPro MISSION 1 PRO', shortName: 'MISSION 1 Pro', maxRes: '8K @ 60fps (Sensore 1")', logProfile: '10-bit GP-Log2 / HLG', waterproof: 20, mount: 'Linguette + Filetto 1/4"', audio: '4 mic 32-bit float / USB-C.', bitrate: 240, photoRes: '50 MP RAW', batteryMin: 185 },
+                'max2': { released: '2025-09', name: 'GoPro MAX2 (360°)', shortName: 'MAX2 360°', maxRes: '8K @ 30fps 360°', logProfile: '10-bit GP-Log', waterproof: 5, mount: 'Linguette Pieghevoli', audio: '6 mic 360° + riduzione vento.', bitrate: 120, photoRes: '29 MP', batteryMin: 85 }
             },
             insta360: {
-                'acepro2': { name: 'Insta360 Ace Pro 2', shortName: 'Ace Pro 2', maxRes: '8K @ 30fps (Leica 1/1.3")', logProfile: '10-bit I-Log', waterproof: 12, mount: 'Sgancio Mag. Dual-Latch', audio: 'BT Mic / Cardo / Sena.', bitrate: 120, photoRes: '48 MP RAW', batteryMin: 120 },
-                'x4': { name: 'Insta360 X4 (360°)', shortName: 'X4 360°', maxRes: '8K @ 30fps 360°', logProfile: '10-bit I-Log / Flat 360°', waterproof: 10, mount: 'Filetto Standard 1/4"', audio: 'Vento 360° + Adattatore Mic.', bitrate: 130, photoRes: '72 MP RAW', batteryMin: 100 },
-                'goultra': { name: 'Insta360 GO Ultra', shortName: 'GO Ultra', maxRes: '4K @ 60fps', logProfile: '10-bit Flat', waterproof: 10, mount: 'Action Mount Mag.', audio: 'Mic stereo anti-vento.', bitrate: 100, photoRes: '12 MP RAW', batteryMin: 70 },
+                'acepro2': { released: '2024-11', name: 'Insta360 Ace Pro 2', shortName: 'Ace Pro 2', maxRes: '8K @ 30fps (Leica 1/1.3")', logProfile: '10-bit I-Log', waterproof: 12, mount: 'Sgancio Mag. Dual-Latch', audio: 'BT Mic / Cardo / Sena.', bitrate: 120, photoRes: '48 MP RAW', batteryMin: 120 },
+                'x4': { released: '2024-04', name: 'Insta360 X4 (360°)', shortName: 'X4 360°', maxRes: '8K @ 30fps 360°', logProfile: '10-bit I-Log / Flat 360°', waterproof: 10, mount: 'Filetto Standard 1/4"', audio: 'Vento 360° + Adattatore Mic.', bitrate: 130, photoRes: '72 MP RAW', batteryMin: 100 },
+                'goultra': { released: '2025-08', name: 'Insta360 GO Ultra', shortName: 'GO Ultra', maxRes: '4K @ 60fps', logProfile: '10-bit Flat', waterproof: 10, mount: 'Action Mount Mag.', audio: 'Mic stereo anti-vento.', bitrate: 100, photoRes: '12 MP RAW', batteryMin: 70 },
                 // I-Log qui è 8-bit e solo in 5.7K: dirlo evita di consigliare
                 // un flusso di lavoro log che la camera non regge davvero.
-                'x5': { name: 'Insta360 X5 (360°)', shortName: 'X5 360°', maxRes: '8K @ 30fps 360°', logProfile: 'I-Log 8-bit (solo 5.7K)', waterproof: 15, mount: 'Filetto Standard 1/4"', audio: 'Wind Guard + Adattatore Mic.', bitrate: 180, photoRes: '72 MP', batteryMin: 130 }
+                'x5': { released: '2025-04', name: 'Insta360 X5 (360°)', shortName: 'X5 360°', maxRes: '8K @ 30fps 360°', logProfile: 'I-Log 8-bit (solo 5.7K)', waterproof: 15, mount: 'Filetto Standard 1/4"', audio: 'Wind Guard + Adattatore Mic.', bitrate: 180, photoRes: '72 MP', batteryMin: 130 }
             }
         };
 
@@ -1113,6 +1127,65 @@
         function ndFor(fps, light) {
             const tier = fps <= 30 ? 0 : fps <= 60 ? 1 : 2;
             return (ND_TABLE[light] || ND_TABLE.sole)[tier];
+        }
+
+        // I modelli di un brand, dal più recente al più vecchio. L'ordine sta
+        // nel campo released e non nell'ordine con cui sono scritti nel
+        // sorgente: così aggiungerne uno non richiede di infilarlo al posto
+        // giusto, ed è la ragione per cui l'elenco non torna mai disordinato.
+        function modelKeysFor(brand) {
+            const models = cameraModelsData[brand] || {};
+            return Object.keys(models).sort((a, b) =>
+                String(models[b].released).localeCompare(String(models[a].released)));
+        }
+
+        // Il predefinito di un brand: la camera con la stellina se appartiene
+        // a questo brand, altrimenti la più recente. La scelta esplicita
+        // dell'utente batte la regola automatica — è tutto il punto della
+        // stellina, dato che il modello più recente non è quello che possiedi.
+        function defaultModelFor(brand) {
+            if (starredCamera && starredCamera.brand === brand
+                && cameraModelsData[brand] && cameraModelsData[brand][starredCamera.key]) {
+                return starredCamera.key;
+            }
+            return modelKeysFor(brand)[0];
+        }
+
+        function isStarred(brand, key) {
+            return !!starredCamera && starredCamera.brand === brand && starredCamera.key === key;
+        }
+
+        // Legge la preferenza scartando marchi e modelli che non esistono più:
+        // un catalogo può cambiare fra due versioni dell'app.
+        function readStarredCamera() {
+            try {
+                const parsed = JSON.parse(storageGet(STORAGE_KEYS.defaultCamera) || 'null');
+                if (!parsed || !cameraModelsData[parsed.brand]) return null;
+                if (!cameraModelsData[parsed.brand][parsed.key]) return null;
+                return { brand: parsed.brand, key: parsed.key };
+            } catch (e) {
+                return null;
+            }
+        }
+
+        // Una sola stellina in tutta l'app: è "la mia camera", quella con cui
+        // si apre. Toccare quella già segnata la toglie.
+        function toggleStarredCamera(el, event) {
+            if (event) event.stopPropagation();
+            const brand = el.dataset.brand;
+            const key = el.dataset.value;
+            if (!cameraModelsData[brand] || !cameraModelsData[brand][key]) return;
+
+            if (isStarred(brand, key)) {
+                starredCamera = null;
+                storageSet(STORAGE_KEYS.defaultCamera, '');
+                showToast(t('Camera predefinita rimossa'));
+            } else {
+                starredCamera = { brand, key };
+                storageSet(STORAGE_KEYS.defaultCamera, JSON.stringify(starredCamera));
+                showToast(t('{model} è ora la camera predefinita', { model: cameraModelsData[brand][key].shortName }));
+            }
+            renderModelChips();
         }
 
         function activeModel() {
@@ -1400,6 +1473,12 @@
             'Il mio setup per {model}': 'My setup for {model}',
             '<b>🔩 Attacco della camera:</b> {mount}': '<b>🔩 Camera mount:</b> {mount}',
 
+            // --- Camera predefinita (stellina) ---
+            'Imposta {model} come predefinita': 'Set {model} as default',
+            'Togli {model} dalle predefinite': 'Remove {model} as default',
+            '{model} è ora la camera predefinita': '{model} is now the default camera',
+            'Camera predefinita rimossa': 'Default camera cleared',
+
             // --- Confronto fra camere ---
             '📷 Quale camera porto?': '📷 Which camera do I take?',
             'In ordine di profondità: hai scelto la ripresa subacquea, e senza custodia il limite è quello.':
@@ -1648,7 +1727,15 @@
 
         let currentMode = 'video';
         let currentBrand = 'dji';
-        let currentModelKey = 'action5pro';
+        // Dichiarata qui e non più in basso: currentModelKey la legge subito
+        // tramite defaultModelFor, e con let una lettura anticipata non vale
+        // undefined, fa fallire l'intero script.
+        let starredCamera = null;
+        // Non un modello fisso: il predefinito è il più recente del brand, la
+        // stessa regola che vale cambiando marchio. Scriverlo a mano qui
+        // significherebbe che l'avvio smette di seguire l'elenco appena esce
+        // una camera nuova.
+        let currentModelKey = defaultModelFor(currentBrand);
         let selectedScenarios = ['reel'];
         let selectedEditGoals = ['dlog_lut'];
         let currentBitrateProfile = 'high';
@@ -1766,16 +1853,24 @@
             const models = cameraModelsData[currentBrand];
             if (models[currentModelKey]) setText('model-indicator', models[currentModelKey].shortName);
             if (!container) return;
-            container.innerHTML = Object.keys(models).map(key => {
+            container.innerHTML = modelKeysFor(currentBrand).map(key => {
                 const on = key === currentModelKey;
-                return `<button type="button" class="btn-chip ${on ? 'selected' : ''}" data-action="selectModel" data-value="${escapeHtml(key)}" aria-pressed="${on}"><span>${escapeHtml(models[key].shortName)}</span></button>`;
+                const star = isStarred(currentBrand, key);
+                const etichetta = t(star ? 'Togli {model} dalle predefinite' : 'Imposta {model} come predefinita', { model: models[key].shortName });
+                // La stellina è uno span e non un bottone: sta dentro il chip,
+                // che è già un bottone, come fa il cestino sui preset.
+                return `<button type="button" class="btn-chip ${on ? 'selected' : ''}" data-action="selectModel" data-value="${escapeHtml(key)}" aria-pressed="${on}">`
+                    + `<span class="chip-star ${star ? 'is-default' : ''}" role="button" tabindex="0" aria-pressed="${star}"`
+                    + ` aria-label="${escapeHtml(etichetta)}" data-action="toggleStarredCamera"`
+                    + ` data-brand="${escapeHtml(currentBrand)}" data-value="${escapeHtml(key)}">${star ? '★' : '☆'}</span>`
+                    + `<span>${escapeHtml(models[key].shortName)}</span></button>`;
             }).join('');
         }
 
         function selectBrand(brand) {
             if (!BRAND_CONFIG[brand]) return;
             currentBrand = brand;
-            currentModelKey = Object.keys(cameraModelsData[brand])[0];
+            currentModelKey = defaultModelFor(brand);
             renderBrandCards();
             renderModelChips();
             updateResults();
@@ -1864,7 +1959,7 @@
                 clean.brand = preset.brand;
                 clean.modelKey = cameraModelsData[preset.brand][preset.modelKey]
                     ? preset.modelKey
-                    : Object.keys(cameraModelsData[preset.brand])[0];
+                    : defaultModelFor(preset.brand);
             }
             return clean;
         }
@@ -1904,7 +1999,7 @@
                 currentBrand = preset.brand;
                 currentModelKey = cameraModelsData[preset.brand][preset.modelKey]
                     ? preset.modelKey
-                    : Object.keys(cameraModelsData[preset.brand])[0];
+                    : defaultModelFor(preset.brand);
             }
             updateUIState();
             updateResults();
@@ -2010,7 +2105,7 @@
             if (brand && cameraModelsData[brand]) {
                 currentBrand = brand;
                 const model = params.get('m');
-                currentModelKey = (model && cameraModelsData[brand][model]) ? model : Object.keys(cameraModelsData[brand])[0];
+                currentModelKey = (model && cameraModelsData[brand][model]) ? model : defaultModelFor(brand);
             }
             selectedScenarios = pickScenarios((params.get('s') || '').split(','), selectedScenarios);
             currentMode = pickAllowed(params.get('mode'), MODE_VALUES, currentMode);
@@ -2202,7 +2297,7 @@
         // Tutti i modelli, di ogni brand, in un elenco piatto.
         function allModels() {
             return Object.keys(cameraModelsData).flatMap(brand =>
-                Object.keys(cameraModelsData[brand]).map(key => ({ brand, key, model: cameraModelsData[brand][key] })));
+                modelKeysFor(brand).map(key => ({ brand, key, model: cameraModelsData[brand][key] })));
         }
 
         // L'app dà per scontato che tu abbia già scelto la camera. Chi ne ha
@@ -2789,6 +2884,7 @@
             calcBattery: el => calcBattery(el.dataset.value, el),
             setCardSize: el => setCardSize(el.dataset.value),
             pickCamera: el => pickCamera(el),
+            toggleStarredCamera: (el, event) => toggleStarredCamera(el, event),
             updateSimSlider: el => updateSimSlider(el),
             toggleTheme: el => toggleTheme(el),
             toggleLanguage: () => toggleLanguage(),
@@ -2875,6 +2971,15 @@
 
             const savedCard = Number(storageGet(STORAGE_KEYS.cardGb));
             if (CARD_SIZES.includes(savedCard)) currentCardGb = savedCard;
+
+            // La camera con la stellina è quella con cui l'app si apre. Va
+            // letta prima dell'hash, così un link condiviso continua a vincere:
+            // chi te lo manda vuole farti vedere il suo setup, non il tuo.
+            starredCamera = readStarredCamera();
+            if (starredCamera) {
+                currentBrand = starredCamera.brand;
+                currentModelKey = starredCamera.key;
+            }
 
             currentLang = detectLanguage();
             applyStateFromHash();
