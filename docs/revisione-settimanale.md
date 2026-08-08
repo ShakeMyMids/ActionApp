@@ -75,6 +75,25 @@ danno diretto a chi la usa.
   `npm run icone`. Le due copie del disegno devono restare identiche, e c'è un
   test che lo verifica.
 
+## Prima si consegna, poi si racconta
+
+L'ordine non è negoziabile, ed è nato da un fallimento reale: una revisione ha
+prodotto quattro correzioni valide, ha scritto una bella descrizione della pull
+request, e non ha mai spinto il branch. Il container è stato riciclato e il
+lavoro è sparito. La descrizione, da sola, non è il lavoro.
+
+Quindi, appena i test passano e prima di scrivere una sola riga di descrizione:
+
+```bash
+git push -u origin claude/revisione-settimanale
+git ls-remote --heads origin claude/revisione-settimanale   # deve stampare il branch
+```
+
+Se la seconda riga non stampa nulla, la spinta non è avvenuta: risolvi quello
+prima di fare altro. Nessun documento, nessun artefatto, nessun riepilogo vale
+finché il codice non è su GitHub — è l'unica cosa che sopravvive alla fine della
+sessione.
+
 ## Cosa raccontare nella PR
 
 La descrizione serve a chi legge fra sei mesi, non a chi ha appena scritto il
