@@ -115,8 +115,8 @@ npx playwright install chromium    # solo la prima volta
 npm test
 ```
 
-121 test end-to-end, eseguiti su due profili — desktop e mobile (Pixel 7) — per un
-totale di 242 esecuzioni. Coprono inizializzazione, motore di calcolo, escaping e
+129 test end-to-end, eseguiti su due profili — desktop e mobile (Pixel 7) — per un
+totale di 258 esecuzioni. Coprono inizializzazione, motore di calcolo, escaping e
 persistenza dei preset, export/import (compresi i file con valori fuori dominio),
 limite di ripresa, confronto fra camere, condivisione via link, accessibilità
 (semantica tab, `aria-pressed`, tastiera), safe area del notch, autonomia della
@@ -243,6 +243,24 @@ l’acqua.
 Il testo sopra il colore del brand usa `--brand-ink`, scelto sul contrasto
 misurato invece che a occhio: scuro su teal (7,2:1) e su giallo (9,3:1), bianco
 su blu GoPro (5,2:1). Col bianco fisso, il giallo Insta360 dava 1,9:1.
+
+## Guida integrata
+
+La quinta scheda, **Guida**, spiega l'app a chi la apre per la prima volta: cosa
+fa, come si usa in tre passi, a cosa serve ogni funzione, e una sezione di
+domande frequenti. Sta dentro l'app e non in una pagina web a parte per la stessa
+ragione delle novità: deve restare leggibile offline, che è la condizione in cui
+l'app si usa davvero.
+
+I testi vivono in `HELP_INTRO`, `HELP_STEPS`, `HELP_FEATURES` e `HELP_FAQ` dentro
+`index.html`, come coppie titolo/testo, e passano dal dizionario come tutto il
+resto. Le domande usano `<details>`: la fisarmonica è nativa, quindi raggiungibile
+da tastiera senza una riga di JavaScript.
+
+Le risposte dicono anche le cose scomode — che bitrate e autonomia sono stime,
+perché l'autonomia è più bassa di quella dichiarata dal produttore, perché su
+iPhone l'installazione non è automatica. Una guida che promette più di quanto
+l'app mantiene sarebbe peggio dell'assenza di guida.
 
 ## Marchio
 
