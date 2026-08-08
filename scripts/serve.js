@@ -13,6 +13,21 @@ const path = require('path');
 const ROOT = path.resolve(__dirname, '..');
 const PORT = Number(process.argv[2] || process.env.PORT || 8080);
 
+// Solo l'interfaccia locale. Gli endpoint /__test/ qui sotto modificano cio'
+// che il server restituisce e non hanno autenticazione: in ascolto su tutte le
+// interfacce, chiunque sia sulla stessa rete potrebbe usarli per iniettare
+// codice nelle pagine servite a chi sta sviluppando. Chi ha bisogno di aprire
+// l'app dal telefono puo' passare HOST=0.0.0.0, ma e' una scelta esplicita.
+const HOST = process.env.HOST || '127.0.0.1';
+
+// I marcatori di prova finiscono dentro il documento e dentro il worker:
+// vanno ristretti a caratteri che non possono chiudere un attributo HTML ne'
+// aprire una nuova riga di JavaScript.
+const MARCATORE_AMMESSO = /^[A-Za-z0-9 ._:-]{0,64}$/;
+function marcatorePulito(valore) {
+  return MARCATORE_AMMESSO.test(valore || '') ? (valore || '') : '';
+}
+
 const MIME = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
@@ -36,13 +51,13 @@ const server = http.createServer((req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
 
   if (url.pathname === '/__test/marker') {
-    deployMarker = url.searchParams.get('value') || '';
+    deployMarker = marcatorePulito(url.searchParams.get('value'));
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     return res.end('ok');
   }
 
   if (url.pathname === '/__test/sw-bump') {
-    swBump = url.searchParams.get('value') || '';
+    swBump = marcatorePulito(url.searchParams.get('value'));
     res.writeHead(200, { 'Content-Type': 'text/plain' });
     return res.end('ok');
   }
@@ -79,7 +94,7 @@ const server = http.createServer((req, res) => {
   res.end(body);
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, HOST, () => {
   console.log(`ReadyClickShot in ascolto su http://localhost:${PORT}`);
 });
 

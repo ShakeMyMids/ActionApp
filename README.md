@@ -115,8 +115,8 @@ npx playwright install chromium    # solo la prima volta
 npm test
 ```
 
-129 test end-to-end, eseguiti su due profili — desktop e mobile (Pixel 7) — per un
-totale di 258 esecuzioni. Coprono inizializzazione, motore di calcolo, escaping e
+138 test end-to-end, eseguiti su due profili — desktop e mobile (Pixel 7) — per un
+totale di 276 esecuzioni. Coprono inizializzazione, motore di calcolo, escaping e
 persistenza dei preset, export/import (compresi i file con valori fuori dominio),
 limite di ripresa, confronto fra camere, condivisione via link, accessibilità
 (semantica tab, `aria-pressed`, tastiera), safe area del notch, autonomia della
@@ -306,6 +306,24 @@ Browser moderni con supporto a service worker e `localStorage`. Se `localStorage
 non è disponibile (per esempio in navigazione privata su Safari) l'app continua a
 funzionare, perdendo solo la persistenza di tema e preset. La copia negli appunti
 usa `navigator.clipboard` dove disponibile, con ripiego su `execCommand`.
+
+## Ingressi non fidati
+
+Tre strade portano dati dentro l'app senza che li abbia scritti l'utente in quel
+momento: il **link condiviso**, il **file di preset importato** e il
+**`localStorage`** scritto da una versione precedente. Tutte e tre convalidano i
+valori contro un dominio chiuso prima di usarli.
+
+Le tabelle di configurazione si interrogano con `hasOwn()` e non con
+`TABELLA[chiave]`. La differenza non è formale: `Object.prototype` porta membri
+come `constructor` e `toString`, che con l'accesso diretto vengono restituiti e
+sono truthy, quindi passerebbero un controllo scritto come `if (TABELLA[x])`.
+
+`scripts/serve.js` ascolta solo su `127.0.0.1`. I suoi endpoint `/__test/`
+modificano ciò che il server restituisce e non hanno autenticazione: in ascolto
+su tutte le interfacce, chiunque fosse sulla stessa rete potrebbe usarli mentre
+sviluppi. Per aprire l'app dal telefono si passa `HOST=0.0.0.0`, ma è una scelta
+esplicita.
 
 ## Licenza
 
