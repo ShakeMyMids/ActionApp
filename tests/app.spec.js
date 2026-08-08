@@ -242,6 +242,37 @@ test.describe('Modalita Pro', () => {
     await expect(page.locator('.pro-range')).toHaveCount(5);
   });
 
+  test('ogni cursore spiega cosa comporta spostarlo', async ({ page }) => {
+    // Un cursore senza spiegazione e' una manopola senza etichetta: chi gia'
+    // sa non ne ha bisogno, chi non sa non la tocca.
+    await apri(page);
+    await expect(page.locator('.pro-hint')).toHaveCount(5);
+    for (const testo of await page.locator('.pro-hint').allInnerTexts()) {
+      expect(testo.length).toBeGreaterThan(80);
+    }
+  });
+
+  test('ogni spiegazione dice cosa succede in tutte e due le direzioni', async ({ page }) => {
+    // Descrivere solo un verso non aiuta a scegliere dove fermarsi.
+    const buchi = await page.evaluate(() => PRO_SLIDERS
+      .filter(d => !d.hint || !/(Sotto|Sopra|Alzand|abbassand|negativo|positivo|bass|alt)/i.test(d.hint))
+      .map(d => d.key));
+    expect(buchi).toEqual([]);
+  });
+
+  test('le spiegazioni sono legate al cursore per i lettori di schermo', async ({ page }) => {
+    await apri(page);
+    const descr = await page.locator('#pro-isoMax').getAttribute('aria-describedby');
+    expect(descr).toContain('pro-hint-isoMax');
+    expect(descr).toContain('pro-auto-isoMax');
+  });
+
+  test('le spiegazioni parlano inglese', async ({ page }) => {
+    await apri(page);
+    await page.click('[data-action="toggleLanguage"]');
+    await expect(page.locator('#pro-hint-shutterAngle')).toContainText('classic cinema rule');
+  });
+
   test('ogni cursore dichiara cosa suggerirebbe l app', async ({ page }) => {
     // E' la ragione per cui la Pro non spegne il motore: il consiglio resta
     // scritto accanto, e la divergenza si vede invece di sparire.

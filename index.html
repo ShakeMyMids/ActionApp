@@ -169,6 +169,9 @@
         .pro-range { width: 100%; margin: 0; accent-color: var(--brand-color); }
         /* Il consiglio automatico resta scritto: e' il termine di paragone. */
         .pro-auto { font-size: 0.7rem; color: var(--text-secondary); margin-top: 3px; }
+        /* La spiegazione del cursore: non cambia con lo stato, quindi resta
+           piu' defilata del consiglio, che invece segue la scena. */
+        .pro-hint { font-size: 0.72rem; line-height: 1.45; color: var(--text-secondary); opacity: 0.8; margin-top: 5px; padding-left: 9px; border-left: 2px solid var(--border); }
         .pro-reset { width: 100%; margin-top: 4px; }
 
         .conflict-note { font-size: 0.75rem; line-height: 1.45; color: var(--text-secondary); margin-top: 8px; }
@@ -1766,6 +1769,16 @@
             '↺ Torna ai valori consigliati': '↺ Back to the suggested values',
             'Valori Pro riportati ai consigliati': 'Pro values restored to the suggested ones',
             'L\'app suggerirebbe: {auto}': 'The app would suggest: {auto}',
+            'Sotto i 180° il tempo di posa si accorcia: il movimento si congela ma diventa scattoso, e serve più luce. Sopra, il mosso aumenta e di luce ne serve meno — è quello che si apre di notte. 180° è la regola classica del cinema.':
+                'Below 180° the exposure time shortens: movement freezes but turns jittery, and more light is needed. Above it, blur grows and less light is needed — which is what you open up at night. 180° is the classic cinema rule.',
+            'È il tetto che concedi alla camera quando la luce cala. Alzandolo eviti di sottoesporre ma il rumore sale nelle ombre; abbassandolo tieni l\'immagine pulita e accetti che scurisca.':
+                'This is the ceiling you allow the camera when light drops. Raising it avoids underexposure but noise rises in the shadows; lowering it keeps the image clean and accepts that it goes darker.',
+            'Sposta l\'esposizione rispetto a quella che la camera calcola da sola. In negativo protegge le alte luci — cielo, neve, riflessi — chiudendo le ombre; in positivo apre le ombre e rischia di bruciare le luci, che non si recuperano.':
+                'Shifts exposure away from what the camera works out on its own. Negative protects the highlights — sky, snow, reflections — at the cost of blocked shadows; positive opens the shadows and risks blowing the highlights, which cannot be recovered.',
+            'È il colore della luce che dichiari alla camera: valori bassi raffreddano l\'immagine, alti la scaldano. Fissarlo evita che il colore salti fra un\'inquadratura e l\'altra, cosa che l\'automatico fa spesso in acqua e al tramonto.':
+                'This is the colour of the light you declare to the camera: low values cool the image, high ones warm it. Fixing it stops the colour jumping between shots, which the automatic setting often does underwater and at sunset.',
+            'Quanto la camera accentua i contorni già in ripresa. In negativo l\'immagine è più morbida e regge meglio la correzione in post; in positivo è più incisa subito, ma su rami, acqua e tessuti compaiono aloni.':
+                'How much the camera sharpens edges while recording. Negative gives a softer image that holds up better to grading; positive looks crisper straight away, but haloes appear on branches, water and fabric.',
             'Angolo di otturatore': 'Shutter angle',
             'ISO massimo': 'Maximum ISO',
             'Compensazione EV': 'EV compensation',
@@ -3313,17 +3326,25 @@
         // Ogni cursore lavora sull'indice di una scala discreta: sono i valori
         // che le camere offrono davvero, e scorrere fra quelli evita di
         // proporre numeri che poi nel menu non si trovano.
+        // hint: cosa comporta spostare il cursore, in tutte e due le
+        // direzioni. Un cursore senza spiegazione e' una manopola senza
+        // etichetta: chi gia' sa non ne ha bisogno, chi non sa non la tocca.
         const PRO_SLIDERS = [
             { key: 'shutterAngle', label: 'Angolo di otturatore', scale: SHUTTER_ANGLES,
-              format: v => `${v}°`, auto: () => autoValues.shutter },
+              format: v => `${v}°`, auto: () => autoValues.shutter,
+              hint: 'Sotto i 180° il tempo di posa si accorcia: il movimento si congela ma diventa scattoso, e serve più luce. Sopra, il mosso aumenta e di luce ne serve meno — è quello che si apre di notte. 180° è la regola classica del cinema.' },
             { key: 'isoMax', label: 'ISO massimo', scale: ISO_CEILINGS,
-              format: v => `ISO ${v}`, auto: () => autoValues.iso },
+              format: v => `ISO ${v}`, auto: () => autoValues.iso,
+              hint: 'È il tetto che concedi alla camera quando la luce cala. Alzandolo eviti di sottoesporre ma il rumore sale nelle ombre; abbassandolo tieni l\'immagine pulita e accetti che scurisca.' },
             { key: 'ev', label: 'Compensazione EV', scale: EV_STEPS,
-              format: v => `${formatEv(v)} EV`, auto: () => autoValues.ev },
+              format: v => `${formatEv(v)} EV`, auto: () => autoValues.ev,
+              hint: 'Sposta l\'esposizione rispetto a quella che la camera calcola da sola. In negativo protegge le alte luci — cielo, neve, riflessi — chiudendo le ombre; in positivo apre le ombre e rischia di bruciare le luci, che non si recuperano.' },
             { key: 'wb', label: 'Bilanciamento del bianco', scale: WB_KELVIN,
-              format: v => `${v}K`, auto: () => autoValues.wb },
+              format: v => `${v}K`, auto: () => autoValues.wb,
+              hint: 'È il colore della luce che dichiari alla camera: valori bassi raffreddano l\'immagine, alti la scaldano. Fissarlo evita che il colore salti fra un\'inquadratura e l\'altra, cosa che l\'automatico fa spesso in acqua e al tramonto.' },
             { key: 'sharpness', label: 'Nitidezza', scale: SHARPNESS_STEPS,
-              format: v => (v > 0 ? `+${v}` : String(v)), auto: () => autoValues.sharp }
+              format: v => (v > 0 ? `+${v}` : String(v)), auto: () => autoValues.sharp,
+              hint: 'Quanto la camera accentua i contorni già in ripresa. In negativo l\'immagine è più morbida e regge meglio la correzione in post; in positivo è più incisa subito, ma su rami, acqua e tessuti compaiono aloni.' }
         ];
 
         function proSliderRow(def) {
@@ -3333,8 +3354,9 @@
                 + `<span class="pro-value" id="pro-val-${def.key}">${escapeHtml(def.format(proSettings[def.key]))}</span></div>`
                 + `<input type="range" class="pro-range" id="pro-${def.key}" min="0" max="${def.scale.length - 1}"`
                 + ` step="1" value="${i}" data-action="setProSetting" data-key="${def.key}"`
-                + ` aria-describedby="pro-auto-${def.key}">`
+                + ` aria-describedby="pro-auto-${def.key} pro-hint-${def.key}">`
                 + `<div class="pro-auto" id="pro-auto-${def.key}">${escapeHtml(t('L\'app suggerirebbe: {auto}', { auto: def.auto() || '—' }))}</div>`
+                + `<div class="pro-hint" id="pro-hint-${def.key}">${escapeHtml(t(def.hint))}</div>`
                 + `</div>`;
         }
 
