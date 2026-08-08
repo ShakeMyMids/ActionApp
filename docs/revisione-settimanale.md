@@ -67,6 +67,13 @@ danno diretto a chi la usa.
   `index.html`, e si aggiunge la voce nel `CHANGELOG` dentro `index.html`. La
   versione in `sw.js` non è decorativa: è ciò che fa accorgere il browser che
   c'è un aggiornamento.
+- **Qualunque modifica al blocco di script inline di `index.html` richiede
+  `npm run csp`.** La Content-Security-Policy dichiara l'hash di quello script:
+  se l'hash resta indietro, il browser rifiuta di eseguire l'app intera. In
+  locale la suite se ne accorge, in produzione sarebbe una pagina bianca.
+- Se cambia il marchio nell'intestazione, si rigenerano le icone con
+  `npm run icone`. Le due copie del disegno devono restare identiche, e c'è un
+  test che lo verifica.
 
 ## Cosa raccontare nella PR
 
