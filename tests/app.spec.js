@@ -772,6 +772,67 @@ test.describe('Camera predefinita (stellina)', () => {
   });
 });
 
+test.describe('Marchio', () => {
+  test('e un segno vettoriale e non un emoji', async ({ page }) => {
+    // Le emoji le disegna il sistema operativo: la stessa 🎥 cambia faccia
+    // fra Windows, Android e iPhone.
+    await expect(page.locator('.app-title .app-logo')).toHaveCount(1);
+    expect(await page.locator('.app-title').innerText()).not.toContain('🎥');
+    expect(await page.evaluate(() =>
+      document.querySelector('.app-logo').tagName.toLowerCase())).toBe('svg');
+  });
+
+  test('resta neutro e non prende il colore del brand', async ({ page }) => {
+    // Nell'app un solo colore indica «selezionato», quello del brand attivo:
+    // un logo tinto di quel colore si leggerebbe come un controllo acceso.
+    const colore = () => page.evaluate(() => {
+      const logo = document.querySelector('.app-logo');
+      return {
+        tratto: getComputedStyle(logo.querySelector('path')).stroke,
+        testo: getComputedStyle(document.querySelector('.app-title')).color,
+        brand: getComputedStyle(document.documentElement).getPropertyValue('--brand-color').trim()
+      };
+    });
+    const dji = await colore();
+    expect(dji.tratto).toBe(dji.testo);
+
+    await page.click('#brand-card-gopro');
+    const gopro = await colore();
+    expect(gopro.tratto).toBe(gopro.testo);
+    // Il brand e' davvero cambiato: il test non passa per immobilita'.
+    expect(gopro.brand).not.toBe(dji.brand);
+  });
+
+  test('cresce col titolo invece di restare fisso', async ({ page }) => {
+    // Su desktop il titolo e' piu' grande: in px il marchio resterebbe indietro.
+    const dimensione = await page.evaluate(() => {
+      const logo = document.querySelector('.app-logo');
+      return getComputedStyle(logo).width;
+    });
+    expect(dimensione).not.toBe('0px');
+    const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    expect(html).toContain('.app-logo { width: 1.25em; height: 1.25em;');
+  });
+
+  test('la scheda del browser usa il marchio, col PNG come ripiego', async ({ page }) => {
+    // L'SVG deve venire per primo: i browser scelgono la prima icona che
+    // sanno leggere, quindi invertirli farebbe vincere sempre il PNG.
+    const icone = await page.evaluate(() =>
+      [...document.querySelectorAll('link[rel="icon"]')].map(l => l.getAttribute('type')));
+    expect(icone[0]).toBe('image/svg+xml');
+    expect(icone).toContain('image/png');
+
+    const svg = await page.getAttribute('link[rel="icon"][type="image/svg+xml"]', 'href');
+    // Data URI e non file: resta disponibile offline come il resto dell'app.
+    expect(svg.startsWith('data:image/svg+xml,')).toBe(true);
+    // Ed e' davvero lo stesso marchio del titolo, non un disegno qualsiasi:
+    // il tracciato degli angoli del mirino e' riconoscibile anche codificato.
+    const tracciato = await page.evaluate(() =>
+      document.querySelector('.app-logo path').getAttribute('d').slice(0, 12));
+    expect(decodeURIComponent(svg)).toContain(tracciato);
+  });
+});
+
 test.describe('Installazione', () => {
   // Stringhe reali dei browser: la rilevazione e' una funzione pura, quindi si
   // prova per ogni sistema senza doverli avere tutti a disposizione.

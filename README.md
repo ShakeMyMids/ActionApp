@@ -115,8 +115,8 @@ npx playwright install chromium    # solo la prima volta
 npm test
 ```
 
-117 test end-to-end, eseguiti su due profili — desktop e mobile (Pixel 7) — per un
-totale di 234 esecuzioni. Coprono inizializzazione, motore di calcolo, escaping e
+121 test end-to-end, eseguiti su due profili — desktop e mobile (Pixel 7) — per un
+totale di 242 esecuzioni. Coprono inizializzazione, motore di calcolo, escaping e
 persistenza dei preset, export/import (compresi i file con valori fuori dominio),
 limite di ripresa, confronto fra camere, condivisione via link, accessibilità
 (semantica tab, `aria-pressed`, tastiera), safe area del notch, autonomia della
@@ -243,6 +243,22 @@ l’acqua.
 Il testo sopra il colore del brand usa `--brand-ink`, scelto sul contrasto
 misurato invece che a occhio: scuro su teal (7,2:1) e su giallo (9,3:1), bianco
 su blu GoPro (5,2:1). Col bianco fisso, il giallo Insta360 dava 1,9:1.
+
+## Marchio
+
+Il segno accanto al nome è un **SVG inline**, non un'emoji: le emoji le disegna il
+sistema operativo, quindi la stessa 🎥 cambia faccia fra Windows, Android e
+iPhone — e in un'app che vuole sembrare uno strumento è la prima cosa che stona.
+
+È un mirino: quattro angoli e il punto al centro, cioè l'atto di inquadrare prima
+di scattare. Resta in `currentColor` e quindi **neutro**: il colore del brand è
+riservato a ciò che è interattivo, e un logo tinto di teal si leggerebbe come un
+controllo acceso. Le misure sono in `em`, così cresce col titolo invece di
+restare indietro sulle dimensioni maggiori.
+
+Lo stesso marchio è anche l'icona della scheda del browser, come data URI: niente
+file da scaricare, quindi resta disponibile offline. Il PNG resta come ripiego
+per i browser che non leggono i favicon SVG.
 
 ## Tipografia
 
